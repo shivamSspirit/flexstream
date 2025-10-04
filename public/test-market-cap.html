@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Cap Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .market-cap {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        .debug {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Market Cap Test</h1>
+    <div id="loading">Loading...</div>
+    <div id="results"></div>
+
+    <script>
+        async function testMarketCap() {
+            try {
+                console.log('🔍 Testing market cap API...');
+                const response = await fetch('/api/test-live-streams?maxCoins=3&includeDexScreener=true');
+                console.log('📡 Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('📊 Result:', result);
+                
+                if (result.success && result.data) {
+                    displayResults(result.data);
+                } else {
+                    throw new Error(result.error || 'Failed to fetch data');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('loading').innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayResults(streams) {
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            
+            loadingDiv.style.display = 'none';
+            
+            streams.forEach((stream, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const tokenMC = stream.token.market_cap || 0;
+                const tradingMC = stream.trading_activity?.market_cap || 0;
+                const finalMC = stream.token.market_cap || stream.trading_activity?.market_cap || 0;
+                
+                card.innerHTML = `
+                    <h3>${stream.token.name} (${stream.token.symbol})</h3>
+                    <div class="market-cap">MC: $${finalMC.toLocaleString()}</div>
+                    <div class="debug">
+                        <div>Token MC: ${tokenMC || 'null'}</div>
+                        <div>Trading MC: ${tradingMC || 'null'}</div>
+                        <div>Enhanced: ${stream.token.enhanced_with_dexscreener ? 'Yes' : 'No'}</div>
+                        <div>Mint: ${stream.token.mint}</div>
+                    </div>
+                `;
+                
+                resultsDiv.appendChild(card);
+            });
+        }
+
+        // Run the test when the page loads
+        testMarketCap();
+    </script>
+</body>
+</html>

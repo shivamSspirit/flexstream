@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body {
+            background-color: #1f2937;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .result {
+            background-color: #374151;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Test Page</h1>
+        <p>This is a basic HTML page to test if JavaScript is working.</p>
+        
+        <button onclick="testBasic()">Basic Test</button>
+        <button onclick="testAPI()">API Test</button>
+        
+        <div class="result" id="result">
+            Click a button to see results...
+        </div>
+    </div>
+
+    <script>
+        function testBasic() {
+            console.log('Basic test clicked');
+            document.getElementById('result').innerHTML = 'Basic test successful! JavaScript is working.';
+        }
+
+        async function testAPI() {
+            console.log('API test clicked');
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing API...';
+            
+            try {
+                const response = await fetch('/api/test-wallet-no-auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

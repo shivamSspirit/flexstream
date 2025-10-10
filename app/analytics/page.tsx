@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const [timeframe, setTimeframe] = useState('7d');
 
   const timeframes = [

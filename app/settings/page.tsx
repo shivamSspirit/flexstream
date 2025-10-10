@@ -142,9 +142,9 @@ export default function SettingsPage() {
                 {section.items.map((item, itemIdx) => (
                   <div
                     key={itemIdx}
-                    onClick={item.action}
+                    onClick={'action' in item ? item.action : undefined}
                     className={`bg-card-bg rounded-xl p-4 border border-white/5 ${
-                      item.action ? 'hover:border-white/10 cursor-pointer' : ''
+                      'action' in item ? 'hover:border-white/10 cursor-pointer' : ''
                     } transition-all`}
                   >
                     <div className="flex items-center justify-between">
@@ -154,12 +154,12 @@ export default function SettingsPage() {
                           <p className="text-secondary text-sm">{item.sublabel}</p>
                         )}
                       </div>
-                      {item.toggle && item.onChange ? (
+                      {'toggle' in item && item.onChange ? (
                         <Switch
                           checked={item.value}
                           onCheckedChange={item.onChange}
                         />
-                      ) : item.action ? (
+                      ) : 'action' in item ? (
                         <ArrowRightIcon className="w-5 h-5 text-secondary" />
                       ) : null}
                     </div>

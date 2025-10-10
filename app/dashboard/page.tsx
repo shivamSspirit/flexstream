@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { UniversalHeader } from '@/components/layout/UniversalHeader';
 import { MinimalSidebar } from '@/components/layout/MinimalSidebar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const stats = [

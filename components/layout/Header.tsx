@@ -84,8 +84,9 @@ export function Header() {
 
       {/* Create Post Modal */}
       <CreatePostModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onUpload={(files) => console.log('Uploaded files:', files)}
       />
     </>
   );

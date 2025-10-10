@@ -1,12 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   images: {
     domains: [
       'images.unsplash.com',
       'uploadthing.com',
       'utfs.io',
       'supabase.co',
-      'avatars.githubusercontent.com'
+      'avatars.githubusercontent.com',
+      'ipfs.io',
+      'pump.mypinata.cloud'
     ],
   },
   webpack: (config) => {

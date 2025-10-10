@@ -1,317 +1,474 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { SolanaConnectButton } from '@/components/solana/SolanaProvider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useAuth } from '@clerk/nextjs';
-import { LiveStreamsGrid } from '@/components/pump-fun/LiveStreamsGrid';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { 
-  PlayIcon, 
-  CurrencyDollarIcon, 
-  FireIcon, 
-  UserGroupIcon,
-  RocketLaunchIcon,
-  ArrowTrendingUpIcon,
-  SignalIcon,
-  MagnifyingGlassIcon,
-  UserIcon,
-  HomeIcon,
-  MapIcon,
+  HeartIcon, 
+  ChatBubbleLeftIcon, 
+  ShareIcon,
   PlusIcon,
-  BellIcon,
-  CogIcon,
-  BookmarkIcon
+  PlayIcon
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
+import { cn } from '@/lib/utils';
 
-export default function LandingPage() {
+export default function HomePage() {
   const router = useRouter();
-  const { connected } = useWallet();
-  const { isLoaded, isSignedIn } = useAuth();
-  const walletConnected = connected;
-  const emailAuthenticated = isLoaded && isSignedIn;
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [displayedItems, setDisplayedItems] = useState(5);
+  const [isLoading, setIsLoading] = useState(false);
+  const observerTarget = useRef(null);
 
-  // If wallet is not connected, show landing page
-  if (!walletConnected) {
+  const feedItems = [
+    {
+      id: '1',
+      type: 'mint',
+      user: {
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
+        name: 'Alex Morrison',
+        username: 'alexm',
+        verified: true
+      },
+      action: 'minted',
+      content: {
+        title: 'Cosmic Dreams #127',
+        media: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800&h=800&fit=crop',
+        mediaType: 'image'
+      },
+      price: '2.5 SOL',
+      priceUsd: '$285.00',
+      holders: 127,
+      likes: 342,
+      comments: 28,
+      time: '2h ago',
+      edition: '1 of 100',
+      hasVideo: false
+    },
+    {
+      id: '2',
+      type: 'buy',
+      user: {
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+        name: 'Sarah Chen',
+        username: 'sarahc',
+        verified: true
+      },
+      action: 'bought',
+      content: {
+        title: 'Digital Sunset Series',
+        media: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=800&fit=crop',
+        mediaType: 'image'
+      },
+      price: '0.8 SOL',
+      priceUsd: '$91.20',
+      priceChange: '+15.2%',
+      holders: 284,
+      likes: 891,
+      comments: 156,
+      time: '4h ago',
+      edition: '12 of 50',
+      hasVideo: false
+    },
+    {
+      id: '3',
+      type: 'video',
+      user: {
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+        name: 'Marcus Johnson',
+        username: 'marcusj',
+        verified: true
+      },
+      action: 'shared',
+      content: {
+        title: 'Motion Study 003',
+        media: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=800&fit=crop',
+        mediaType: 'video'
+      },
+      price: 'Free Mint',
+      priceUsd: '',
+      holders: 1847,
+      likes: 1247,
+      comments: 89,
+      time: '6h ago',
+      edition: 'Open Edition',
+      hasVideo: true
+    },
+    {
+      id: '4',
+      type: 'mint',
+      user: {
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+        name: 'Emma Williams',
+        username: 'emmaw',
+        verified: false
+      },
+      action: 'minted',
+      content: {
+        title: 'Abstract Flow #42',
+        media: 'https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?w=800&h=800&fit=crop',
+        mediaType: 'image'
+      },
+      price: '1.2 SOL',
+      priceUsd: '$136.80',
+      holders: 45,
+      likes: 523,
+      comments: 67,
+      time: '8h ago',
+      edition: '42 of 100',
+      hasVideo: false
+    },
+    {
+      id: '5',
+      type: 'buy',
+      user: {
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+        name: 'David Park',
+        username: 'davidp',
+        verified: true
+      },
+      action: 'collected',
+      content: {
+        title: 'Neon Dreams Collection',
+        media: 'https://images.unsplash.com/photo-1605792657660-596af9009e82?w=800&h=800&fit=crop',
+        mediaType: 'image'
+      },
+      price: '3.5 SOL',
+      priceUsd: '$399.00',
+      priceChange: '+45.8%',
+      holders: 312,
+      likes: 2156,
+      comments: 342,
+      time: '10h ago',
+      edition: '7 of 25',
+      hasVideo: false
+    }
+  ];
+
+  // Infinite scroll logic
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && displayedItems < feedItems.length * 3) {
+          setIsLoading(true);
+          setTimeout(() => {
+            setDisplayedItems((prev) => Math.min(prev + 3, feedItems.length * 3));
+            setIsLoading(false);
+          }, 1000);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [isLoading, displayedItems, feedItems.length]);
+
+  const toggleLike = (postId: string) => {
+    setLikedPosts(prev => {
+      const newLikes = new Set(prev);
+      if (newLikes.has(postId)) {
+        newLikes.delete(postId);
+      } else {
+        newLikes.add(postId);
+      }
+      return newLikes;
+    });
+  };
+
+  // Generate repeated feed items for infinite scroll
+  const infiniteFeedItems = Array.from({ length: displayedItems }, (_, i) => {
+    const baseItem = feedItems[i % feedItems.length];
+    return {
+      ...baseItem,
+      id: `${baseItem.id}-${Math.floor(i / feedItems.length)}-${i}`
+    };
+  });
+
+  const suggestedFollows = [
+    {
+      id: '1',
+      name: 'Alex Morrison',
+      username: 'alexm',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
+      bio: 'Digital artist & NFT creator',
+      followers: '125K',
+      verified: true
+    },
+    {
+      id: '2',
+      name: 'Sarah Chen',
+      username: 'sarahc',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      bio: 'Crypto enthusiast',
+      followers: '98K',
+      verified: true
+    },
+    {
+      id: '3',
+      name: 'Marcus Johnson',
+      username: 'marcusj',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+      bio: 'Web3 developer',
+      followers: '87K',
+      verified: true
+    },
+    {
+      id: '4',
+      name: 'Emma Williams',
+      username: 'emmaw',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+      bio: 'NFT collector',
+      followers: '76K',
+      verified: false
+    },
+  ];
+
     return (
-      <div className="min-h-screen bg-black flex flex-col">
-        {/* Top Header */}
-        <div className="bg-black border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-          <h1 className="text-white text-lg font-semibold">FlexStream - Landing Page</h1>
-          <div className="flex items-center space-x-4">
-            <SolanaConnectButton />
-            {!emailAuthenticated && (
-              <Button onClick={() => router.push('/auth/signin')} className="bg-purple-600 hover:bg-purple-700 text-white">
-                Sign In
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex">
-          {/* Left Sidebar */}
-          <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-            {/* Logo */}
-            <div className="p-6 border-b border-gray-800">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">★</span>
+    <AppLayout showWallet={true} showSearch={true}>
+      <div className="min-h-screen pb-20 md:pb-0">
+        {/* Main Container - Zora Exact Layout */}
+        <div className="max-w-[1400px] mx-auto flex justify-center gap-8 px-4">
+          {/* Feed Container - Centered */}
+          <div className="w-full max-w-[600px]">
+            {/* Feed Items */}
+            <div className="space-y-0 md:space-y-6 -mx-4 sm:mx-0">
+            {infiniteFeedItems.map((item, index) => (
+              <article
+                key={item.id}
+                onClick={() => router.push(`/post/${item.id}`)}
+                className="bg-app-bg md:bg-card-bg md:rounded-2xl overflow-hidden md:border md:border-white/5 md:hover:border-white/10 transition-all duration-200 cursor-pointer"
+              >
+                {/* User Header - Compact Zora Style */}
+                <div 
+                  className="px-4 pt-3 pb-2 flex items-center justify-between"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Avatar 
+                      className="h-10 w-10 ring-2 ring-white/10 cursor-pointer hover:ring-white/20 transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/profile/${item.user.username}`);
+                      }}
+                    >
+                      <AvatarImage src={item.user.avatar} alt={item.user.name} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm">
+                        {item.user.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span 
+                          className="text-primary text-sm font-semibold hover:text-purple-400 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/profile/${item.user.username}`);
+                          }}
+                        >
+                          {item.user.name}
+                        </span>
+                        {item.user.verified && (
+                          <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-[10px] font-bold">✓</span>
                 </div>
-                <span className="text-white font-bold text-xl">FlexStream</span>
-              </div>
+                        )}
             </div>
-
-            {/* Navigation */}
-            <div className="flex-1 p-4 space-y-2">
-              <button 
-                onClick={() => router.push('/')}
-                className="w-full flex items-center space-x-3 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <HomeIcon className="w-5 h-5" />
-                <span>Home</span>
-              </button>
-              <button 
-                onClick={() => router.push('/explore')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <MapIcon className="w-5 h-5" />
-                <span>Explore</span>
-              </button>
-              <button 
-                onClick={() => router.push('/create')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors relative"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span>Create Post</span>
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  9
-                </div>
-              </button>
-              <button 
-                onClick={() => router.push('/notifications')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <BellIcon className="w-5 h-5" />
-                <span>Notifications</span>
-              </button>
-              <button 
-                onClick={() => router.push('/profile')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <UserIcon className="w-5 h-5" />
-                <span>Profile</span>
-              </button>
-              <button 
-                onClick={() => router.push('/settings')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <CogIcon className="w-5 h-5" />
-                <span>Settings</span>
-              </button>
-              <button 
-                onClick={() => router.push('/saved')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <BookmarkIcon className="w-5 h-5" />
-                <span>Saved</span>
-              </button>
-            </div>
+                      <p className="text-secondary text-xs">
+                        {item.action} · {item.time}
+                      </p>
           </div>
+                  </div>
+                </div>
 
-          {/* Feed Content */}
-          <div className="flex-1 bg-black p-6">
-            <div className="max-w-2xl mx-auto">
-              {/* Featured Post */}
-              <div className="bg-gray-900 rounded-lg p-6 mb-6">
-                {/* Post Header */}
-                <div className="flex items-center space-x-3 mb-4">
+                {/* Media - Full Width on Mobile */}
+                <div className="relative group cursor-pointer bg-black">
                   <img
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                    alt="User"
-                    className="w-10 h-10 rounded-full"
+                    src={item.content.media}
+                    alt={item.content.title}
+                    className="w-full aspect-square object-cover"
                   />
-                  <div>
-                    <div className="text-white font-medium">droven</div>
-                    <div className="text-gray-400 text-sm">4m ago</div>
-                  </div>
-                  <Badge className="bg-green-500 text-white text-xs px-2 py-1">NEW</Badge>
-                </div>
-
-                {/* Post Image */}
-                <div className="mb-4">
-                  <img
-                    src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"
-                    alt="Scribbled Eye and Monster"
-                    className="w-full h-96 object-cover rounded-lg"
-                  />
-                </div>
-
-                {/* Post Title and Description */}
-                <div className="mb-4">
-                  <h2 className="text-white font-bold text-xl mb-2">Scribbled Eye and Monster</h2>
-                  <p className="text-gray-300">
-                    An experiment in combining delicate anatomical details with raw, energetic scribbles. 
-                    Capturing the essence of observation and abstract chaos.
-                  </p>
-                </div>
-
-                {/* Post Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <button className="flex items-center space-x-2 text-gray-400 hover:text-white">
-                      <span>❤️</span>
-                      <span>124</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-400 hover:text-white">
-                      <span>💬</span>
-                      <span>32</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-400 hover:text-white">
-                      <span>📤</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                  <SolanaConnectButton />
-                  <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => router.push('/explore')}>
-                    Explore
-                  </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Sidebar */}
-          <div className="w-80 bg-gray-900 border-l border-gray-800 p-6">
-            <div className="space-y-8">
-              {/* Suggested Follow */}
-              <div>
-                <h3 className="text-white font-semibold text-lg mb-6">Suggested Follow</h3>
-                <div className="space-y-4">
-                  {[
-                    { name: 'm4zin', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=48&h=48&fit=crop&crop=face', followers: '12.5K', verified: true },
-                    { name: 'artchick', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=48&h=48&fit=crop&crop=face', followers: '8.2K', verified: false },
-                    { name: 'suede', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=48&h=48&fit=crop&crop=face', followers: '15.7K', verified: true }
-                  ].map((user) => (
-                    <div key={user.name} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
-                          {user.verified && (
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs">✓</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-1">
-                            <span className="text-white font-medium text-sm">{user.name}</span>
-                          </div>
-                          <span className="text-gray-400 text-xs">{user.followers} followers</span>
-                        </div>
+                  {item.hasVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                      <div className="w-16 h-16 bg-white/95 hover:bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+                        <PlayIcon className="w-8 h-8 text-gray-900 ml-1" />
                       </div>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1">
-                        Follow
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+
+                  {/* Content Info - Zora Style */}
+                <div className="px-4 pt-2 pb-3" onClick={(e) => e.stopPropagation()}>
+                  <h2 className="text-primary text-base font-semibold mb-1 hover:text-purple-400 transition-colors cursor-pointer">
+                    {item.content.title}
+                  </h2>
+                  <p className="text-secondary text-xs mb-2">{item.edition}</p>
+
+                  {/* Price & Action Row */}
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl font-bold text-primary">
+                          {item.price}
+                        </span>
+                        {item.priceUsd && (
+                          <span className="text-secondary text-xs">{item.priceUsd}</span>
+                        )}
+                      </div>
+                      {item.holders > 0 && (
+                        <p className="text-secondary text-xs">
+                          {item.holders} collectors
+                        </p>
+                      )}
+                    </div>
+                    {item.type !== 'video' && (
+                      <Button 
+                        className="flexstream-gradient text-white px-6 py-2 text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('Collect clicked for:', item.content.title);
+                        }}
+                      >
+                        Collect
                       </Button>
-                    </div>
-                  ))}
+                    )}
                 </div>
-              </div>
 
-              {/* Trending Assets */}
-              <div>
-                <h3 className="text-white font-semibold text-lg mb-6">Trending Assets</h3>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Quant', price: '0.5 ETH', change: '+12.5%', image: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200&h=200&fit=crop', volume: '2.4K', rank: 1 },
-                    { name: 'Cyber', price: '1.2 ETH', change: '+8.2%', image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=200&h=200&fit=crop', volume: '1.8K', rank: 2 },
-                    { name: 'Pixel S', price: '0.8 ETH', change: '+15.7%', image: 'https://images.unsplash.com/photo-1557683311-eac922347aa1?w=200&h=200&fit=crop', volume: '3.2K', rank: 3 }
-                  ].map((asset) => (
-                    <div key={asset.name} className="bg-gray-800/30 rounded-xl p-4 hover:bg-gray-800/50 transition-all duration-200 border border-gray-700/30 hover:border-gray-600/50">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">{asset.rank}</span>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <img src={asset.image} alt={asset.name} className="w-14 h-14 rounded-xl object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-white font-semibold text-sm truncate">{asset.name}</h4>
-                              <p className="text-gray-400 text-xs">{asset.volume} vol</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-white font-semibold text-sm">{asset.price}</p>
-                              <p className="text-green-400 text-xs font-medium">{asset.change}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {/* Actions - Minimal Zora Style */}
+                  <div className="flex items-center gap-6 pt-2 border-t border-white/5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLike(item.id);
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 transition-all group",
+                        likedPosts.has(item.id) ? "text-pink-500" : "text-secondary hover:text-pink-400"
+                      )}
+                    >
+                      {likedPosts.has(item.id) ? (
+                        <HeartSolidIcon className="w-5 h-5" />
+                      ) : (
+                        <HeartIcon className="w-5 h-5 group-hover:scale-105 transition-transform" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {likedPosts.has(item.id) ? item.likes + 1 : item.likes}
+                      </span>
+                    </button>
+                    <button className="flex items-center gap-1.5 text-secondary hover:text-blue-400 transition-colors group">
+                      <ChatBubbleLeftIcon className="w-5 h-5 group-hover:scale-105 transition-transform" />
+                      <span className="text-xs font-medium">{item.comments}</span>
+                    </button>
+                    <button className="flex items-center gap-1.5 text-secondary hover:text-green-400 transition-colors group">
+                      <ShareIcon className="w-5 h-5 group-hover:scale-105 transition-transform" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </article>
+            ))}
 
-              {/* Quick Stats */}
-              <div>
-                <h3 className="text-white font-semibold text-lg mb-6">Quick Stats</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-green-400 font-bold text-lg">$2.3M</div>
-                    <div className="text-gray-400 text-xs">Total Volume</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-blue-400 font-bold text-lg">15K</div>
-                    <div className="text-gray-400 text-xs">Active Users</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-purple-400 font-bold text-lg">500+</div>
-                    <div className="text-gray-400 text-xs">Collections</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-orange-400 font-bold text-lg">98%</div>
-                    <div className="text-gray-400 text-xs">Success Rate</div>
+            {/* Loading Indicator */}
+            {isLoading && (
+              <div className="flex justify-center py-8">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex gap-2">
+                    <div className="w-2.5 h-2.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2.5 h-2.5 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2.5 h-2.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+            
+            {/* Observer target for infinite scroll */}
+            <div ref={observerTarget} className="h-20" />
           </div>
         </div>
-      </div>
-    );
-  }
 
-  // If wallet connected but not signed in, prompt to sign in
-  if (walletConnected && !emailAuthenticated) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="text-center space-y-4">
-          <h2 className="text-white text-2xl font-semibold">Sign in required</h2>
-          <p className="text-gray-400">Please sign in with your email/social account to continue.</p>
-          <Button onClick={() => router.push('/auth/signin')} className="bg-purple-600 hover:bg-purple-700 text-white">
-            Go to Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
+          {/* Right Sidebar - Suggested Follows (Desktop Only, Zora Style) */}
+          <aside className="hidden lg:block w-80 sticky top-24 h-fit">
+            {/* Suggested Follows - Ultra Compact */}
+            <div className="bg-card-bg rounded-xl p-4 border border-white/5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-primary font-semibold text-sm">Suggested</h3>
+                <button 
+                  className="text-purple-400 text-xs hover:text-purple-300"
+                  onClick={() => router.push('/discover')}
+                >
+                  See all
+                </button>
+              </div>
 
-  // If both connected and authenticated, show dashboard/home content
-  return (
-    <AppLayout>
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white text-2xl font-bold">Live Streams</h2>
-          <div className="text-gray-400 text-sm">Welcome back</div>
+              <div className="space-y-3">
+                {suggestedFollows.slice(0, 3).map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 group"
+                  >
+                    <Avatar 
+                      className="h-10 w-10 ring-1 ring-white/10 group-hover:ring-white/20 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => router.push(`/profile/${user.username}`)}
+                    >
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm">
+                        {user.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <button
+                          onClick={() => router.push(`/profile/${user.username}`)}
+                          className="text-primary font-semibold text-sm truncate group-hover:text-purple-400 transition-colors"
+                        >
+                          {user.name}
+                        </button>
+                        {user.verified && (
+                          <div className="w-3.5 h-3.5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-[9px] font-bold">✓</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-secondary text-xs">{user.followers} followers</p>
+                    </div>
+
+                    <Button 
+                      size="sm" 
+                      className="bg-white/5 hover:bg-white/10 text-primary border border-white/10 px-4 py-1.5 text-xs h-8 rounded-lg transition-colors flex-shrink-0 font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Follow:', user.username);
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
-        <LiveStreamsGrid />
+
+        {/* Floating Action Button - Zora Style */}
+        <button
+          onClick={() => router.push('/create')}
+          className="fixed bottom-24 md:bottom-8 right-4 md:right-8 w-14 h-14 md:w-16 md:h-16 flexstream-gradient rounded-full flex items-center justify-center shadow-2xl shadow-purple-500/50 hover:scale-110 transition-transform z-40"
+          aria-label="Create"
+        >
+          <PlusIcon className="w-7 h-7 md:w-8 md:h-8 text-white stroke-[2.5]" />
+        </button>
       </div>
     </AppLayout>
   );

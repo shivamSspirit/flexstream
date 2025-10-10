@@ -20,7 +20,7 @@ export function DesktopSidebar() {
   ];
 
   return (
-    <aside className="hidden lg:block fixed left-0 top-16 bottom-0 w-64 bg-gray-900 border-r border-gray-800 overflow-y-auto">
+    <aside className="hidden lg:block fixed left-0 top-16 bottom-0 w-64 bg-app-bg border-r border-white/10 overflow-y-auto">
       <div className="p-4 space-y-2">
         {navItems.map((item) => (
           <Button
@@ -30,7 +30,7 @@ export function DesktopSidebar() {
             className={`w-full justify-start ${
               item.active
                 ? 'bg-purple-600/20 text-purple-400 border-l-2 border-purple-400'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                : 'text-secondary hover:text-primary hover:bg-card-bg transition-colors'
             }`}
           >
             <item.icon className="h-5 w-5 mr-3" />
@@ -45,14 +45,14 @@ export function DesktopSidebar() {
       </div>
 
       {/* Trending Hashtags */}
-      <div className="p-4 border-t border-gray-800">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">Trending</h3>
+      <div className="p-4 border-t border-white/10">
+        <h3 className="text-sm font-semibold text-primary mb-3">Trending</h3>
         <div className="space-y-2">
           {['#pumpfun', '#solana', '#trading', '#earnings', '#crypto'].map((hashtag) => (
             <button
               key={hashtag}
               onClick={() => router.push(`/search?q=${hashtag}`)}
-              className="block w-full text-left text-sm text-gray-400 hover:text-purple-400 transition-colors"
+              className="block w-full text-left text-sm text-secondary hover:text-link-blue transition-colors"
             >
               {hashtag}
             </button>
@@ -61,16 +61,16 @@ export function DesktopSidebar() {
       </div>
 
       {/* Quick Stats */}
-      <div className="p-4 border-t border-gray-800">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">Quick Stats</h3>
-        <div className="space-y-2 text-sm text-gray-400">
+      <div className="p-4 border-t border-white/10">
+        <h3 className="text-sm font-semibold text-primary mb-3">Quick Stats</h3>
+        <div className="space-y-2 text-sm text-secondary">
           <div className="flex justify-between">
             <span>Active Users</span>
-            <span className="text-green-400">1.2K</span>
+            <span className="text-metric-green">1.2K</span>
           </div>
           <div className="flex justify-between">
             <span>Posts Today</span>
-            <span className="text-blue-400">456</span>
+            <span className="text-link-blue">456</span>
           </div>
           <div className="flex justify-between">
             <span>Total Earnings</span>

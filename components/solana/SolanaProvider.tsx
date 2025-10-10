@@ -5,6 +5,7 @@ import { ReactNode, useCallback, useMemo } from 'react';
 import { WalletError } from '@solana/wallet-adapter-base';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 
 // Styles for wallet modal
 require('@solana/wallet-adapter-react-ui/styles.css');
@@ -23,9 +24,15 @@ export function SolanaProvider({ children }: Props) {
     console.error('[Solana Wallet Error]', error);
   }, []);
 
-  // If you want to include specific wallet adapters explicitly, add them here.
-  // For Jupiter adapter, it relies on Wallet Standard detection; no explicit adapter required.
-  const wallets = useMemo(() => [], []);
+  // Include wallet adapters - Jupiter, Phantom, and other Wallet Standard wallets will be auto-detected
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      // Jupiter wallet will be auto-detected via Wallet Standard
+      // Other wallets (Solflare, Backpack, etc.) will also be auto-detected
+    ],
+    []
+  );
 
   return (
     <ConnectionProvider endpoint={endpoint}>

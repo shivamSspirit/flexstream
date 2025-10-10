@@ -108,9 +108,9 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
 
         {/* Token Name and Symbol */}
         <div className="text-center mb-4">
-          <h2 className="text-white font-bold text-xl">{stream.token.name}</h2>
-          <p className="text-gray-400 text-sm">${stream.token.symbol}</p>
-          <p className="text-gray-500 text-xs font-mono">
+          <h2 className="text-primary font-bold text-xl">{stream.token.name}</h2>
+          <p className="text-secondary text-sm">${stream.token.symbol}</p>
+          <p className="text-secondary/50 text-xs font-mono">
             {stream.token.mint.substring(0, 8)}...{stream.token.mint.substring(-8)}
           </p>
         </div>
@@ -130,7 +130,7 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="text-white font-semibold text-sm">
+                <h3 className="text-primary font-semibold text-sm">
                   {stream.streamer.display_name}
                 </h3>
                 {stream.streamer.verified && (
@@ -139,7 +139,7 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
                   </Badge>
                 )}
               </div>
-              <p className="text-gray-400 text-xs">
+              <p className="text-secondary text-xs">
                 {stream.streamer.followers_count.toLocaleString()} followers
               </p>
             </div>
@@ -150,7 +150,7 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
               <SignalIcon className="w-3 h-3 mr-1" />
               LIVE
             </Badge>
-            <div className="flex items-center text-gray-400 text-sm">
+            <div className="flex items-center text-secondary text-sm">
               <EyeIcon className="w-4 h-4 mr-1" />
               {formatViewerCount(stream.stream_info?.viewer_count || stream.streamer.followers_count || 0)}
             </div>
@@ -173,8 +173,8 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
             {/* Enhanced Market Cap Display */}
             <div className="space-y-1">
               <div className="flex items-center justify-center space-x-2">
-                <span className="text-gray-400 text-sm">MC:</span>
-                <span className="text-white font-semibold text-sm">
+                <span className="text-secondary text-sm">MC:</span>
+                <span className="text-primary font-semibold text-sm">
                   {formatNumber(stream.token.market_cap || stream.trading_activity?.market_cap || 0)}
                 </span>
                 {stream.token.enhanced_with_dexscreener && (
@@ -224,14 +224,14 @@ export function LiveStreamCard({ stream, onWatchStream, onViewToken }: LiveStrea
         {/* Trading stats */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center">
-            <div className="text-gray-400 text-xs mb-1">24h Volume</div>
-            <div className="text-white font-semibold text-sm">
+            <div className="text-secondary text-xs mb-1">24h Volume</div>
+            <div className="text-primary font-semibold text-sm">
               {formatNumber(stream.token.volume_24h || stream.trading_activity?.total_volume_24h || 0)}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-gray-400 text-xs mb-1">Trades</div>
-            <div className="text-white font-semibold text-sm">
+            <div className="text-secondary text-xs mb-1">Trades</div>
+            <div className="text-primary font-semibold text-sm">
               {(stream.token.trades_24h || stream.trading_activity?.trades_count_24h || 0).toLocaleString()}
             </div>
           </div>

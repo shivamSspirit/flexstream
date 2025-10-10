@@ -62,7 +62,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   return (
-    <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
+    <Card className="bg-card-bg border-white/10 hover:border-white/20 transition-colors">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -80,11 +80,11 @@ export function PostCard({ post }: PostCardProps) {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleUserClick}
-                  className="font-semibold text-white hover:text-purple-400 transition-colors"
+                  className="font-semibold text-primary hover:text-purple-400 transition-colors"
                 >
                   {post.user?.display_name}
                 </button>
-                <span className="text-gray-400 text-sm">
+                <span className="text-secondary text-sm">
                   @{post.user?.username}
                 </span>
                 <Badge variant={post.user?.success_tier || 'bronze'} className="text-xs">
@@ -94,18 +94,18 @@ export function PostCard({ post }: PostCardProps) {
               </div>
               
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-gray-400 text-sm">
+                <span className="text-secondary text-sm">
                   {formatTimeAgo(post.created_at)}
                 </span>
-                <span className="text-gray-500">•</span>
-                <span className="text-gray-400 text-sm flex items-center">
+                <span className="text-secondary/50">•</span>
+                <span className="text-secondary text-sm flex items-center">
                   {getPostTypeIcon(post.type)}
                 </span>
               </div>
             </div>
           </div>
           
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+          <Button variant="ghost" size="icon" className="text-secondary hover:text-primary">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </div>
@@ -114,7 +114,7 @@ export function PostCard({ post }: PostCardProps) {
       <CardContent className="space-y-4">
         {/* Post Content */}
         <div className="space-y-3">
-          <p className="text-white leading-relaxed">
+          <p className="text-primary leading-relaxed">
             {post.content}
           </p>
           
@@ -125,6 +125,51 @@ export function PostCard({ post }: PostCardProps) {
               verified={post.verified}
               tokenAddress={post.token_address}
             />
+          )}
+
+          {/* Token Metrics - Price & Volume */}
+          {post.token_address && (
+            <div className="space-y-3">
+              {/* Held By Section */}
+              <div className="bg-card-bg/50 border border-white/10 rounded-lg p-3">
+                <div className="flex items-center space-x-3">
+                  <span className="text-secondary text-sm">Held by</span>
+                  <div className="flex items-center -space-x-2">
+                    {/* Mock holders - in real app, fetch from blockchain */}
+                    {[
+                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop',
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop',
+                      'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop'
+                    ].map((avatar, index) => (
+                      <Avatar key={index} className="h-6 w-6 border-2 border-card-bg">
+                        <AvatarImage src={avatar} />
+                        <AvatarFallback className="bg-purple-600 text-xs">U</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-primary text-sm font-medium">cryptoking</span>
+                    <span className="text-secondary text-sm">and</span>
+                    <span className="text-primary text-sm font-medium">2 others</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price & Volume Indicators */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-2 bg-card-bg/50 border border-white/10 rounded-lg">
+                  <span className="text-secondary text-xs">Price</span>
+                  <span className="text-metric-green font-semibold text-sm">$0.0024</span>
+                  <Badge variant="outline" className="bg-metric-green/10 text-metric-green border-metric-green/30 text-xs">
+                    +12.5%
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-card-bg/50 border border-white/10 rounded-lg">
+                  <span className="text-secondary text-xs">Volume</span>
+                  <span className="text-link-blue font-semibold text-sm">$45.2K</span>
+                </div>
+              </div>
+            </div>
           )}
           
           {/* Media */}
@@ -183,14 +228,14 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         {/* Post Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="flex items-center space-x-6">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLike}
-              className={`flex items-center space-x-2 ${
-                isLiked ? 'text-red-400' : 'text-gray-400 hover:text-red-400'
+              className={`flex items-center space-x-2 transition-colors ${
+                isLiked ? 'text-metric-red' : 'text-secondary hover:text-metric-red'
               }`}
             >
               <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -201,7 +246,7 @@ export function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="sm"
               onClick={() => setShowComments(!showComments)}
-              className="flex items-center space-x-2 text-gray-400 hover:text-blue-400"
+              className="flex items-center space-x-2 text-secondary hover:text-link-blue transition-colors"
             >
               <MessageCircle className="h-4 w-4" />
               <span>{post.comments_count}</span>
@@ -211,7 +256,7 @@ export function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="sm"
               onClick={handleShare}
-              className="flex items-center space-x-2 text-gray-400 hover:text-green-400"
+              className="flex items-center space-x-2 text-secondary hover:text-metric-green transition-colors"
             >
               <Share className="h-4 w-4" />
               <span>{post.shares_count}</span>
@@ -222,7 +267,7 @@ export function PostCard({ post }: PostCardProps) {
             variant="ghost"
             size="sm"
             onClick={() => router.push(`/post/${post.id}`)}
-            className="text-gray-400 hover:text-white"
+            className="text-secondary hover:text-primary transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
           </Button>

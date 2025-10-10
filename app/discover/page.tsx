@@ -1,473 +1,292 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { 
   MagnifyingGlassIcon,
   FireIcon,
+  SparklesIcon,
   TrophyIcon,
-  StarIcon,
-  ArrowTrendingUpIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  HeartIcon,
-  ChatBubbleLeftIcon,
-  ShareIcon,
-  EyeIcon
+  ClockIcon,
+  HeartIcon
 } from '@heroicons/react/24/outline';
-import { supabase } from '@/lib/supabase';
-
-interface TopPerformer {
-  id: string;
-  display_name: string;
-  username: string;
-  avatar_url?: string;
-  bio?: string;
-  total_posts: number;
-  total_likes: number;
-  total_earnings: number;
-  followers_count: number;
-  verified: boolean;
-  success_tier: string;
-}
-
-interface TrendingPost {
-  id: string;
-  content: string;
-  type: string;
-  earnings_amount?: number;
-  likes_count: number;
-  comments_count: number;
-  shares_count: number;
-  created_at: string;
-  verified: boolean;
-  user: {
-    id: string;
-    display_name: string;
-    username: string;
-    avatar_url?: string;
-    verified: boolean;
-  };
-  media_urls?: string[];
-}
 
 export default function DiscoverPage() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [topPerformers, setTopPerformers] = useState<TopPerformer[]>([]);
-  const [trendingPosts, setTrendingPosts] = useState<TrendingPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'performers' | 'trending' | 'leaderboard'>('performers');
+  const [activeTab, setActiveTab] = useState('trending');
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/auth/signin');
-      return;
-    }
+  const tabs = [
+    { id: 'trending', label: 'Trending', icon: FireIcon },
+    { id: 'new', label: 'New', icon: SparklesIcon },
+    { id: 'top', label: 'Top', icon: TrophyIcon },
+    { id: 'recent', label: 'Recent', icon: ClockIcon },
+  ];
 
-    if (isSignedIn) {
-      fetchDiscoverData();
-    }
-  }, [userId, isLoaded, router]);
+  const featuredCollections = [
+    {
+      id: '1',
+      name: 'Digital Dreams',
+      creator: 'Alex Morrison',
+      creatorAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
+      image: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800&h=600&fit=crop',
+      floor: '2.5 SOL',
+      volume: '45.2K',
+      items: 100,
+      verified: true
+    },
+    {
+      id: '2',
+      name: 'Neon Nights',
+      creator: 'Sarah Chen',
+      creatorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop',
+      floor: '1.8 SOL',
+      volume: '32.1K',
+      items: 50,
+      verified: true
+    },
+    {
+      id: '3',
+      name: 'Abstract Flow',
+      creator: 'Marcus J',
+      creatorAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+      image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop',
+      floor: '3.2 SOL',
+      volume: '58.7K',
+      items: 75,
+      verified: true
+    },
+    {
+      id: '4',
+      name: 'Cosmic Visions',
+      creator: 'Emma W',
+      creatorAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
+      image: 'https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?w=800&h=600&fit=crop',
+      floor: '1.5 SOL',
+      volume: '28.3K',
+      items: 120,
+      verified: false
+    },
+  ];
 
-  const fetchDiscoverData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch top performers (users with most earnings and engagement)
-      const { data: performersData, error: performersError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          display_name,
-          username,
-          avatar_url,
-          bio,
-          verified,
-          success_tier
-        `)
-        .limit(20);
-
-      if (performersError) {
-        console.error('Error fetching performers:', performersError);
-        return;
-      }
-
-      // Get post stats for each user
-      const performersWithStats = await Promise.all(
-        (performersData || []).map(async (performer) => {
-          const { data: posts } = await supabase
-            .from('posts')
-            .select('likes_count, earnings_amount')
-            .eq('user_id', performer.id);
-
-          const totalLikes = posts?.reduce((sum, post) => sum + (post.likes_count || 0), 0) || 0;
-          const totalEarnings = posts?.reduce((sum, post) => sum + (post.earnings_amount || 0), 0) || 0;
-          const totalPosts = posts?.length || 0;
-
-          return {
-            ...performer,
-            total_posts: totalPosts,
-            total_likes: totalLikes,
-            total_earnings: totalEarnings,
-            followers_count: Math.floor(Math.random() * 1000) + 100, // Mock data
-          };
-        })
-      );
-
-      // Sort by total earnings and engagement
-      const sortedPerformers = performersWithStats
-        .sort((a, b) => (b.total_earnings + b.total_likes) - (a.total_earnings + a.total_likes))
-        .slice(0, 10);
-
-      setTopPerformers(sortedPerformers);
-
-      // Fetch trending posts
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          user:users(id, display_name, username, avatar_url, verified)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (postsError) {
-        console.error('Error fetching posts:', postsError);
-        return;
-      }
-
-      // Sort by engagement (likes + comments + shares)
-      const sortedPosts = (postsData || [])
-        .map(post => ({
-          ...post,
-          engagement_score: (post.likes_count || 0) + (post.comments_count || 0) + (post.shares_count || 0)
-        }))
-        .sort((a, b) => b.engagement_score - a.engagement_score)
-        .slice(0, 10);
-
-      setTrendingPosts(sortedPosts);
-
-    } catch (error) {
-      console.error('Error fetching discover data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredPerformers = topPerformers.filter(performer =>
-    performer.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    performer.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredPosts = trendingPosts.filter(post =>
-    post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.user.display_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return null;
-  }
+  const topCreators = [
+    {
+      id: '1',
+      name: 'Alex Morrison',
+      username: 'alexm',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
+      followers: '125K',
+      verified: true,
+      sales: '450 SOL'
+    },
+    {
+      id: '2',
+      name: 'Sarah Chen',
+      username: 'sarahc',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      followers: '98K',
+      verified: true,
+      sales: '320 SOL'
+    },
+    {
+      id: '3',
+      name: 'Marcus Johnson',
+      username: 'marcusj',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+      followers: '87K',
+      verified: true,
+      sales: '275 SOL'
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-4 pb-20">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Discover</h1>
-          <p className="text-gray-400">Find top performers and trending content</p>
-        </div>
-
-        {/* Search */}
-        <div className="relative mb-6">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            placeholder="Search traders, posts, or topics..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-400"
-          />
+    <AppLayout showWallet={true} showSearch={false}>
+      <div className="pb-20 md:pb-6 -mx-4 sm:mx-0">
+        {/* Search Header */}
+        <div className="px-4 sm:px-0 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-4">Discover</h1>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search collections, creators, artworks..."
+              className="w-full pl-12 pr-4 h-12 bg-card-bg border-white/10 rounded-2xl text-primary placeholder:text-secondary focus:border-white/20 focus:ring-2 focus:ring-purple-500/20"
+            />
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6 bg-gray-800/50 p-1 rounded-lg">
-          {[
-            { id: 'performers', label: 'Top Performers', icon: TrophyIcon },
-            { id: 'trending', label: 'Trending Posts', icon: FireIcon },
-            { id: 'leaderboard', label: 'Leaderboard', icon: ArrowTrendingUpIcon },
-          ].map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center space-x-2 ${
-                activeTab === tab.id 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </Button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="space-y-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-32 bg-gray-700 rounded-lg"></div>
-              </div>
+        <div className="px-4 sm:px-0 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+            {tabs.map((tab) => (
+              <Button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                variant={activeTab === tab.id ? 'default' : 'outline'}
+                className={cn(
+                  'flex items-center gap-2 whitespace-nowrap transition-all',
+                  activeTab === tab.id
+                    ? 'flexstream-gradient text-white border-0'
+                    : 'bg-card-bg border-white/20 text-secondary hover:text-primary hover:bg-card-bg/80'
+                )}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </Button>
             ))}
           </div>
-        ) : (
-          <>
-            {/* Top Performers */}
-            {activeTab === 'performers' && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4">
-                  <TrophyIcon className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-xl font-semibold text-white">Top Performers</h2>
+        </div>
+
+        {/* Featured Collections */}
+        <div className="mb-8">
+          <div className="px-4 sm:px-0 mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-primary">Featured Collections</h2>
+            <Button variant="ghost" className="text-purple-400 text-sm hover:text-purple-300">
+              View All →
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4 sm:px-0">
+            {featuredCollections.map((collection) => (
+              <button
+                key={collection.id}
+                onClick={() => router.push(`/collection/${collection.id}`)}
+                className="bg-card-bg rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all cursor-pointer group text-left w-full"
+              >
+                {/* Collection Image */}
+                <div className="relative aspect-square overflow-hidden bg-black">
+                  <img
+                    src={collection.image}
+                    alt={collection.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                
-                {filteredPerformers.length === 0 ? (
-                  <Card className="bg-gray-800/50 border-gray-700/50">
-                    <CardContent className="p-6 text-center">
-                      <p className="text-gray-400">No performers found</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPerformers.map((performer, index) => (
-                      <Card key={performer.id} className="bg-gray-800/50 border-gray-700/50 hover:border-purple-500/50 transition-colors">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="relative">
-                              <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-semibold">
-                                  {performer.display_name?.charAt(0) || 'U'}
-                                </span>
-                              </div>
-                              {index < 3 && (
-                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                                  <span className="text-xs font-bold text-black">{index + 1}</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                <h3 className="font-semibold text-white">{performer.display_name}</h3>
-                                {performer.verified && (
-                                  <Badge className="bg-blue-600 text-white text-xs">Verified</Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-400">@{performer.username}</p>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-white">${performer.total_earnings.toLocaleString()}</div>
-                              <div className="text-xs text-gray-400">Earnings</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-white">{performer.total_likes.toLocaleString()}</div>
-                              <div className="text-xs text-gray-400">Likes</div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center space-x-1">
-                              <UserGroupIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-400">{performer.followers_count}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <ArrowTrendingUpIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-400">{performer.total_posts} posts</span>
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            size="sm" 
-                            className="w-full mt-3 bg-purple-600 hover:bg-purple-700"
-                            onClick={() => router.push(`/profile/${performer.username}`)}
-                          >
-                            View Profile
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+
+                {/* Collection Info */}
+                <div className="p-4">
+                  <h3 className="text-primary font-bold text-lg mb-2 group-hover:text-purple-400 transition-colors">
+                    {collection.name}
+                  </h3>
+                  
+                  {/* Creator */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={collection.creatorAvatar} />
+                      <AvatarFallback>{collection.creator[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-secondary text-sm">by {collection.creator}</span>
+                    {collection.verified && (
+                      <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">✓</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* Trending Posts */}
-            {activeTab === 'trending' && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4">
-                  <FireIcon className="h-6 w-6 text-orange-400" />
-                  <h2 className="text-xl font-semibold text-white">Trending Posts</h2>
-                </div>
-                
-                {filteredPosts.length === 0 ? (
-                  <Card className="bg-gray-800/50 border-gray-700/50">
-                    <CardContent className="p-6 text-center">
-                      <p className="text-gray-400">No trending posts found</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredPosts.map((post) => (
-                      <Card key={post.id} className="bg-gray-800/50 border-gray-700/50">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-semibold text-sm">
-                                {post.user.display_name?.charAt(0) || 'U'}
-                              </span>
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                <h3 className="font-semibold text-white">{post.user.display_name}</h3>
-                                {post.user.verified && (
-                                  <Badge className="bg-blue-600 text-white text-xs">Verified</Badge>
-                                )}
-                                <Badge className="bg-orange-600 text-white text-xs">Trending</Badge>
-                              </div>
-                              <p className="text-sm text-gray-400">@{post.user.username}</p>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <p className="text-gray-200 mb-4 line-clamp-3">{post.content}</p>
-                          
-                          {post.media_urls && post.media_urls.length > 0 && (
-                            <div className="mb-4">
-                              {post.media_urls.slice(0, 1).map((url, index) => (
-                                <div key={index}>
-                                  {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                    <img 
-                                      src={url} 
-                                      alt={`Post media ${index + 1}`}
-                                      className="w-full h-48 object-cover rounded-lg"
-                                    />
-                                  ) : url.match(/\.(mp4|webm|ogg|avi|mov)$/i) ? (
-                                    <video 
-                                      src={url} 
-                                      controls
-                                      className="w-full h-48 object-cover rounded-lg"
-                                    />
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {post.earnings_amount && (
-                            <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                              <div className="flex items-center space-x-2">
-                                <CurrencyDollarIcon className="h-5 w-5 text-green-400" />
-                                <span className="text-green-400 font-semibold">
-                                  ${post.earnings_amount.toLocaleString()} earned
-                                </span>
-                                {post.verified && (
-                                  <Badge className="bg-green-500/20 text-green-300 text-xs">Verified</Badge>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-6 text-gray-400">
-                              <div className="flex items-center space-x-1">
-                                <HeartIcon className="h-4 w-4" />
-                                <span className="text-sm">{post.likes_count}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <ChatBubbleLeftIcon className="h-4 w-4" />
-                                <span className="text-sm">{post.comments_count}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <ShareIcon className="h-4 w-4" />
-                                <span className="text-sm">{post.shares_count}</span>
-                              </div>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(post.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Leaderboard */}
-            {activeTab === 'leaderboard' && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-4">
-                  <ArrowTrendingUpIcon className="h-6 w-6 text-green-400" />
-                  <h2 className="text-xl font-semibold text-white">Weekly Leaderboard</h2>
-                </div>
-                
-                <Card className="bg-gray-800/50 border-gray-700/50">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {filteredPerformers.slice(0, 10).map((performer, index) => (
-                        <div key={performer.id} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-700/30 transition-colors">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-white font-bold text-sm">
-                            {index + 1}
-                          </div>
-                          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-sm">
-                              {performer.display_name?.charAt(0) || 'U'}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-semibold text-white">{performer.display_name}</h3>
-                              {performer.verified && (
-                                <Badge className="bg-blue-600 text-white text-xs">Verified</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-400">@{performer.username}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-white">${performer.total_earnings.toLocaleString()}</div>
-                            <div className="text-xs text-gray-400">Total Earnings</div>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Stats */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="text-secondary text-xs">Floor</p>
+                      <p className="text-primary font-semibold">{collection.floor}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </>
-        )}
+                    <div>
+                      <p className="text-secondary text-xs">Volume</p>
+                      <p className="text-primary font-semibold">{collection.volume}</p>
+                    </div>
+                    <div>
+                      <p className="text-secondary text-xs">Items</p>
+                      <p className="text-primary font-semibold">{collection.items}</p>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Creators */}
+        <div className="mb-8">
+          <div className="px-4 sm:px-0 mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-primary">Top Creators</h2>
+            <Button 
+              variant="ghost" 
+              className="text-purple-400 text-sm hover:text-purple-300"
+              onClick={() => router.push('/leaderboard')}
+            >
+              View All →
+            </Button>
+          </div>
+
+          <div className="space-y-3 px-4 sm:px-0">
+            {topCreators.map((creator, index) => (
+              <button
+                key={creator.id}
+                onClick={() => router.push(`/profile/${creator.username}`)}
+                className="bg-card-bg rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all cursor-pointer group flex items-center gap-4 w-full text-left"
+              >
+                {/* Rank */}
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0",
+                  index === 0 && "bg-gradient-to-br from-yellow-500 to-yellow-600 text-white",
+                  index === 1 && "bg-gradient-to-br from-gray-400 to-gray-500 text-white",
+                  index === 2 && "bg-gradient-to-br from-orange-600 to-orange-700 text-white"
+                )}>
+                  #{index + 1}
+                </div>
+
+                {/* Avatar */}
+                <Avatar className="h-12 w-12 ring-2 ring-white/10 group-hover:ring-white/20 transition-all">
+                  <AvatarImage src={creator.avatar} />
+                  <AvatarFallback>{creator.name[0]}</AvatarFallback>
+                </Avatar>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-primary font-semibold truncate group-hover:text-purple-400 transition-colors">
+                      {creator.name}
+                    </h3>
+                    {creator.verified && (
+                      <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[10px] font-bold">✓</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-secondary text-sm">{creator.followers} followers</p>
+                </div>
+
+                {/* Sales */}
+                <div className="text-right">
+                  <p className="text-secondary text-xs">Total Sales</p>
+                  <p className="text-primary font-bold">{creator.sales}</p>
+                </div>
+
+                {/* Follow Button */}
+                <Button 
+                  size="sm" 
+                  className="flexstream-gradient text-white px-6 hover:scale-105 transition-transform flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Follow clicked for:', creator.username);
+                  }}
+                >
+                  Follow
+                </Button>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

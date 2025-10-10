@@ -50,7 +50,14 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // FlexStream brand colors
+        // FlexStream Design System Colors
+        'app-bg': '#0a0a0a',           // Primary background
+        'card-bg': '#1a1a1a',          // Card background
+        'text-primary': '#ffffff',     // Primary text
+        'text-secondary': '#888888',   // Secondary text/gray
+        'link-blue': '#3b82f6',        // Blue for links
+        'metric-green': '#10b981',     // Green for positive metrics
+        'metric-red': '#ef4444',       // Red for negative metrics
         purple: {
           50: '#faf5ff',
           100: '#f3e8ff',

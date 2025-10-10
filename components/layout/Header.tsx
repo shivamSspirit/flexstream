@@ -23,7 +23,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-md border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-app-bg/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -40,12 +40,12 @@ export function Header() {
             <div className="hidden md:flex flex-1 max-w-md mx-8">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary h-4 w-4" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search users, posts, hashtags..."
-                    className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-purple-500"
+                    className="pl-10 bg-card-bg border-white/10 text-primary placeholder-text-secondary focus:border-purple-500"
                   />
                 </div>
               </form>
@@ -67,7 +67,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative text-gray-400 hover:text-white"
+                className="relative text-secondary hover:text-primary"
               >
                 <Bell className="h-5 w-5" />
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">

@@ -1,178 +1,96 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { SignUp } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useAuth, useSignUp, useSignIn } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-type ClerkError = { code?: string; message?: string; longMessage?: string };
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
-  const { isLoaded: signInLoaded, signIn } = useSignIn();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
-  const [phase, setPhase] = useState<'collect' | 'verify'>('collect');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<ClerkError | null>(null);
-
-  useEffect(() => {
-    if (authLoaded && isSignedIn) router.push('/');
-  }, [authLoaded, isSignedIn, router]);
-
-  const handleSignUp = async () => {
-    if (!signUpLoaded || !signUp) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      setPhase('verify');
-    } catch (e: any) {
-      const err = (e?.errors?.[0] as ClerkError) || { message: e?.message };
-      console.error('[SignUp:create] error', e);
-      setError(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    if (!signUpLoaded || !signUp) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const complete = await signUp.attemptEmailAddressVerification({ code });
-      if (complete?.status === 'complete') {
-        await setActive({ session: complete.createdSessionId });
-        router.push('/');
-      } else {
-        setError({ message: 'Verification incomplete. Please try again.' });
-      }
-    } catch (e: any) {
-      const err = (e?.errors?.[0] as ClerkError) || { message: e?.message };
-      console.error('[SignUp:verify] error', e);
-      setError(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const oauthRedirect = {
-    redirectUrl: '/auth/signin',
-    redirectUrlComplete: '/',
-  };
-
-  const handleOAuth = async (strategy: 'oauth_google' | 'oauth_twitter' | 'oauth_github') => {
-    if (!signInLoaded || !signIn) return;
-    setError(null);
-    try {
-      await signIn.authenticateWithRedirect({ strategy, ...oauthRedirect });
-    } catch (e: any) {
-      const err = (e?.errors?.[0] as ClerkError) || { message: e?.message };
-      console.error('[SignUp:oauth] error', e);
-      setError(err);
-    }
-  };
-
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-white">Create your account</CardTitle>
-            <CardDescription className="text-gray-300">
-              Sign up with email or continue with a provider
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!publishableKey && (
-              <div className="mb-4 p-3 rounded bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
-                NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Add Clerk keys to your env.
-              </div>
-            )}
+    <div className="min-h-screen bg-app-bg flex flex-col relative overflow-hidden">
+      {/* Gradient Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl" />
+      </div>
 
-            {error && (
-              <div className="mb-4 p-3 rounded bg-red-500/20 border border-red-500/30 text-red-200 text-sm">
-                <div className="font-medium">Sign up failed</div>
-                <div>{error.longMessage || error.message || 'Unknown error'}</div>
-                {error.code && <div className="opacity-75 text-xs mt-1">Code: {error.code}</div>}
-              </div>
-            )}
+      {/* Header */}
+      <div className="relative z-10 p-4">
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="text-secondary hover:text-primary"
+        >
+          <ArrowLeftIcon className="w-5 h-5 mr-2" />
+          Back
+        </Button>
+      </div>
 
-            {phase === 'collect' ? (
-              <div className="space-y-3">
-                <input
-                  className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white placeholder-gray-400"
-                  placeholder="Email address"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <input
-                  className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white placeholder-gray-400"
-                  placeholder="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <Button
-                  onClick={handleSignUp}
-                  disabled={submitting || !email || !password}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {submitting ? 'Creating account...' : 'Create account'}
-                </Button>
+      {/* Main Content */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-md">
+          {/* Logo & Title */}
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 mx-auto mb-4 flexstream-gradient rounded-2xl flex items-center justify-center shadow-xl shadow-purple-500/30">
+              <span className="text-white font-bold text-xl">F</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
+              Join FlexStream
+            </h1>
+            <p className="text-sm text-secondary">
+              Create your account and start creating
+            </p>
+          </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-2">
-                  <Button onClick={() => handleOAuth('oauth_google')} className="w-full bg-white text-gray-900 hover:opacity-90">
-                    Continue with Google
-                  </Button>
-                  <Button onClick={() => handleOAuth('oauth_github')} className="w-full bg-white text-gray-900 hover:opacity-90">
-                    Continue with GitHub
-                  </Button>
-                </div>
+          {/* Sign Up Card */}
+          <div className="bg-gradient-to-br from-card-bg to-card-bg/50 rounded-2xl p-6 border border-white/10 shadow-2xl">
+            <SignUp
+              appearance={{
+                elements: {
+                  rootBox: 'w-full',
+                  card: 'bg-transparent border-0 shadow-none p-0',
+                  headerTitle: 'hidden',
+                  headerSubtitle: 'hidden',
+                  socialButtonsBlockButton: 'bg-white/5 border border-white/10 text-primary hover:bg-white/10 transition-all rounded-xl h-11 font-medium text-sm',
+                  socialButtonsBlockButtonText: 'text-primary',
+                  formButtonPrimary: 'flexstream-gradient hover:opacity-90 h-11 rounded-xl font-semibold shadow-lg shadow-purple-500/30',
+                  footerActionLink: 'text-purple-400 hover:text-purple-300 font-medium text-sm',
+                  formFieldLabel: 'text-primary font-medium text-sm mb-2',
+                  formFieldInput: 'bg-white/5 border border-white/10 text-primary h-11 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20',
+                  formFieldInputShowPasswordButton: 'text-secondary hover:text-primary',
+                  identityPreviewText: 'text-primary text-sm',
+                  identityPreviewEditButton: 'text-purple-400 text-sm',
+                  dividerLine: 'bg-white/10',
+                  dividerText: 'text-secondary text-xs',
+                  formHeaderTitle: 'text-primary text-lg font-bold mb-1',
+                  formHeaderSubtitle: 'text-secondary text-xs',
+                  otpCodeFieldInput: 'bg-white/5 border border-white/10 text-primary rounded-xl',
+                  formResendCodeLink: 'text-purple-400 hover:text-purple-300 text-sm',
+                  alertText: 'text-xs',
+                  footer: 'hidden',
+                }
+              }}
+              redirectUrl="/"
+              signInUrl="/auth/signin"
+            />
+          </div>
 
-                <div className="text-center mt-4">
-                  <a href="/auth/signin" className="text-gray-300 text-sm hover:underline">Have an account? Sign in</a>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-gray-200 text-sm">
-                  We sent a verification code to <span className="font-medium">{email}</span>
-                </div>
-                <input
-                  className="w-full px-3 py-2 rounded bg-white/10 border border-white/20 text-white placeholder-gray-400"
-                  placeholder="Verification code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-                <Button
-                  onClick={handleVerify}
-                  disabled={submitting || !code}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {submitting ? 'Verifying...' : 'Verify & Continue'}
-                </Button>
-                <div className="text-center mt-4">
-                  <button onClick={() => setPhase('collect')} className="text-gray-300 text-sm hover:underline">Back</button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Footer Link */}
+          <div className="mt-6 text-center">
+            <p className="text-secondary text-sm">
+              Already have an account?{' '}
+              <button
+                onClick={() => router.push('/auth/signin')}
+                className="text-purple-400 hover:text-purple-300 font-semibold transition-colors"
+              >
+                Sign in
+              </button>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-
-

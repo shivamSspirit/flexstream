@@ -15,6 +15,15 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database not configured',
+        code: 'DB_NOT_CONFIGURED'
+      }, { status: 500 });
+    }
+
     // Ensure 1:1 wallet mapping exists
     const { data: profile, error: profileError } = await supabase
       .from('users')

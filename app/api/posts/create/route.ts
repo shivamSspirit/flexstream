@@ -106,10 +106,17 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (userError || !newUser) {
-        console.error('❌ Failed to create user:', userError);
+        console.error('❌ Failed to create user:', {
+          message: userError?.message,
+          details: userError?.details,
+          hint: userError?.hint,
+          code: userError?.code,
+        });
         return NextResponse.json({
           success: false,
           error: 'Failed to create user account',
+          details: userError?.message || 'Unknown error',
+          code: userError?.code,
         }, { status: 500 });
       }
 

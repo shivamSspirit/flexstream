@@ -27,6 +27,13 @@ export function PostComments({ postId }: PostCommentsProps) {
 
   const fetchComments = async () => {
     setLoading(true);
+
+    if (!supabase) {
+      console.error('Supabase not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -54,6 +61,11 @@ export function PostComments({ postId }: PostCommentsProps) {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !userId) return;
+
+    if (!supabase) {
+      console.error('Supabase not configured');
+      return;
+    }
 
     setSubmitting(true);
     try {

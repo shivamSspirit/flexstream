@@ -1,7 +1,7 @@
 // This is a placeholder IDL. Replace with actual DBC program IDL
-import { Idl } from '@project-serum/anchor';
+// import { Idl } from '@project-serum/anchor';
 
-export const DBC_IDL: Idl = {
+export const DBC_IDL: any = {
   "version": "0.1.0",
   "name": "dynamic_bonding_curve",
   "instructions": [
@@ -103,6 +103,6 @@ export const DBC_IDL: Idl = {
       "msg": "Insufficient funds for transaction"
     }
   ]
-} as Idl;
+};
 
 export default DBC_IDL;

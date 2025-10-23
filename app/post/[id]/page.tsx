@@ -35,6 +35,12 @@ export default function PostDetailPage() {
 
   const fetchPost = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -56,6 +62,11 @@ export default function PostDetailPage() {
 
   const fetchComments = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('comments')
         .select(`
@@ -77,7 +88,12 @@ export default function PostDetailPage() {
     if (post) {
       const newLikeCount = isLiked ? post.likes_count - 1 : post.likes_count + 1;
       setPost({ ...post, likes_count: newLikeCount });
-      
+
+      if (!supabase) {
+        console.error('Supabase not configured');
+        return;
+      }
+
       await supabase
         .from('posts')
         .update({ likes_count: newLikeCount })
@@ -87,6 +103,11 @@ export default function PostDetailPage() {
 
   const handleComment = async () => {
     if (!comment.trim()) return;
+
+    if (!supabase) {
+      console.error('Supabase not configured');
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -126,7 +147,12 @@ export default function PostDetailPage() {
       if (post) {
         const newShareCount = post.shares_count + 1;
         setPost({ ...post, shares_count: newShareCount });
-        
+
+        if (!supabase) {
+          console.error('Supabase not configured');
+          return;
+        }
+
         await supabase
           .from('posts')
           .update({ shares_count: newShareCount })

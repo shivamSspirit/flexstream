@@ -75,6 +75,13 @@ export default function UserProfileViewPage() {
     try {
       setLoading(true);
 
+      if (!supabase) {
+        console.error('Supabase not configured');
+        setLoading(false);
+        router.push('/discover');
+        return;
+      }
+
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('users')

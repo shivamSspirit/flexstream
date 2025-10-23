@@ -3,11 +3,13 @@ import { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { DBC_CONFIG } from '@/lib/dbc-config';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+// Initialize Supabase with proper null checking
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 type TransactionPayload = {
   transaction: string; // Base64 encoded transaction
@@ -25,8 +27,8 @@ export async function POST(req: NextRequest) {
     }
 
     const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL!,
-      DBC_CONFIG.RPC.COMMITMENT
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL || DBC_CONFIG.RPC_URL,
+      DBC_CONFIG.COMMITMENT
     );
 
     const results = [];
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
         // Wait for confirmation
         const confirmation = await connection.confirmTransaction(
           signature,
-          DBC_CONFIG.RPC.COMMITMENT
+          DBC_CONFIG.COMMITMENT
         );
 
         if (confirmation.value.err) {
@@ -65,7 +67,13 @@ export async function POST(req: NextRequest) {
 
         // Update token status in database if tokenId is provided
         if (tokenId && action) {
-          await updateTokenStatus(tokenId, action, signature);
+          // Map action to status
+          const statusMap: Record<string, 'pending' | 'created' | 'minted' | 'transferred' | 'failed'> = {
+            'create': 'created',
+            'mint': 'minted',
+            'transfer': 'transferred'
+          };
+          await updateTokenStatus(tokenId, statusMap[action] || 'pending', signature);
         }
 
         results.push({
@@ -120,12 +128,17 @@ export async function POST(req: NextRequest) {
 }
 
 async function updateTokenStatus(
-  tokenId: string, 
+  tokenId: string,
   status: 'pending' | 'created' | 'minted' | 'transferred' | 'failed',
   signature?: string
 ) {
+  if (!supabase) {
+    console.error('Supabase not configured, skipping token status update');
+    return;
+  }
+
   const updateData: any = { status };
-  
+
   if (signature) {
     updateData.last_tx_signature = signature;
     updateData.updated_at = new Date().toISOString();

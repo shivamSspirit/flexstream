@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { SolanaProvider } from '@/components/solana/SolanaProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+// Use system fonts instead of Google Fonts to avoid network issues during build
+const inter = {
+  className: 'font-sans'
+};
 
 export const metadata: Metadata = {
   title: 'FlexStream - Social Platform for Pump.fun Streamers',

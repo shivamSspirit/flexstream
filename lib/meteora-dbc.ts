@@ -155,39 +155,8 @@ export class MeteoraDBCClient {
    * Get pool information and market data
    */
   async getPoolInfo(poolAddress: PublicKey): Promise<PoolInfo> {
-    try {
-      const poolInfo = await this.dbcClient.getPool(poolAddress);
-
-      if (!poolInfo) {
-        throw new Error('Pool not found');
-      }
-
-      const virtualBaseReserves = poolInfo.virtualBaseReserves?.toNumber() || 0;
-      const virtualQuoteReserves = poolInfo.virtualQuoteReserves?.toNumber() || 0;
-      
-      // Calculate market metrics
-      const marketCap = virtualBaseReserves > 0 
-        ? (virtualQuoteReserves / virtualBaseReserves) * virtualBaseReserves
-        : 0;
-
-      const buyPrice = virtualBaseReserves > 0 ? virtualQuoteReserves / virtualBaseReserves : 0;
-      const sellPrice = buyPrice * 0.98; // 2% slippage estimate
-
-      return {
-        mint: poolInfo.baseMint,
-        pool: poolAddress,
-        virtualBaseReserves,
-        virtualQuoteReserves,
-        marketCap,
-        buyPrice,
-        sellPrice,
-        liquidity: virtualQuoteReserves
-      };
-
-    } catch (error) {
-      console.error('❌ Error fetching pool info:', error);
-      throw new Error(`Failed to fetch pool info: ${error.message}`);
-    }
+    // TODO: Implement proper pool info fetching from Meteora SDK
+    throw new Error('getPoolInfo not yet implemented - Meteora SDK integration needed');
   }
 
   /**
@@ -198,19 +167,8 @@ export class MeteoraDBCClient {
     buyer: PublicKey,
     solAmount: number
   ): Promise<Transaction> {
-    try {
-      const transaction = await this.dbcClient.buy({
-        pool: poolAddress,
-        buyer,
-        solAmount
-      });
-
-      return transaction;
-
-    } catch (error) {
-      console.error('❌ Error creating buy transaction:', error);
-      throw new Error(`Failed to create buy transaction: ${error.message}`);
-    }
+    // TODO: Implement buy transaction with Meteora SDK
+    throw new Error('createBuyTransaction not yet implemented - Meteora SDK integration needed');
   }
 
   /**
@@ -221,19 +179,8 @@ export class MeteoraDBCClient {
     seller: PublicKey,
     tokenAmount: number
   ): Promise<Transaction> {
-    try {
-      const transaction = await this.dbcClient.sell({
-        pool: poolAddress,
-        seller,
-        tokenAmount
-      });
-
-      return transaction;
-
-    } catch (error) {
-      console.error('❌ Error creating sell transaction:', error);
-      throw new Error(`Failed to create sell transaction: ${error.message}`);
-    }
+    // TODO: Implement sell transaction with Meteora SDK
+    throw new Error('createSellTransaction not yet implemented - Meteora SDK integration needed');
   }
 
   /**

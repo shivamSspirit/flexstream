@@ -16,10 +16,10 @@ export default function CreatePage() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleUpload = (files: File[]) => {
-    console.log('Uploading files:', files);
-    // Handle file upload logic here
-    router.push('/');
+  const handleSuccess = () => {
+    console.log('✅ Post created successfully!');
+    setIsModalOpen(false);
+    // Optionally show a success toast/notification here
   };
 
   const creationOptions = [
@@ -129,7 +129,7 @@ export default function CreatePage() {
       <CreatePostModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onUpload={handleUpload}
+        onSuccess={handleSuccess}
       />
     </AppLayout>
   );

@@ -65,6 +65,10 @@ export function encryptPrivateKey(privateKey: string, password: string): string 
  */
 export function decryptPrivateKey(encryptedKey: string, password: string): string {
   try {
+    if (!encryptedKey || typeof encryptedKey !== 'string') {
+      throw new Error('Invalid encrypted key');
+    }
+    
     const [ivHex, encrypted] = encryptedKey.split(':');
     
     if (!ivHex || !encrypted) {

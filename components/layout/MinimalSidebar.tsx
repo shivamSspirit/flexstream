@@ -64,17 +64,28 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
         // Responsive width: 16 on md, 20 on lg+
         'w-16 md:w-20',
         // Hidden on small mobile (< 640px), visible from sm onwards
-        'hidden sm:flex flex-col items-center z-40',
+        'hidden sm:flex flex-col items-center',
+        // Higher z-index to be above everything except modals
+        'z-50',
         // Responsive padding
         'py-4 md:py-6',
         className
       )}
+      style={{ zIndex: 50 }}
     >
       {/* Brand Icon at Top */}
       <div className="mb-6 md:mb-8">
         <button
-          onClick={() => router.push('/')}
-          className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-purple-500/25"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖱️ Logo clicked → Home');
+            router.push('/');
+          }}
+          type="button"
+          className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-purple-500/25 pointer-events-auto cursor-pointer"
+          aria-label="Go to home"
+          style={{ pointerEvents: 'auto' }}
         >
           <span className="text-white font-bold text-lg md:text-xl">F</span>
         </button>
@@ -89,17 +100,26 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
           return (
             <button
               key={item.path}
-              onClick={() => router.push(item.path)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ Sidebar clicked:', item.label, '→', item.path);
+                router.push(item.path);
+              }}
+              type="button"
               className={cn(
                 'relative rounded-xl flex items-center justify-center transition-all duration-200',
                 // Responsive button size
                 'w-10 h-10 md:w-12 md:h-12',
                 'hover:bg-card-bg group',
+                // Ensure buttons are clickable
+                'pointer-events-auto cursor-pointer',
                 active
                   ? 'bg-card-bg text-primary shadow-lg shadow-purple-500/10'
                   : 'text-secondary hover:text-primary'
               )}
               aria-label={item.label}
+              style={{ pointerEvents: 'auto' }}
             >
               <Icon className="w-5 h-5 md:w-6 md:h-6" />
               
@@ -130,8 +150,16 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
       {/* Profile Avatar at Bottom */}
       <div className="mt-auto">
         <button
-          onClick={() => router.push('/profile')}
-          className="relative group"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖱️ Profile clicked → /profile');
+            router.push('/profile');
+          }}
+          type="button"
+          className="relative group pointer-events-auto cursor-pointer"
+          aria-label="Go to profile"
+          style={{ pointerEvents: 'auto' }}
         >
           <Avatar className="h-9 w-9 md:h-11 md:w-11 cursor-pointer border-2 border-white/10 hover:border-white/20 transition-all duration-200 hover:scale-105">
             <AvatarImage

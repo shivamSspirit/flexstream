@@ -1,275 +1,182 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { FlexPost } from '@/types';
+import { useRouter } from 'next/navigation';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
+import {
   ChatBubbleLeftIcon,
-  ShareIcon,
-  HeartIcon,
-  PlusIcon
+  ArrowUpIcon,
+  ShareIcon
 } from '@heroicons/react/24/outline';
 
 export function SimpleFeed() {
-  const [posts, setPosts] = useState<FlexPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          user:users(*)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        console.error('Error fetching posts:', error);
-        setError('Failed to load posts');
-        return;
-      }
-
-      // Compute simple client-side verified flag if social link references pump.fun
-      const enhanced = (data || []).map((p: any) => ({
-        ...p,
-        verified: p.verified || (p.social_link?.includes('pump.fun') ?? false)
-      }));
-
-      setPosts(enhanced);
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Failed to load posts');
-    } finally {
-      setLoading(false);
+  // Mock feed data - Zora style posts
+  const posts = [
+    {
+      id: '1',
+      user: {
+        name: 'lemongab',
+        username: 'lemongab',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop'
+      },
+      media: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800&h=800&fit=crop',
+      title: 'Padel Tournament Flyer',
+      description: 'Illustration I made for the Padel Professor Club',
+      price: '$113',
+      holders: 'zero_siren and 2 others',
+      time: '5m'
+    },
+    {
+      id: '2',
+      user: {
+        name: 'cryptogrannyno5',
+        username: 'cryptogrannyno5',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop'
+      },
+      media: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=800&fit=crop',
+      title: 'Digital Sunset Series',
+      description: 'Part of my new collection exploring color and light',
+      price: '$0.89',
+      buyers: 'jaykimvalentine',
+      time: '5m'
+    },
+    {
+      id: '3',
+      user: {
+        name: 'marcusj',
+        username: 'marcusj',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop'
+      },
+      media: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=800&fit=crop',
+      title: 'Motion Study 003',
+      description: 'Experimental 3D animation exploring movement',
+      price: 'Free Mint',
+      holders: '847 collectors',
+      time: '12m'
     }
-  };
-
-  const handleLike = async (postId: string) => {
-    // Find the current post to get its like count
-    const currentPost = posts.find(p => p.id === postId);
-    if (!currentPost) return;
-    
-    // Optimistic update
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
-    const { error } = await supabase
-      .from('posts')
-      .update({ likes_count: (currentPost.likes_count || 0) + 1 })
-      .eq('id', postId);
-    if (error) {
-      console.error('Failed to like:', error);
-      // revert on failure
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: Math.max((p.likes_count || 1) - 1, 0) } : p));
-    } else {
-      // Fallback: refetch the row to ensure server truth if needed
-      // await fetchPosts();
-    }
-  };
-
-  const handleShare = async (post: FlexPost) => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Flex post',
-          text: post.content?.slice(0, 120) || 'Check out this flex!',
-          url: post.social_link || window.location.href,
-        });
-      } else {
-        // fallback copy link
-        await navigator.clipboard.writeText(post.social_link || window.location.href);
-        alert('Link copied to clipboard');
-      }
-      // Optimistic increment
-      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, shares_count: (p.shares_count || 0) + 1 } : p));
-      const { error } = await supabase
-        .from('posts')
-        .update({ shares_count: (post.shares_count || 0) + 1 })
-        .eq('id', post.id);
-      if (error) {
-        console.error('Failed to increment shares:', error);
-        setPosts(prev => prev.map(p => p.id === post.id ? { ...p, shares_count: Math.max((p.shares_count || 1) - 1, 0) } : p));
-      }
-    } catch (e) {
-      console.error('Share failed:', e);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-24"></div>
-                <div className="h-3 bg-gray-200 rounded w-16"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-full"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-red-500 mb-4">{error}</div>
-        <button 
-          onClick={fetchPosts}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  if (posts.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-gray-500 mb-4">No posts yet</div>
-        <div className="text-gray-400 text-sm">Be the first to share your success!</div>
-      </div>
-    );
-  }
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       {posts.map((post) => (
-        <div key={post.id} className="bg-white border border-gray-200 rounded-lg p-6">
-          {/* User Header */}
-          <div className="flex items-center space-x-3 mb-4">
-            <img
-              src={post.user?.avatar_url || '/default-avatar.png'}
-              alt={post.user?.username || 'User'}
-              className="w-10 h-10 rounded-full"
-            />
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-gray-900">
-                  {post.user?.username || 'Unknown User'}
-                </span>
-                {post.verified && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0">
-                    ✓
-                  </Badge>
-                )}
-              </div>
-              <div className="text-gray-500 text-sm">
-                {new Date(post.created_at).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-          
-          {/* Post Content */}
-          <div className="text-gray-900 mb-4">
-            {post.content}
-          </div>
-
-          {post.media_urls && post.media_urls.length > 0 && (
-            <div className="mb-4">
-              {post.media_urls.map((url, index) => (
-                <div key={index} className="mb-2">
-                  {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img 
-                      src={url} 
-                      alt={`Post media ${index + 1}`}
-                      className="w-full h-64 object-cover rounded-lg"
-                    />
-                  ) : url.match(/\.(mp4|webm|ogg|avi|mov)$/i) ? (
-                    <video 
-                      src={url} 
-                      controls
-                      className="w-full h-64 object-cover rounded-lg"
-                    />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {post.social_link && (
-            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <a 
-                href={post.social_link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 text-sm"
+        <article
+          key={post.id}
+          className="bg-transparent border-none"
+        >
+          {/* User Header - Zora Style (user info + time + menu) */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Avatar
+                className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => router.push(`/profile/${post.user.username}`)}
               >
-                🔗 {post.social_link}
-              </a>
+                <AvatarImage src={post.user.avatar} alt={post.user.name} />
+                <AvatarFallback className="bg-gray-600 text-white">
+                  {post.user.name[0]}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => router.push(`/profile/${post.user.username}`)}
+                className="text-white text-base font-normal hover:opacity-70 transition-opacity"
+              >
+                {post.user.name}
+              </button>
             </div>
-          )}
+            <div className="flex items-center gap-3">
+              <span className="text-white/40 text-sm">{post.time}</span>
+              <button className="text-white/40 hover:text-white/60 transition-colors">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-          {/* Earnings Display */}
-          {post.earnings_amount && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-green-600 font-semibold text-lg">
-                    ${post.earnings_amount.toLocaleString()}
-                  </div>
-                  <div className="text-green-500 text-sm">Earnings</div>
+          {/* Media - Full Width, Rounded Corners - Zora Style */}
+          <div
+            className="relative rounded-2xl overflow-hidden mb-4 cursor-pointer group bg-black"
+            onClick={() => router.push(`/post/${post.id}`)}
+          >
+            <img
+              src={post.media}
+              alt={post.title}
+              className="w-full aspect-square object-cover group-hover:opacity-95 transition-opacity"
+            />
+          </div>
+
+          {/* Content - Zora Style */}
+          <div className="space-y-4">
+            {/* Price Badge + Buy Button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 text-green-400">
+                  <ArrowUpIcon className="w-4 h-4" />
+                  <span className="text-base font-medium">{post.price}</span>
                 </div>
-                {post.verified && (
-                  <Badge variant="secondary" className="text-green-600 bg-green-100">
-                    Verified ✓
-                  </Badge>
-                )}
+                <button className="hover:opacity-60 transition-opacity">
+                  <ChatBubbleLeftIcon className="w-5 h-5 text-white/50" />
+                </button>
+                <button className="hover:opacity-60 transition-opacity">
+                  <ShareIcon className="w-5 h-5 text-white/50" />
+                </button>
               </div>
-            </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <button onClick={() => handleLike(post.id)} className="flex items-center space-x-2 text-gray-500 hover:text-gray-700">
-                <HeartIcon className="w-5 h-5" />
-                <span className="text-sm">{post.likes_count || 0}</span>
-              </button>
-              <button className="flex items-center space-x-2 text-gray-500 hover:text-gray-700">
-                <ChatBubbleLeftIcon className="w-5 h-5" />
-                <span className="text-sm">{post.comments_count || 0}</span>
-              </button>
-              <button onClick={() => handleShare(post)} className="flex items-center space-x-2 text-gray-500 hover:text-gray-700">
-                <ShareIcon className="w-5 h-5" />
-                <span className="text-sm">{post.shares_count || 0}</span>
-              </button>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/post/${post.id}`);
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-10 py-2.5 h-auto rounded-full transition-all text-base"
+              >
+                Buy
+              </Button>
             </div>
-            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-              Buy
-            </Button>
-          </div>
-        
-          {/* Comment Input */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Add a comment..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+
+            {/* Holders Info - Zora Style */}
+            {post.holders && (
+              <div className="flex items-center gap-1.5 text-sm text-white/60">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                </svg>
+                <span>Held by {post.holders}</span>
               </div>
+            )}
+
+            {post.buyers && (
+              <div className="text-sm text-white/60">
+                <span className="text-white font-medium">{post.user.name}</span> bought{' '}
+                <span className="text-green-400">{post.price}</span> of this post by{' '}
+                <span className="text-white font-medium">{post.buyers}</span>
+              </div>
+            )}
+
+            {/* Title & Description */}
+            <div>
+              <h2
+                className="text-white text-lg font-semibold mb-1 cursor-pointer hover:opacity-70 transition-opacity"
+                onClick={() => router.push(`/post/${post.id}`)}
+              >
+                {post.title}
+              </h2>
+              <p className="text-white/60 text-sm leading-relaxed">
+                {post.description}
+              </p>
+            </div>
+
+            {/* Comment Input - Zora Style */}
+            <div>
+              <input
+                type="text"
+                placeholder="Add a comment..."
+                className="w-full bg-transparent border-none text-white/60 text-sm placeholder:text-white/40 focus:outline-none focus:text-white transition-colors py-2"
+                onClick={() => router.push(`/post/${post.id}`)}
+                readOnly
+              />
             </div>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );

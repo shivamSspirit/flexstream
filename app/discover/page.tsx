@@ -3,288 +3,243 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { 
-  MagnifyingGlassIcon,
+import {
+  StarIcon,
+  UsersIcon,
+  TrophyIcon,
+  ChartBarIcon,
+  VideoCameraIcon,
   FireIcon,
   SparklesIcon,
-  TrophyIcon,
-  ClockIcon,
-  HeartIcon
+  Squares2X2Icon,
+  ListBulletIcon
 } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { cn } from '@/lib/utils';
+
+type ViewMode = 'grid' | 'list';
 
 export default function DiscoverPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('trending');
+  const [activeTab, setActiveTab] = useState('featured');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
+  // Zora-style filter tabs
   const tabs = [
-    { id: 'trending', label: 'Trending', icon: FireIcon },
+    { id: 'featured', label: 'Featured', icon: StarIcon },
+    { id: 'zora-stars', label: 'Zora Stars', icon: StarIconSolid },
+    { id: 'friends-bought', label: 'Friends Bought', icon: UsersIcon },
+    { id: 'top-creators', label: 'Top Creators', icon: TrophyIcon },
+    { id: 'weekly-traders', label: 'Weekly Top Traders', icon: ChartBarIcon },
+    { id: 'videos', label: 'Videos', icon: VideoCameraIcon },
+    { id: 'top-posts', label: 'Top Posts', icon: FireIcon },
+    { id: 'trending', label: 'Trending Posts', icon: FireIcon },
     { id: 'new', label: 'New', icon: SparklesIcon },
-    { id: 'top', label: 'Top', icon: TrophyIcon },
-    { id: 'recent', label: 'Recent', icon: ClockIcon },
   ];
 
-  const featuredCollections = [
+  // Mock data matching Zora's explore page
+  const posts = [
     {
       id: '1',
-      name: 'Digital Dreams',
-      creator: 'Alex Morrison',
-      creatorAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
-      image: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800&h=600&fit=crop',
-      floor: '2.5 SOL',
-      volume: '45.2K',
-      items: 100,
-      verified: true
+      image: 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
+      title: 'frame',
+      username: 'galeano',
+      currentPrice: '$26.24',
+      floorPrice: '$1.35',
+      holders: 4,
+      time: '52s'
     },
     {
       id: '2',
-      name: 'Neon Nights',
-      creator: 'Sarah Chen',
-      creatorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-      image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=600&fit=crop',
-      floor: '1.8 SOL',
-      volume: '32.1K',
-      items: 50,
-      verified: true
+      image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop',
+      title: 'work',
+      username: 'ohde',
+      currentPrice: '$96.47',
+      floorPrice: '$1.20',
+      holders: 4,
+      time: '3m'
     },
     {
       id: '3',
-      name: 'Abstract Flow',
-      creator: 'Marcus J',
-      creatorAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
-      image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop',
-      floor: '3.2 SOL',
-      volume: '58.7K',
-      items: 75,
-      verified: true
+      image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=400&fit=crop',
+      title: 'Wickedly Juicy',
+      username: 'cryptochef79',
+      currentPrice: '$147.59',
+      floorPrice: '$1.44',
+      holders: 3,
+      time: '6m'
     },
     {
       id: '4',
-      name: 'Cosmic Visions',
-      creator: 'Emma W',
-      creatorAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
-      image: 'https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?w=800&h=600&fit=crop',
-      floor: '1.5 SOL',
-      volume: '28.3K',
-      items: 120,
-      verified: false
-    },
-  ];
-
-  const topCreators = [
-    {
-      id: '1',
-      name: 'Alex Morrison',
-      username: 'alexm',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
-      followers: '125K',
-      verified: true,
-      sales: '450 SOL'
+      image: 'https://images.unsplash.com/photo-1579762715118-a6f1d4b934f1?w=400&h=400&fit=crop',
+      title: 'shitpost 48',
+      username: 'china666cabj',
+      currentPrice: '$7.75',
+      floorPrice: '$1.43',
+      holders: 3,
+      time: '8m'
     },
     {
-      id: '2',
-      name: 'Sarah Chen',
-      username: 'sarahc',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-      followers: '98K',
-      verified: true,
-      sales: '320 SOL'
+      id: '5',
+      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop',
+      title: 'Sadprt x EQ',
+      username: 'sadprt',
+      currentPrice: '$2k',
+      floorPrice: '$143.47',
+      holders: 11,
+      time: '10m'
     },
     {
-      id: '3',
-      name: 'Marcus Johnson',
-      username: 'marcusj',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
-      followers: '87K',
-      verified: true,
-      sales: '275 SOL'
+      id: '6',
+      image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=400&fit=crop',
+      title: 'Sugar Cookies',
+      username: 'baranbakery',
+      currentPrice: '$271.75',
+      floorPrice: '$5.06',
+      holders: 4,
+      time: '12m'
+    },
+    {
+      id: '7',
+      image: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop',
+      title: 'Padel Tournament',
+      username: 'lemongab',
+      currentPrice: '$144.95',
+      floorPrice: '$3.37',
+      holders: 3,
+      time: '15m'
+    },
+    {
+      id: '8',
+      image: 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
+      title: 'A Midsummer Night',
+      username: 'dreameincarnate',
+      currentPrice: '$89.75',
+      floorPrice: '$1.89',
+      holders: 3,
+      time: '32m'
+    },
+    {
+      id: '9',
+      image: 'https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?w=400&h=400&fit=crop',
+      title: 'lexluther',
+      username: 'pissingonplaid',
+      currentPrice: '$174.94',
+      floorPrice: '$3.59',
+      holders: 3,
+      time: '35m'
     },
   ];
 
   return (
-    <AppLayout showWallet={true} showSearch={false}>
-      <div className="pb-20 md:pb-6 -mx-4 sm:mx-0">
-        {/* Search Header */}
-        <div className="px-4 sm:px-0 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-4">Discover</h1>
-          
-          {/* Search Bar */}
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search collections, creators, artworks..."
-              className="w-full pl-12 pr-4 h-12 bg-card-bg border-white/10 rounded-2xl text-primary placeholder:text-secondary focus:border-white/20 focus:ring-2 focus:ring-purple-500/20"
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="px-4 sm:px-0 mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
-            {tabs.map((tab) => (
-              <Button
+    <AppLayout showWallet={true} showSearch={true}>
+      <div className="max-w-[1600px] mx-auto px-6 pb-20 md:pb-0">
+        {/* Filter Tabs - Zora Style */}
+        <div className="mb-8 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                variant={activeTab === tab.id ? 'default' : 'outline'}
                 className={cn(
-                  'flex items-center gap-2 whitespace-nowrap transition-all',
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === tab.id
-                    ? 'flexstream-gradient text-white border-0'
-                    : 'bg-card-bg border-white/20 text-secondary hover:text-primary hover:bg-card-bg/80'
+                    ? "bg-white text-black"
+                    : "bg-[#1a1a1a] text-white/70 hover:text-white hover:bg-[#252525] border border-white/10"
                 )}
               >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Featured Collections */}
-        <div className="mb-8">
-          <div className="px-4 sm:px-0 mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary">Featured Collections</h2>
-            <Button variant="ghost" className="text-purple-400 text-sm hover:text-purple-300">
-              View All →
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4 sm:px-0">
-            {featuredCollections.map((collection) => (
-              <button
-                key={collection.id}
-                onClick={() => router.push(`/collection/${collection.id}`)}
-                className="bg-card-bg rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all cursor-pointer group text-left w-full"
-              >
-                {/* Collection Image */}
-                <div className="relative aspect-square overflow-hidden bg-black">
-                  <img
-                    src={collection.image}
-                    alt={collection.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-
-                {/* Collection Info */}
-                <div className="p-4">
-                  <h3 className="text-primary font-bold text-lg mb-2 group-hover:text-purple-400 transition-colors">
-                    {collection.name}
-                  </h3>
-                  
-                  {/* Creator */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={collection.creatorAvatar} />
-                      <AvatarFallback>{collection.creator[0]}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-secondary text-sm">by {collection.creator}</span>
-                    {collection.verified && (
-                      <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">✓</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="text-secondary text-xs">Floor</p>
-                      <p className="text-primary font-semibold">{collection.floor}</p>
-                    </div>
-                    <div>
-                      <p className="text-secondary text-xs">Volume</p>
-                      <p className="text-primary font-semibold">{collection.volume}</p>
-                    </div>
-                    <div>
-                      <p className="text-secondary text-xs">Items</p>
-                      <p className="text-primary font-semibold">{collection.items}</p>
-                    </div>
-                  </div>
-                </div>
+                <Icon className="w-4 h-4" />
+                {tab.label}
               </button>
-            ))}
-          </div>
-        </div>
+            );
+          })}
 
-        {/* Top Creators */}
-        <div className="mb-8">
-          <div className="px-4 sm:px-0 mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary">Top Creators</h2>
-            <Button 
-              variant="ghost" 
-              className="text-purple-400 text-sm hover:text-purple-300"
-              onClick={() => router.push('/leaderboard')}
+          {/* View Toggle - Grid/List */}
+          <div className="ml-auto flex items-center gap-2 bg-[#1a1a1a] rounded-xl p-1 border border-white/10">
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'list' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"
+              )}
             >
-              View All →
-            </Button>
+              <ListBulletIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"
+              )}
+            >
+              <Squares2X2Icon className="w-5 h-5" />
+            </button>
           </div>
+        </div>
 
-          <div className="space-y-3 px-4 sm:px-0">
-            {topCreators.map((creator, index) => (
-              <button
-                key={creator.id}
-                onClick={() => router.push(`/profile/${creator.username}`)}
-                className="bg-card-bg rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all cursor-pointer group flex items-center gap-4 w-full text-left"
-              >
-                {/* Rank */}
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0",
-                  index === 0 && "bg-gradient-to-br from-yellow-500 to-yellow-600 text-white",
-                  index === 1 && "bg-gradient-to-br from-gray-400 to-gray-500 text-white",
-                  index === 2 && "bg-gradient-to-br from-orange-600 to-orange-700 text-white"
-                )}>
-                  #{index + 1}
-                </div>
+        {/* Posts Grid - Zora 3-Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((post) => (
+            <article
+              key={post.id}
+              className="bg-transparent cursor-pointer group"
+              onClick={() => router.push(`/post/${post.id}`)}
+            >
+              {/* Image */}
+              <div className="relative rounded-2xl overflow-hidden mb-3 bg-black">
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity"
+                />
+              </div>
 
-                {/* Avatar */}
-                <Avatar className="h-12 w-12 ring-2 ring-white/10 group-hover:ring-white/20 transition-all">
-                  <AvatarImage src={creator.avatar} />
-                  <AvatarFallback>{creator.name[0]}</AvatarFallback>
-                </Avatar>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-primary font-semibold truncate group-hover:text-purple-400 transition-colors">
-                      {creator.name}
+              {/* Content */}
+              <div className="px-1">
+                {/* Title & Username */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white text-lg font-semibold mb-1 truncate">
+                      {post.title}
                     </h3>
-                    {creator.verified && (
-                      <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[10px] font-bold">✓</span>
-                      </div>
-                    )}
+                    <p className="text-white/50 text-sm truncate">{post.username}</p>
                   </div>
-                  <p className="text-secondary text-sm">{creator.followers} followers</p>
+                  <span className="text-white/40 text-sm ml-2 flex-shrink-0">{post.time}</span>
                 </div>
 
-                {/* Sales */}
-                <div className="text-right">
-                  <p className="text-secondary text-xs">Total Sales</p>
-                  <p className="text-primary font-bold">{creator.sales}</p>
-                </div>
+                {/* Prices & Holders */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    {/* Current Price - Green */}
+                    <div className="flex items-center gap-1.5 text-green-400">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base font-semibold">{post.currentPrice}</span>
+                    </div>
 
-                {/* Follow Button */}
-                <Button 
-                  size="sm" 
-                  className="flexstream-gradient text-white px-6 hover:scale-105 transition-transform flex-shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('Follow clicked for:', creator.username);
-                  }}
-                >
-                  Follow
-                </Button>
-              </button>
-            ))}
-          </div>
+                    {/* Floor Price */}
+                    <div className="flex items-center gap-1.5 text-white/50">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-sm font-medium">{post.floorPrice}</span>
+                    </div>
+                  </div>
+
+                  {/* Holders */}
+                  <div className="flex items-center gap-1.5 text-white/50">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
+                    <span className="text-sm font-medium">{post.holders}</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </AppLayout>

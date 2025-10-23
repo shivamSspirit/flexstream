@@ -81,7 +81,12 @@ export function MobileNav() {
             return (
               <button
                 key={item.label}
-                onClick={() => router.push(item.path!)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('🖱️ Mobile nav:', item.label, '→', item.path);
+                  router.push(item.path!);
+                }}
+                type="button"
                 className="relative w-12 h-12 -mt-6 flexstream-gradient rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50 hover:scale-110 transition-transform"
                 aria-label={item.label}
               >
@@ -96,6 +101,7 @@ export function MobileNav() {
               <button
                 key={item.label}
                 onClick={handleWalletClick}
+                type="button"
                 className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all ${
                   connected
                     ? 'text-primary bg-purple-500/20'
@@ -115,7 +121,12 @@ export function MobileNav() {
           return (
             <button
               key={item.label}
-              onClick={() => router.push(item.path!)}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('🖱️ Mobile nav:', item.label, '→', item.path);
+                router.push(item.path!);
+              }}
+              type="button"
               className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
                 item.active
                   ? 'text-primary'

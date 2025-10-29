@@ -198,20 +198,28 @@ export async function POST(request: NextRequest) {
       pool: tokenResult.pool.toBase58()
     });
 
-    // 4. Serialize transaction for frontend signing
-    // IMPORTANT: Transaction is NOT signed yet - user signs first, then backend adds baseMint signature
+    // 4. Sign transaction with baseMint FIRST (required by Solana)
+    console.log('🔐 Signing transaction with baseMint keypair first...');
+    tokenResult.transaction.partialSign(tokenResult.baseMintKeypair);
+
+    console.log('📊 Transaction signatures after baseMint sign:',
+      tokenResult.transaction.signatures.map(s => ({
+        pubkey: s.publicKey?.toBase58(),
+        signature: s.signature ? 'present' : 'null'
+      }))
+    );
+
+    // 5. Serialize PARTIALLY-SIGNED transaction for frontend
+    // The user will add their signature next
     const serializedTransaction = tokenResult.transaction.serialize({
       requireAllSignatures: false,
       verifySignatures: false
     });
     const transactionBase64 = Buffer.from(serializedTransaction).toString('base64');
 
-    // Serialize the baseMint keypair to pass to confirm endpoint
-    const baseMintKeypairBase64 = Buffer.from(tokenResult.baseMintKeypair.secretKey).toString('base64');
+    console.log('📦 Transaction serialized (baseMint signed, awaiting user signature)');
 
-    console.log('📦 Transaction serialized for frontend signing');
-
-    // 5. Return transaction to frontend for user signing
+    // 6. Return transaction to frontend for user signing
     // Database save happens AFTER user confirms the transaction
     return NextResponse.json({
       success: true,
@@ -231,7 +239,6 @@ export async function POST(request: NextRequest) {
           pool: tokenResult.pool.toBase58(),
           metadataUri: metadataUri,
           transaction: transactionBase64,
-          baseMintKeypair: baseMintKeypairBase64,  // Send to frontend to pass to confirm endpoint
           jupiterUrl: dbcClient.getJupiterTradeUrl(tokenResult.mint.toBase58()),
           meteoraUrl: dbcClient.getMeteoraTradeUrl(tokenResult.pool.toBase58()),
         },

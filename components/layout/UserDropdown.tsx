@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { useRouter } from 'next/navigation';
 import { 
   Settings, 

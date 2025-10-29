@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +47,7 @@ interface UserStats {
 }
 
 export default function UserProfileViewPage() {
-  const { userId: currentUserId, isLoaded } = useAuth();
+  const { connected, publicKey } = useWallet();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;

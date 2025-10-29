@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -23,10 +21,12 @@ interface UserMenuProps {
 
 export function UserMenu({ isOpen, onClose }: UserMenuProps) {
   const router = useRouter();
-  const { signOut } = useAuth();
-  const { user } = useUser();
-  const { disconnect, connected } = useWallet();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // TODO: Add authentication state
+  const authenticated = false;
+  const user = null;
+  const solanaWallet = null;
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -43,18 +43,8 @@ export function UserMenu({ isOpen, onClose }: UserMenuProps) {
   }, [isOpen, onClose]);
 
   const handleSignOut = async () => {
-    try {
-      // Disconnect wallet if connected
-      if (connected) {
-        await disconnect();
-      }
-      // Sign out from Clerk
-      await signOut();
-      // Redirect to signin page
-      router.push('/auth/signin');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    onClose();
+    alert('Sign out functionality will be added later');
   };
 
   if (!isOpen) return null;
@@ -70,21 +60,21 @@ export function UserMenu({ isOpen, onClose }: UserMenuProps) {
         className="fixed top-16 right-4 z-50 w-72 bg-gray-800 border border-gray-700 rounded-lg shadow-xl"
       >
         {/* User Profile Section */}
-        {user && (
+        {authenticated && (
           <div className="px-4 py-3 border-b border-gray-700">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.imageUrl} />
+                <AvatarImage src="" />
                 <AvatarFallback className="bg-purple-600 text-white">
-                  {user.firstName?.[0] || user.emailAddresses[0]?.emailAddress[0] || 'U'}
+                  U
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="text-white font-medium truncate">
-                  {user.fullName || user.firstName || 'User'}
+                  User
                 </div>
-                <div className="text-gray-400 text-sm truncate">
-                  {user.emailAddresses[0]?.emailAddress}
+                <div className="text-gray-400 text-sm truncate font-mono">
+                  Not connected
                 </div>
               </div>
             </div>

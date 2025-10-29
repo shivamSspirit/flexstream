@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ExploreCard, ExploreCardProps } from '@/components/explore/ExploreCard';
+import { ExploreListCard } from '@/components/explore/ExploreListCard';
 import {
   StarIcon,
   UsersIcon,
@@ -159,9 +160,9 @@ export default function ExplorePage() {
 
   return (
     <AppLayout showWallet={true} showSearch={true}>
-      <div className="max-w-[1600px] mx-auto px-6 pb-20 md:pb-0">
-        {/* Filter Tabs - Zora Style */}
-        <div className="mb-8 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="max-w-[1600px] mx-auto pb-20 md:pb-8 lg:pb-10">
+        {/* Filter Tabs - Mobile-First Responsive */}
+        <div className="mb-6 sm:mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -169,20 +170,20 @@ export default function ExplorePage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0",
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === tab.id
                     ? "bg-white text-black"
-                    : "bg-[#1a1a1a] text-white/70 hover:text-white hover:bg-[#252525] border border-white/10"
+                    : "bg-transparent text-white/70 hover:text-white border border-white/20 hover:border-white/40"
                 )}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                <span>{tab.label}</span>
               </button>
             );
           })}
 
           {/* View Toggle - Grid/List */}
-          <div className="ml-auto flex items-center gap-2 bg-[#1a1a1a] rounded-xl p-1 border border-white/10">
+          <div className="flex ml-auto items-center gap-1 bg-transparent rounded-xl border border-white/20 shrink-0 p-1">
             <button
               onClick={() => setViewMode('list')}
               className={cn(
@@ -204,12 +205,20 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Posts Grid - Using Reusable ExploreCard Component */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {posts.map((post) => (
-            <ExploreCard key={post.id} {...post} />
-          ))}
-        </div>
+        {/* Posts Display - Grid or List View */}
+        {viewMode === 'list' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {posts.map((post) => (
+              <ExploreCard key={post.id} {...post} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {posts.map((post) => (
+              <ExploreListCard key={post.id} {...post} />
+            ))}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

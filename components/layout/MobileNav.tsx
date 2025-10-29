@@ -1,14 +1,13 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { 
-  HomeIcon, 
-  MagnifyingGlassIcon, 
-  PlusIcon, 
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  HomeIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
   WalletIcon,
-  UserCircleIcon 
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeSolidIcon,
@@ -17,17 +16,12 @@ import {
 } from '@heroicons/react/24/solid';
 
 export function MobileNav() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { connected, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  const router = useRouter();
 
-  const handleWalletClick = async () => {
-    if (connected) {
-      await disconnect();
-    } else {
-      setVisible(true);
-    }
+  const handleWalletClick = () => {
+    // Navigate to profile wallet tab
+    router.push('/profile?tab=wallet');
   };
 
   const navItems = [
@@ -53,11 +47,11 @@ export function MobileNav() {
       label: 'Create',
       isSpecial: true
     },
-    { 
-      icon: WalletIcon, 
+    {
+      icon: WalletIcon,
       activeIcon: WalletIcon,
       path: null,
-      active: connected,
+      active: pathname.startsWith('/profile') && pathname.includes('wallet'),
       label: 'Wallet',
       isWallet: true
     },
@@ -75,23 +69,19 @@ export function MobileNav() {
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item, index) => {
           const Icon = item.active ? item.activeIcon : item.icon;
-          
+
           // Special styling for Create button (elevated)
           if (item.isSpecial) {
             return (
-              <button
+              <Link
                 key={item.label}
-                onClick={(e) => {
-                  e.preventDefault();
-                  console.log('🖱️ Mobile nav:', item.label, '→', item.path);
-                  router.push(item.path!);
-                }}
-                type="button"
-                className="relative w-12 h-12 -mt-6 flexstream-gradient rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50 hover:scale-110 transition-transform"
+                href={item.path!}
+                prefetch={true}
+                className="relative w-12 h-12 -mt-6 bg-gradient-to-br from-accent-purple to-accent-pink rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50 hover:scale-110 active:scale-95 transition-transform"
                 aria-label={item.label}
               >
                 <Icon className="w-6 h-6 text-white stroke-[2.5]" />
-              </button>
+              </Link>
             );
           }
 
@@ -102,16 +92,17 @@ export function MobileNav() {
                 key={item.label}
                 onClick={handleWalletClick}
                 type="button"
-                className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all ${
-                  connected
-                    ? 'text-primary bg-purple-500/20'
-                    : 'text-secondary hover:text-primary hover:bg-white/5'
+                className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all active:scale-95 ${
+                  item.active
+                    ? 'bg-gradient-to-br from-white/10 to-white/5 text-white shadow-lg shadow-white/5'
+                    : 'text-white/60 hover:text-white hover:bg-gradient-to-br hover:from-white/5 hover:to-transparent'
                 }`}
                 aria-label={item.label}
               >
                 <Icon className="w-6 h-6" />
-                {connected && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-metric-green rounded-full ring-2 ring-app-bg" />
+                {/* Active Indicator */}
+                {item.active && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-white to-white/50 rounded-t-full shadow-lg shadow-white/20" />
                 )}
               </button>
             );
@@ -119,23 +110,23 @@ export function MobileNav() {
 
           // Regular nav items
           return (
-            <button
+            <Link
               key={item.label}
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🖱️ Mobile nav:', item.label, '→', item.path);
-                router.push(item.path!);
-              }}
-              type="button"
-              className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-colors ${
+              href={item.path!}
+              prefetch={true}
+              className={`relative flex items-center justify-center w-12 h-12 rounded-xl transition-all active:scale-95 ${
                 item.active
-                  ? 'text-primary'
-                  : 'text-secondary hover:text-primary hover:bg-white/5'
+                  ? 'bg-gradient-to-br from-white/10 to-white/5 text-white shadow-lg shadow-white/5'
+                  : 'text-white/60 hover:text-white hover:bg-gradient-to-br hover:from-white/5 hover:to-transparent'
               }`}
               aria-label={item.label}
             >
               <Icon className="w-6 h-6" />
-            </button>
+              {/* Active Indicator */}
+              {item.active && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-white to-white/50 rounded-t-full shadow-lg shadow-white/20" />
+              )}
+            </Link>
           );
         })}
       </div>

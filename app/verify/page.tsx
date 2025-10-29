@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ interface VerificationRequest {
 }
 
 export default function VerificationPage() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { connected, publicKey } = useWallet();
   const router = useRouter();
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [loading, setLoading] = useState(true);

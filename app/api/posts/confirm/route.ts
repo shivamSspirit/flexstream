@@ -30,90 +30,38 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Extract data from request
-    const {
-      signedTransaction,
-      title,
-      content,
-      mediaUrls,
-      walletAddress,
-      ticker,
-      mint,
-      pool,
-      metadataUri,
-      baseMintKeypair,
-    } = body;
+    const { signature, postData } = body;
 
     // Validate required fields
-    if (!signedTransaction || !title || !content || !walletAddress || !ticker || !mint || !pool || !baseMintKeypair) {
+    if (!signature || !postData) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields',
+        error: 'Missing required fields: signature or postData',
       }, { status: 400 });
     }
 
-    console.log('📝 Confirming post:', { title, ticker, mint, pool });
+    const { title, ticker, content, wallet, mediaUrls, mint, pool, metadataUri } = postData;
 
-    // 1. Deserialize the user-signed transaction and add baseMint signature
-    console.log('📡 Preparing transaction with both signatures...');
-
-    const transactionBuffer = Buffer.from(signedTransaction, 'base64');
-    const transaction = Transaction.from(transactionBuffer);
-
-    // Reconstruct the baseMint keypair from the secret key
-    const baseMintSecretKey = Buffer.from(baseMintKeypair, 'base64');
-    const baseMintKeypairObj = Keypair.fromSecretKey(baseMintSecretKey);
-
-    console.log('🔐 Adding baseMint signature to user-signed transaction...');
-    console.log('📊 Signatures before baseMint:', transaction.signatures.map(s => ({
-      pubkey: s.publicKey?.toBase58(),
-      signature: s.signature ? 'present' : 'null'
-    })));
-
-    // Add the baseMint signature to the transaction that already has the user's signature
-    transaction.partialSign(baseMintKeypairObj);
-
-    console.log('✅ Transaction now has both signatures (user + baseMint)');
-    console.log('📊 Signatures after baseMint:', transaction.signatures.map(s => ({
-      pubkey: s.publicKey?.toBase58(),
-      signature: s.signature ? 'present' : 'null'
-    })));
-
-    let signature: string;
-    try {
-      // Serialize the transaction - it should now have both signatures
-      const serializedTx = transaction.serialize();
-      console.log('📦 Serialized transaction size:', serializedTx.length, 'bytes');
-
-      signature = await connection.sendRawTransaction(serializedTx, {
-        skipPreflight: false,
-        maxRetries: 3,
-      });
-
-      console.log('✅ Transaction sent:', signature);
-
-      // 2. Wait for confirmation
-      console.log('⏳ Waiting for transaction confirmation...');
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-      }
-
-      console.log('✅ Transaction confirmed!');
-
-    } catch (txError) {
-      console.error('❌ Transaction error:', txError);
-      throw new Error(`Failed to submit transaction: ${txError instanceof Error ? txError.message : 'Unknown error'}`);
+    if (!title || !content || !wallet || !ticker || !mint || !pool) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields in postData',
+      }, { status: 400 });
     }
 
-    // 3. Find or create user by wallet address
+    console.log('📝 Saving post to database:', { title, ticker, mint, pool, signature });
+
+    // Transaction is already confirmed on-chain by the frontend
+    // This endpoint just saves to the database
+
+    // 1. Find or create user by wallet address
     console.log('👤 Finding or creating user...');
     let userId: string;
 
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('wallet_address', walletAddress)
+      .eq('wallet_address', wallet)
       .single();
 
     if (existingUser) {
@@ -124,9 +72,9 @@ export async function POST(request: NextRequest) {
       const { data: newUser, error: userError } = await supabase
         .from('users')
         .insert({
-          wallet_address: walletAddress,
-          username: `user_${walletAddress.substring(0, 8)}`,
-          display_name: `User ${walletAddress.substring(0, 8)}`,
+          wallet_address: wallet,
+          username: `user_${wallet.substring(0, 8)}`,
+          display_name: `User ${wallet.substring(0, 8)}`,
         })
         .select('id')
         .single();
@@ -143,7 +91,7 @@ export async function POST(request: NextRequest) {
       console.log('✅ Created new user:', userId);
     }
 
-    // 4. Save post to database
+    // 2. Save post to database
     console.log('💾 Saving post to database...');
 
     const { data: post, error: postError } = await supabase
@@ -188,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Post saved:', post.id);
 
-    // 5. Save token data to tokens table
+    // 3. Save token data to tokens table
     console.log('💾 Saving token data...');
 
     const { error: tokenError } = await supabase
@@ -198,9 +146,9 @@ export async function POST(request: NextRequest) {
         symbol: ticker.toUpperCase(),
         name: title,
         description: content,
-        image_uri: mediaUrls[0],
+        image_uri: mediaUrls?.[0] || '',
         metadata_uri: metadataUri,
-        creator_wallet: walletAddress,
+        creator_wallet: wallet,
         post_id: post.id,
         pool_address: pool,
         bonding_curve_address: pool,
@@ -218,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Token data saved');
 
-    // 6. Return success response
+    // 4. Return success response
     return NextResponse.json({
       success: true,
       data: {

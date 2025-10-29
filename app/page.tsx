@@ -5,6 +5,7 @@ import { SimpleFeed } from '@/components/feed/SimpleFeed';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { FloatingWalletCTA } from '@/components/layout/FloatingWalletCTA';
 
 export default function HomePage() {
   const router = useRouter();
@@ -36,84 +37,94 @@ export default function HomePage() {
 
   return (
     <AppLayout showWallet={true} showSearch={true}>
-      {/* Zora Exact Layout: Three column grid */}
-      <div className="grid grid-cols-[1fr_600px_340px] gap-12 max-w-[1600px] mx-auto px-8 pb-20 md:pb-0">
-        {/* Left spacer */}
-        <div className="hidden xl:block"></div>
+      {/* Floating Wallet CTA for anonymous users */}
+      <FloatingWalletCTA />
 
-        {/* Main Feed - 600px fixed width like Zora */}
-        <div className="w-full">
-          <SimpleFeed />
-        </div>
+      {/* Mobile-First Responsive Layout */}
+      <div className="w-full max-w-[1600px] mx-auto pb-20 md:pb-6 lg:pb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_600px_340px] gap-0 xl:gap-12">
+          {/* Left spacer - Desktop only */}
+          <div className="hidden xl:block"></div>
 
-        {/* Right Sidebar - Suggested Follows - 340px fixed */}
-        <aside className="hidden xl:block sticky top-24 h-fit">
-          <div className="bg-transparent">
-            {/* Header */}
-            <h3 className="text-white/70 text-base font-normal mb-6">
-              Suggested follows
-            </h3>
+          {/* Main Feed - Mobile-first, then fixed width on XL */}
+          <div className="w-full">
+            <SimpleFeed />
+          </div>
 
-            {/* Suggested Users List */}
-            <div className="space-y-5">
-              {suggestedFollows.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between group"
-                >
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar
-                      className="h-12 w-12 cursor-pointer ring-0 transition-opacity hover:opacity-80"
-                      onClick={() => router.push(`/profile/${user.username}`)}
-                    >
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold">
-                        {user.name[0]}
-                      </AvatarFallback>
-                    </Avatar>
+          {/* Right Sidebar - Suggested Follows - Hidden on mobile/tablet */}
+          <aside className="hidden xl:block sticky top-20 h-fit space-y-6">
+            {/* Suggested Follows Card */}
+            <div className="card-base p-6">
+              {/* Header */}
+              <h3 className="text-white text-lg font-bold mb-6">
+                Top Creators 🔥
+              </h3>
 
-                    <button
-                      onClick={() => router.push(`/profile/${user.username}`)}
-                      className="text-white text-base font-normal hover:opacity-70 transition-opacity truncate text-left"
-                    >
-                      {user.name}
-                    </button>
-                  </div>
-
-                  {/* Follow Button - Zora Style */}
-                  <Button
-                    className="bg-white hover:bg-white/90 text-black text-sm font-semibold px-6 py-2 h-9 rounded-full transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('Follow:', user.username);
-                    }}
+              {/* Suggested Users List */}
+              <div className="space-y-4">
+                {suggestedFollows.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between group"
                   >
-                    Follow
-                  </Button>
-                </div>
-              ))}
+                    {/* User Info */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Avatar
+                        className="h-12 w-12 cursor-pointer ring-2 ring-transparent hover:ring-accent-green/30 transition-all shrink-0"
+                        onClick={() => router.push(`/profile/${user.username}`)}
+                      >
+                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarFallback className="bg-gradient-to-br from-accent-purple to-accent-pink text-white font-bold">
+                          {user.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 min-w-0">
+                        <button
+                          onClick={() => router.push(`/profile/${user.username}`)}
+                          className="text-white text-sm font-bold hover:text-accent-green transition-colors truncate block text-left w-full"
+                        >
+                          {user.name}
+                        </button>
+                        <p className="text-text-muted text-xs">@{user.username}</p>
+                      </div>
+                    </div>
+
+                    {/* Follow Button */}
+                    <Button
+                      className="bg-accent-green hover:bg-accent-green/90 text-black text-xs font-bold px-4 py-2 h-8 rounded-full transition-all hover:scale-105 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Follow:', user.username);
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Trader Rewards Card - Zora Style Promo */}
-            <div className="mt-8 rounded-2xl overflow-hidden bg-gradient-to-br from-pink-500 via-lime-400 to-pink-500 p-[2px]">
-              <div className="bg-black rounded-2xl p-6 text-center">
-                <div className="text-4xl font-black mb-3 bg-gradient-to-r from-pink-400 via-lime-300 to-pink-400 bg-clip-text text-transparent">
-                  Token Rewards
+            {/* Earnings Promo Card */}
+            <div className="relative overflow-hidden rounded-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-green via-accent-cyan to-accent-blue blur-xl opacity-30"></div>
+              <div className="relative card-base p-6 text-center">
+                <div className="text-3xl font-black mb-3 bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue bg-clip-text text-transparent">
+                  Start Earning
                 </div>
-                <p className="text-white/80 text-sm mb-4">
-                  Trade tokens and earn rewards
+                <p className="text-text-muted text-sm mb-4 leading-relaxed">
+                  Share your flexes and get paid when people buy your coins
                 </p>
                 <Button
-                  onClick={() => router.push('/leaderboard')}
-                  className="w-full bg-white hover:bg-white/90 text-black font-bold py-3 rounded-xl transition-all"
+                  onClick={() => router.push('/create')}
+                  className="w-full bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black py-3 text-sm rounded-xl transition-all hover:scale-105 shadow-lg"
                 >
-                  View Leaderboard
+                  Create Your First Post
                 </Button>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </div>
     </AppLayout>
   );

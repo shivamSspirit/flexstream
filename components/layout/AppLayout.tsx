@@ -30,7 +30,7 @@ export function AppLayout({ children, showWallet = true, showSearch = true }: Ap
         />
         
         {/* Main Content */}
-        <main className="w-full py-6">
+        <main className="w-full py-4 sm:py-6 px-3 sm:px-4 md:px-6">
           {children}
         </main>
       </div>

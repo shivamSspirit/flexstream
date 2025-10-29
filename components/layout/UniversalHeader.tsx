@@ -1,14 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useWallet, UnifiedWalletButton } from '@jup-ag/wallet-adapter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   MagnifyingGlassIcon,
-  WalletIcon,
   Bars3Icon,
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
@@ -27,9 +25,14 @@ export function UniversalHeader({
   showSearch = true,
 }: UniversalHeaderProps) {
   const router = useRouter();
-  const { connected, publicKey, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { connected, publicKey } = useWallet();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Debug wallet connection state
+  useEffect(() => {
+    console.log('🔍 [Wallet] UniversalHeader - Connected:', connected);
+    console.log('🔍 [Wallet] UniversalHeader - PublicKey:', publicKey?.toBase58());
+  }, [connected, publicKey]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,89 +41,45 @@ export function UniversalHeader({
     }
   };
 
-  const handleWalletClick = async () => {
-    if (connected) {
-      await disconnect();
-    } else {
-      // Open wallet modal to select wallet (including Jupiter)
-      setVisible(true);
-    }
-  };
-
-  const truncateAddress = (address: string) => {
-    // Show 6 characters total: first 3 and last 3
-    return `${address.slice(0, 3)}...${address.slice(-3)}`;
-  };
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 bg-app-bg/95 backdrop-blur-md border-b border-white/10',
+        'sticky top-0 z-50 bg-app-bg/95 backdrop-blur-xl border-b border-white/10 shadow-lg',
         className
       )}
     >
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
-          {/* Search Bar - Left Side */}
-          {showSearch ? (
-            <div className="flex-1 max-w-3xl">
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary pointer-events-none" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tokens, creators, posts..."
-                    className="w-full pl-12 pr-4 h-11 bg-card-bg border-white/10 rounded-full text-primary placeholder:text-secondary focus:border-white/20 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                  />
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
+      <div className="max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+          {/* Search Bar - Mobile First */}
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 flex-1">
+            {showSearch && (
+              <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md">
+                <form onSubmit={handleSearch}>
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-text-muted pointer-events-none" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search..."
+                      className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 h-9 sm:h-10 bg-card-bg border-white/10 rounded-full text-text-primary text-sm sm:text-base placeholder:text-text-muted focus:border-accent-purple/50 focus:ring-2 focus:ring-accent-purple/20 hover:border-white/20 transition-all font-medium"
+                    />
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-3">
-            {/* Wallet Button - Desktop */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Wallet Button */}
             {showWallet && (
-              <Button
-                onClick={handleWalletClick}
-                variant={connected ? 'default' : 'outline'}
-                className={cn(
-                  'hidden sm:flex items-center gap-2 h-10 px-4 rounded-xl transition-all',
-                  connected
-                    ? 'flexstream-gradient text-white border-0 hover:opacity-90'
-                    : 'bg-card-bg border-white/20 text-primary hover:bg-card-bg/80 hover:border-white/30'
-                )}
-              >
-                <WalletIcon className="w-5 h-5" />
-                <span className="font-medium">
-                  {connected && publicKey
-                    ? truncateAddress(publicKey.toBase58())
-                    : 'Connect Wallet'}
-                </span>
-              </Button>
-            )}
-
-            {/* Wallet Icon - Mobile */}
-            {showWallet && (
-              <Button
-                onClick={handleWalletClick}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'sm:hidden w-10 h-10 rounded-xl transition-colors relative',
-                  connected
-                    ? 'flexstream-gradient text-white'
-                    : 'bg-card-bg text-secondary hover:text-primary hover:bg-card-bg/80'
-                )}
-              >
-                <WalletIcon className="w-5 h-5" />
-                {connected && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-metric-green rounded-full border-2 border-app-bg" />
-                )}
-              </Button>
+              <div className="relative scale-75 sm:scale-90 md:scale-100 origin-right">
+                <div className="absolute inset-0 bg-gradient-to-r from-accent-green to-accent-cyan rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                <div className="relative" data-wallet-button>
+                  <UnifiedWalletButton />
+                </div>
+              </div>
             )}
 
             {/* Hamburger Menu */}
@@ -128,10 +87,10 @@ export function UniversalHeader({
               onClick={onMenuClick}
               variant="ghost"
               size="icon"
-              className="w-10 h-10 rounded-xl bg-card-bg text-secondary hover:text-primary hover:bg-card-bg/80 transition-colors"
+              className="btn-icon w-9 h-9 sm:w-10 sm:h-10"
               aria-label="Menu"
             >
-              <Bars3Icon className="w-6 h-6" />
+              <Bars3Icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </Button>
           </div>
         </div>

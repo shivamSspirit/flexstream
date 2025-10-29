@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { Send, Heart, Reply } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,46 @@ import { Input } from '@/components/ui/input';
 import { formatTimeAgo } from '@/lib/utils';
 import { Comment } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/lib/constants';
 
 interface PostCommentsProps {
   postId: string;
 }
 
 export function PostComments({ postId }: PostCommentsProps) {
-  const { userId } = useAuth();
+  const { connected, publicKey } = useWallet();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Fetch current user ID when wallet connects
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      if (!connected || !publicKey || !supabase) {
+        setCurrentUserId(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id')
+          .eq('wallet_address', publicKey.toBase58())
+          .single();
+
+        if (!error && data) {
+          setCurrentUserId(data.id);
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      }
+    }
+
+    fetchCurrentUser();
+  }, [connected, publicKey]);
 
   useEffect(() => {
     fetchComments();
@@ -29,7 +58,7 @@ export function PostComments({ postId }: PostCommentsProps) {
     setLoading(true);
 
     if (!supabase) {
-      console.error('Supabase not configured');
+      console.error(ERROR_MESSAGES.SUPABASE_NOT_CONFIGURED);
       setLoading(false);
       return;
     }
@@ -47,12 +76,14 @@ export function PostComments({ postId }: PostCommentsProps) {
 
       if (error) {
         console.error('Error fetching comments:', error);
+        toast.error('Failed to load comments');
         return;
       }
 
       setComments(data || []);
     } catch (error) {
       console.error('Error:', error);
+      toast.error('Failed to load comments');
     } finally {
       setLoading(false);
     }
@@ -60,31 +91,35 @@ export function PostComments({ postId }: PostCommentsProps) {
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !userId) return;
+
+    // Validation
+    if (!newComment.trim()) {
+      toast.error('Please enter a comment');
+      return;
+    }
+
+    if (!connected || !publicKey) {
+      toast.error(ERROR_MESSAGES.WALLET_NOT_CONNECTED);
+      return;
+    }
+
+    if (!currentUserId) {
+      toast.error('User profile not found. Please try reconnecting your wallet.');
+      return;
+    }
 
     if (!supabase) {
-      console.error('Supabase not configured');
+      toast.error(ERROR_MESSAGES.SUPABASE_NOT_CONFIGURED);
       return;
     }
 
     setSubmitting(true);
+
     try {
-      // First get the user's database ID from their Privy ID
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (profileError || !userProfile) {
-        console.error('User profile not found:', profileError);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('comments')
         .insert({
-          user_id: userProfile.id,
+          user_id: currentUserId,
           post_id: postId,
           content: newComment.trim(),
         })
@@ -96,13 +131,17 @@ export function PostComments({ postId }: PostCommentsProps) {
 
       if (error) {
         console.error('Error creating comment:', error);
+        toast.error('Failed to post comment');
         return;
       }
 
+      // Success!
       setComments(prev => [...prev, data]);
       setNewComment('');
+      toast.success(SUCCESS_MESSAGES.COMMENT_POSTED);
     } catch (error) {
       console.error('Error:', error);
+      toast.error('Failed to post comment');
     } finally {
       setSubmitting(false);
     }
@@ -132,7 +171,7 @@ export function PostComments({ postId }: PostCommentsProps) {
   return (
     <div className="space-y-4 pt-4 border-t border-gray-700">
       {/* Comment Form */}
-      {userId && (
+      {connected && currentUserId && (
         <form onSubmit={handleSubmitComment} className="flex space-x-3">
           <Avatar className="h-8 w-8">
             <AvatarImage src="" alt="User" />

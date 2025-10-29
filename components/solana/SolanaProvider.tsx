@@ -1,46 +1,53 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { ReactNode, useCallback, useMemo } from 'react';
-import { WalletError } from '@solana/wallet-adapter-base';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { ReactNode, useEffect } from 'react';
+import { UnifiedWalletProvider } from '@jup-ag/wallet-adapter';
 
-// Styles for wallet modal
-require('@solana/wallet-adapter-react-ui/styles.css');
-
-// Optional: expose a ready-made connect button
-export const SolanaConnectButton = dynamic(
-  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
-  { ssr: false }
-);
-
-interface Props { children: ReactNode }
+interface Props { 
+  children: ReactNode;
+}
 
 export function SolanaProvider({ children }: Props) {
-  const endpoint = useMemo(() => process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com', []);
-  const onError = useCallback((error: WalletError) => {
-    console.error('[Solana Wallet Error]', error);
+  // Debug wallet persistence
+  useEffect(() => {
+    console.log('🔍 [Wallet] SolanaProvider mounted');
+    
+    // Check if there's any stored wallet connection
+    const checkStoredWallet = () => {
+      const stored = localStorage.getItem('jup-wallet-adapter');
+      console.log('🔍 [Wallet] Stored wallet data:', stored);
+      
+      // Also check for other common wallet storage keys
+      const phantom = localStorage.getItem('phantom');
+      const solflare = localStorage.getItem('solflare');
+      console.log('🔍 [Wallet] Phantom data:', phantom);
+      console.log('🔍 [Wallet] Solflare data:', solflare);
+    };
+    
+    checkStoredWallet();
   }, []);
 
-  // Include wallet adapters - Jupiter, Phantom, and other Wallet Standard wallets will be auto-detected
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      // Jupiter wallet will be auto-detected via Wallet Standard
-      // Other wallets (Solflare, Backpack, etc.) will also be auto-detected
-    ],
-    []
-  );
-
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} onError={onError} autoConnect>
-        <WalletModalProvider>
-          {children}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <UnifiedWalletProvider
+      wallets={[]} // Empty array - Jupiter will auto-discover wallets
+      config={{
+        autoConnect: true,
+        env: 'devnet',
+        metadata: {
+          name: 'FlexStream',
+          description: 'Social Platform for Pump.fun Streamers',
+          url: 'https://flexstream.app',
+          iconUrls: ['/favicon.ico'],
+        },
+        theme: 'dark',
+        lang: 'en',
+        // Additional persistence settings
+        walletlistExplanation: {
+          href: 'https://station.jup.ag/docs/additional-topics/wallet-list',
+        },
+      }}
+    >
+      {children}
+    </UnifiedWalletProvider>
   );
 }

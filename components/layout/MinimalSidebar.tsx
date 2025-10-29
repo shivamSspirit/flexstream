@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +18,13 @@ import {
   BellIcon as BellIconSolid,
 } from '@heroicons/react/24/solid';
 import { cn } from '@/lib/utils';
+import { LogoIcon } from './Logo';
 
 interface MinimalSidebarProps {
   className?: string;
 }
 
 export function MinimalSidebar({ className }: MinimalSidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const [unreadNotifications] = useState(1);
 
@@ -73,22 +74,9 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
       )}
       style={{ zIndex: 50 }}
     >
-      {/* Brand Icon at Top */}
+      {/* Brand Logo at Top */}
       <div className="mb-6 md:mb-8">
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🖱️ Logo clicked → Home');
-            router.push('/');
-          }}
-          type="button"
-          className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-purple-500/25 pointer-events-auto cursor-pointer"
-          aria-label="Go to home"
-          style={{ pointerEvents: 'auto' }}
-        >
-          <span className="text-white font-bold text-lg md:text-xl">F</span>
-        </button>
+        <LogoIcon size="sm" />
       </div>
 
       {/* Navigation Items */}
@@ -98,36 +86,33 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
           const Icon = active ? item.iconSolid : item.icon;
 
           return (
-            <button
+            <Link
               key={item.path}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🖱️ Sidebar clicked:', item.label, '→', item.path);
-                router.push(item.path);
-              }}
-              type="button"
+              href={item.path}
+              prefetch={true}
               className={cn(
                 'relative rounded-xl flex items-center justify-center transition-all duration-200',
                 // Responsive button size
                 'w-10 h-10 md:w-12 md:h-12',
-                'hover:bg-card-bg group',
-                // Ensure buttons are clickable
-                'pointer-events-auto cursor-pointer',
+                'group cursor-pointer',
                 active
-                  ? 'bg-card-bg text-primary shadow-lg shadow-purple-500/10'
-                  : 'text-secondary hover:text-primary'
+                  ? 'bg-gradient-to-br from-white/10 to-white/5 text-white shadow-lg shadow-white/5 backdrop-blur-sm'
+                  : 'text-white/60 hover:text-white hover:bg-gradient-to-br hover:from-white/5 hover:to-transparent'
               )}
               aria-label={item.label}
-              style={{ pointerEvents: 'auto' }}
             >
-              <Icon className="w-5 h-5 md:w-6 md:h-6" />
-              
+              <Icon className="w-5 h-5 md:w-6 md:h-6 relative z-10" />
+
+              {/* Gradient overlay on hover */}
+              {!active && (
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-600/0 to-pink-600/0 group-hover:from-purple-600/10 group-hover:to-pink-600/10 transition-all duration-300" />
+              )}
+
               {/* Notification Badge */}
               {item.badge && item.badge > 0 && (
                 <Badge
                   variant="destructive"
-                  className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-4 h-4 md:w-5 md:h-5 p-0 flex items-center justify-center text-[10px] md:text-xs bg-metric-red border-2 border-app-bg"
+                  className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-4 h-4 md:w-5 md:h-5 p-0 flex items-center justify-center text-[10px] md:text-xs bg-red-500 border-2 border-app-bg z-10"
                 >
                   {item.badge}
                 </Badge>
@@ -135,31 +120,25 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
 
               {/* Active Indicator */}
               {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 md:h-8 bg-gradient-to-b from-purple-600 to-pink-600 rounded-r-full" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 md:h-8 bg-gradient-to-b from-white to-white/50 rounded-r-full shadow-lg shadow-white/20" />
               )}
 
               {/* Tooltip - Hidden on small screens */}
-              <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-card-bg border border-white/10 rounded-lg text-xs md:text-sm text-primary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
+              <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-lg text-xs md:text-sm text-white whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
                 {item.label}
               </div>
-            </button>
+            </Link>
           );
         })}
       </nav>
 
       {/* Profile Avatar at Bottom */}
       <div className="mt-auto">
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🖱️ Profile clicked → /profile');
-            router.push('/profile');
-          }}
-          type="button"
-          className="relative group pointer-events-auto cursor-pointer"
+        <Link
+          href="/profile"
+          prefetch={true}
+          className="relative group cursor-pointer block"
           aria-label="Go to profile"
-          style={{ pointerEvents: 'auto' }}
         >
           <Avatar className="h-9 w-9 md:h-11 md:w-11 cursor-pointer border-2 border-white/10 hover:border-white/20 transition-all duration-200 hover:scale-105">
             <AvatarImage
@@ -178,7 +157,7 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
           <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-card-bg border border-white/10 rounded-lg text-xs md:text-sm text-primary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
             Profile
           </div>
-        </button>
+        </Link>
       </div>
     </aside>
   );

@@ -49,18 +49,18 @@ export default function VerificationPage() {
   const [screenshot, setScreenshot] = useState<File | null>(null);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/auth/signin');
+    if (!loading && !connected) {
       return;
     }
 
-    if (isSignedIn) {
+    if (connected) {
       fetchVerificationRequests();
     }
-  }, [userId, isLoaded, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, loading]);
 
   const fetchVerificationRequests = async () => {
-    if (!isSignedIn) return;
+    if (!connected) return;
 
     try {
       setLoading(true);
@@ -102,7 +102,7 @@ export default function VerificationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSignedIn) return;
+    if (!connected) return;
 
     try {
       setSubmitting(true);
@@ -168,7 +168,7 @@ export default function VerificationPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
         <div className="text-center">
@@ -179,7 +179,7 @@ export default function VerificationPage() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!connected) {
     return null;
   }
 

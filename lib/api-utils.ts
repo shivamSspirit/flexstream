@@ -4,7 +4,7 @@
  * Follows DRY and Single Responsibility principles
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ERROR_MESSAGES } from '@/lib/constants';
 
@@ -169,10 +169,10 @@ export function validateMethod(
  * Wraps an API route handler with error handling
  * Catches all errors and returns consistent error responses
  */
-export function withErrorHandling<T = any>(
-  handler: (request: Request) => Promise<NextResponse<T>>
+export function withErrorHandling(
+  handler: (request: NextRequest) => Promise<NextResponse>
 ) {
-  return async (request: Request): Promise<NextResponse> => {
+  return async (request: NextRequest): Promise<NextResponse> => {
     try {
       return await handler(request);
     } catch (error) {
@@ -348,11 +348,11 @@ export function checkRateLimit(
 
   // Clean up expired records periodically
   if (rateLimitStore.size > 10000) {
-    for (const [key, value] of rateLimitStore.entries()) {
+    Array.from(rateLimitStore.entries()).forEach(([key, value]) => {
       if (value.resetTime < now) {
         rateLimitStore.delete(key);
       }
-    }
+    });
   }
 
   if (!record || record.resetTime < now) {

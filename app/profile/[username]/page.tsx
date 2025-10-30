@@ -52,6 +52,7 @@ export default function UserProfileViewPage() {
   const params = useParams();
   const username = params.username as string;
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [posts, setPosts] = useState<FlexPost[]>([]);
@@ -60,16 +61,33 @@ export default function UserProfileViewPage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
 
+  // Fetch current user ID from wallet
   useEffect(() => {
-    if (isLoaded && !currentUserId) {
-      router.push('/auth/signin');
-      return;
-    }
+    async function fetchCurrentUser() {
+      if (!connected || !publicKey || !supabase) {
+        setCurrentUserId(null);
+        return;
+      }
 
+      const { data } = await supabase
+        .from('users')
+        .select('id')
+        .eq('wallet_address', publicKey.toBase58())
+        .single();
+
+      if (data) {
+        setCurrentUserId(data.id);
+      }
+    }
+    fetchCurrentUser();
+  }, [connected, publicKey]);
+
+  useEffect(() => {
     if (username) {
       fetchUserProfile();
     }
-  }, [username, currentUserId, isLoaded, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
 
   const fetchUserProfile = async () => {
     try {
@@ -179,7 +197,7 @@ export default function UserProfileViewPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
         <div className="text-center">

@@ -103,8 +103,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ [CREATOR COIN] Token created:', {
       mint: tokenResult.mint.toBase58(),
-      pool: tokenResult.pool.toBase58(),
-      metadataUri: tokenResult.metadataUri
+      pool: tokenResult.pool.toBase58()
     });
 
     // 5. Sign transaction with baseMint keypair
@@ -132,7 +131,7 @@ export async function POST(request: NextRequest) {
           name: tokenName,
           pool: tokenResult.pool.toBase58(),
           bondingCurve: tokenResult.pool.toBase58(),
-          metadataUri: tokenResult.metadataUri,
+          imageUri: tokenImageUri,
           jupiterUrl: dbcClient.getJupiterTradeUrl(tokenResult.mint.toBase58()),
           meteoraUrl: dbcClient.getMeteoraTradeUrl(tokenResult.pool.toBase58()),
         },

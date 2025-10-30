@@ -78,7 +78,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const tokenResult = await dbcClient.createToken({
     name: formData.title,
     symbol: formData.ticker,
-    uri: metadataUri,
+    description: formData.content || formData.title,
+    imageUri: mediaUrls[0] || '',
     creator: new PublicKey(formData.walletAddress),
   });
 
@@ -98,7 +99,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     token: {
       mint: tokenResult.mint.toBase58(),
       pool: tokenResult.pool.toBase58(),
-      bondingCurve: tokenResult.bondingCurve.toBase58(),
+      bondingCurve: tokenResult.pool.toBase58(), // bonding curve is the same as pool
       metadataUri,
       transaction: tokenResult.transaction.serialize().toString('base64'),
     },

@@ -145,7 +145,7 @@ export function NotificationItem({
           </button>
           <span className="text-white/60 text-sm ml-1">{action}</span>
           {assetTitle && (
-            <span className="text-white font-medium text-sm ml-1">"{assetTitle}"</span>
+            <span className="text-white font-medium text-sm ml-1">&quot;{assetTitle}&quot;</span>
           )}
         </div>
 

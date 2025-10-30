@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -36,7 +36,7 @@ interface UserProfile {
   creator_coin_metadata_uri?: string;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { connected, publicKey } = useWallet();
@@ -428,7 +428,7 @@ export default function ProfilePage() {
             <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-12 sm:p-16 border-2 border-white/20 text-center">
               <div className="text-6xl mb-4">📂</div>
               <p className="text-white/90 text-lg font-bold mb-2">Collection Coming Soon</p>
-              <p className="text-white/60 text-sm">View tokens you've collected from other creators</p>
+              <p className="text-white/60 text-sm">View tokens you&apos;ve collected from other creators</p>
             </div>
           </div>
         ) : activeTab === 'activity' ? (
@@ -518,5 +518,27 @@ export default function ProfilePage() {
         />
       )}
     </AppLayout>
+  );
+}
+
+// Wrapper component with Suspense boundary
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <AppLayout showWallet={true} showSearch={true}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 border-4 border-accent-green/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-accent-green rounded-full animate-spin"></div>
+            </div>
+            <p className="text-white/90 font-bold text-lg mb-2">Loading your profile</p>
+            <p className="text-white/60 text-sm animate-pulse">Getting everything ready...</p>
+          </div>
+        </div>
+      </AppLayout>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

@@ -202,7 +202,7 @@ export default function NotificationsPage() {
               <CheckIcon className="w-8 h-8 text-white/40" />
             </div>
             <h3 className="text-white text-lg font-semibold mb-2">
-              You're all caught up!
+              You&apos;re all caught up!
             </h3>
             <p className="text-white/50 text-sm">
               No new notifications at the moment.

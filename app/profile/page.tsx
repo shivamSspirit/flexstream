@@ -115,12 +115,43 @@ function ProfilePageContent() {
   };
 
   // Fetch user's posts
-  const { data: postsData, isLoading: postsLoading } = usePosts({
+  const { data: postsData, isLoading: postsLoading, refetch: refetchPosts } = usePosts({
     userId: userProfile?.id,
     enabled: !!userProfile?.id
   });
 
   const posts = postsData?.data?.posts || [];
+
+  // Log posts data for debugging
+  useEffect(() => {
+    if (userProfile?.id) {
+      console.log('📊 [PROFILE] Fetching posts for user:', {
+        userId: userProfile.id,
+        walletAddress: userProfile.wallet_address,
+        username: userProfile.username
+      });
+      console.log('📊 [PROFILE] Posts received:', {
+        totalPosts: posts.length,
+        postsLoading,
+        posts: posts.map(p => ({
+          id: p.id,
+          title: p.title,
+          user_id: p.user_id,
+          created_at: p.created_at
+        }))
+      });
+
+      // Check if there's a mismatch
+      if (posts.length === 0 && !postsLoading) {
+        console.warn('⚠️ [PROFILE] No posts found for this user. This could mean:');
+        console.warn('   1. User has not created any posts yet');
+        console.warn('   2. Posts were created with different user_id');
+        console.warn('   3. Database query is not matching correctly');
+      }
+    } else if (!postsLoading) {
+      console.log('📊 [PROFILE] No user profile loaded yet');
+    }
+  }, [posts, postsLoading, userProfile]);
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'grid' | 'collected' | 'activity' | 'wallet') => {
@@ -460,11 +491,42 @@ function ProfilePageContent() {
                 <div className="max-w-lg mx-auto">
                   <div className="text-8xl mb-8">📸</div>
                   <h3 className="text-4xl font-black text-white mb-4 leading-tight">
-                    Start Earning Now
+                    No Posts Yet
                   </h3>
-                  <p className="text-white/70 text-base mb-10 leading-relaxed max-w-md mx-auto">
-                    Post your first flex and watch it turn into a tradable token. Every post is a potential money maker!
+                  <p className="text-white/70 text-base mb-6 leading-relaxed max-w-md mx-auto">
+                    Create your first post to see it here!
                   </p>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6 text-left">
+                    <p className="text-white/60 text-sm mb-3">
+                      <strong className="text-white">Profile Info:</strong>
+                    </p>
+                    <div className="space-y-2 text-xs font-mono text-white/50">
+                      <div>
+                        <span className="text-white/40">User ID:</span> {userProfile?.id}
+                      </div>
+                      <div>
+                        <span className="text-white/40">Wallet:</span> {userProfile?.wallet_address}
+                      </div>
+                      <div>
+                        <span className="text-white/40">Username:</span> {userProfile?.username}
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <p className="text-white/70 text-xs mb-2">
+                        💡 Posts are tied to your wallet address. If you don&apos;t see posts you created, make sure you&apos;re connected with the same wallet you used to create them.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      console.log('🔍 [DEBUG] Forcing posts refetch...');
+                      refetchPosts();
+                    }}
+                    variant="outline"
+                    className="mr-2 mb-4"
+                  >
+                    🔄 Refresh Posts
+                  </Button>
                   <Button
                     onClick={() => router.push('/create')}
                     size="lg"

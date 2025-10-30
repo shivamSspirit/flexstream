@@ -1,11 +1,46 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePosts, Post } from '@/hooks/usePosts';
 import { PostCard } from '@/components/posts/PostCard';
 import { FlexPost } from '@/types';
 
 export function SimpleFeed() {
   const { data, isLoading, error } = usePosts();
+
+  const posts = data?.data?.posts || [];
+
+  // Debug logging
+  useEffect(() => {
+    console.log('📰 [FEED] All posts (newest first):', {
+      totalPosts: posts.length,
+      isLoading,
+      hasError: !!error,
+      errorMessage: error?.message || null,
+      posts: posts.map(p => ({
+        id: p.id,
+        title: p.title,
+        post_user_id: p.user_id,
+        username: p.users?.username || 'unknown',
+        wallet: p.users?.wallet_address?.substring(0, 8) || 'unknown',
+        created_at: p.created_at
+      }))
+    });
+
+    // Show detailed info for first 3 posts to understand user_id mismatch
+    if (posts.length > 0 && !isLoading) {
+      console.log('🔍 [FEED] Detailed first 3 posts:', posts.slice(0, 3).map(p => ({
+        postId: p.id,
+        postUserId: p.user_id,
+        postTitle: p.title,
+        userInfo: {
+          userId: p.users?.id,
+          username: p.users?.username,
+          wallet: p.users?.wallet_address
+        }
+      })));
+    }
+  }, [posts, isLoading, error]);
 
   // Convert Post to FlexPost
   const convertToFlexPost = (post: Post): FlexPost => {
@@ -76,8 +111,6 @@ export function SimpleFeed() {
       </div>
     );
   }
-
-  const posts = data?.data?.posts || [];
 
   // Show empty state
   if (posts.length === 0) {

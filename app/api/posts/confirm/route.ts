@@ -66,7 +66,11 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       userId = existingUser.id;
-      console.log('✅ Found existing user:', userId);
+      console.log('✅ [POST CONFIRM] Found existing user for wallet:', {
+        userId: userId,
+        wallet: wallet.substring(0, 10) + '...',
+        fullWallet: wallet
+      });
     } else {
       // Create new user with wallet address
       const { data: newUser, error: userError } = await supabase
@@ -88,7 +92,12 @@ export async function POST(request: NextRequest) {
       }
 
       userId = newUser.id;
-      console.log('✅ Created new user:', userId);
+      console.log('✅ [POST CONFIRM] Created NEW user for wallet:', {
+        userId: userId,
+        wallet: wallet.substring(0, 10) + '...',
+        fullWallet: wallet,
+        username: `user_${wallet.substring(0, 8)}`
+      });
     }
 
     // 2. Save post to database
@@ -134,10 +143,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('✅ Post saved:', post.id);
+    console.log('✅ [POST CONFIRM] Post saved successfully:', {
+      postId: post.id,
+      userId: userId,
+      wallet: wallet.substring(0, 10) + '...',
+      fullWallet: wallet,
+      title: post.title,
+      tokenMint: post.token_mint,
+      createdAt: post.created_at
+    });
+
+    console.log('🔗 [POST CONFIRM] MAPPING: Wallet → User → Post:', {
+      walletAddress: wallet,
+      userId: userId,
+      postId: post.id,
+      postTitle: post.title
+    });
 
     // 3. Save token data to tokens table
-    console.log('💾 Saving token data...');
+    console.log('💾 [POST CONFIRM] Saving token data...');
 
     const { error: tokenError } = await supabase
       .from('tokens')

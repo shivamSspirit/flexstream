@@ -56,18 +56,39 @@ export function usePosts(options: UsePostsOptions = {}) {
       if (userId) params.append('userId', userId);
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
+      // Add timestamp to bust all caches
+      params.append('_t', Date.now().toString());
 
-      const response = await fetch(`/api/posts?${params.toString()}`);
+      console.log('🔄 Fetching posts from API:', `/api/posts?${params.toString()}`);
+
+      const response = await fetch(`/api/posts?${params.toString()}`, {
+        cache: 'no-store', // Disable caching for fresh data
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('❌ Failed to fetch posts:', error);
         throw new Error(error.error || 'Failed to fetch posts');
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('✅ Fetched posts:', {
+        totalPosts: data.data?.posts?.length || 0,
+        posts: data.data?.posts?.map((p: any) => ({ id: p.id, title: p.title })) || []
+      });
+
+      return data;
     },
     enabled,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: 'always', // Refetch every time component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
 }
 
@@ -78,6 +99,20 @@ export function useInvalidatePosts() {
   const queryClient = useQueryClient();
 
   return () => {
+    // Invalidate all posts queries to force refetch
     queryClient.invalidateQueries({ queryKey: ['posts'] });
+    // Also refetch immediately
+    queryClient.refetchQueries({ queryKey: ['posts'] });
+  };
+}
+
+/**
+ * Hook to manually refetch posts
+ */
+export function useRefetchPosts() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.refetchQueries({ queryKey: ['posts'] });
   };
 }

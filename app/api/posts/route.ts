@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
+    console.log('🔍 [GET POSTS] Query params:', { userId, limit, offset });
+
+    // Build query - use LEFT JOIN to ensure we get all posts even if user info is missing
     let query = supabase
       .from('posts')
       .select(`
@@ -52,31 +54,134 @@ export async function GET(request: NextRequest) {
         is_token_tradable,
         verified,
         created_at,
-        users!inner (
+        users (
           id,
           username,
           display_name,
           avatar_url,
           wallet_address
         )
-      `)
+      `);
+
+    // Filter by user if provided - MUST come before range()
+    if (userId) {
+      console.log('🔍 [GET POSTS] Filtering by userId:', userId);
+      query = query.eq('user_id', userId);
+    } else {
+      console.log('🔍 [GET POSTS] Fetching all posts (no user filter)');
+    }
+
+    // Apply ordering and pagination
+    query = query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // Filter by user if provided
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
     const { data: posts, error, count } = await query;
 
+    console.log('🔍 [GET POSTS] Raw query result:', {
+      postsCount: posts?.length || 0,
+      hasError: !!error,
+      errorDetails: error?.message || null
+    });
+
     if (error) {
-      console.error('❌ Error fetching posts:', error);
+      console.error('❌ [GET POSTS] Error fetching posts:', error);
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch posts',
         details: error.message,
       }, { status: 500 });
+    }
+
+    console.log('✅ [GET POSTS] Fetched posts:', {
+      totalPosts: posts?.length || 0,
+      requestedUserId: userId || 'all users',
+      posts: posts?.map(p => ({
+        id: p.id,
+        title: p.title,
+        user_id: p.user_id,
+        user_wallet: p.users?.wallet_address,
+        created_at: p.created_at
+      })) || []
+    });
+
+    // If filtering by userId and got 0 results, log a warning
+    if (userId && posts?.length === 0) {
+      console.warn('⚠️ [GET POSTS] ZERO posts found for userId:', userId);
+      console.warn('⚠️ [GET POSTS] This means:');
+      console.warn('   - Either this user has not created any posts');
+      console.warn('   - Or posts were created with a different user_id');
+      console.warn('   - Check if wallet address matches between post creation and profile');
+    }
+
+    // Show sample of all posts to help debug
+    if (userId && posts?.length === 0) {
+      console.warn('🔍 [GET POSTS] Investigating why no posts found...');
+
+      // Get the current user's wallet address
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('wallet_address, username')
+        .eq('id', userId)
+        .single();
+
+      console.warn('👤 [GET POSTS] Current User Info:', {
+        userId: userId,
+        username: currentUser?.username,
+        wallet: currentUser?.wallet_address
+      });
+
+      // Get sample of all posts with their wallet addresses
+      const { data: allPosts } = await supabase
+        .from('posts')
+        .select('id, user_id, title, created_at, users!inner(wallet_address, username)')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      console.warn('📋 [GET POSTS] Sample of 5 most recent posts in database:');
+      allPosts?.forEach((p, idx) => {
+        console.warn(`   ${idx + 1}. Post "${p.title}":`);
+        console.warn(`      - Post ID: ${p.id}`);
+        console.warn(`      - Post user_id: ${p.user_id}`);
+        console.warn(`      - Post wallet: ${p.users?.wallet_address}`);
+        console.warn(`      - Post username: ${p.users?.username}`);
+        console.warn(`      - Created: ${p.created_at}`);
+        console.warn(`      - Matches current user? ${p.user_id === userId ? '✅ YES' : '❌ NO'}`);
+      });
+
+      console.warn('');
+      console.warn('💡 [GET POSTS] DIAGNOSIS:');
+      if (currentUser && allPosts && allPosts.length > 0) {
+        const matchingWallet = allPosts.find(p => p.users?.wallet_address === currentUser.wallet_address);
+        if (matchingWallet) {
+          console.warn('   ⚠️ Found posts with same WALLET but different user_id!');
+          console.warn('   This suggests duplicate user profiles were created.');
+
+          // Check for duplicate user profiles
+          const { data: duplicateUsers } = await supabase
+            .from('users')
+            .select('id, username, wallet_address, created_at')
+            .eq('wallet_address', currentUser.wallet_address);
+
+          if (duplicateUsers && duplicateUsers.length > 1) {
+            console.warn('   🚨 FOUND DUPLICATE USER PROFILES for same wallet:');
+            duplicateUsers.forEach((user, idx) => {
+              console.warn(`      ${idx + 1}. User ID: ${user.id}, Username: ${user.username}, Created: ${user.created_at}`);
+            });
+          }
+        } else {
+          console.warn('   ℹ️ No posts found for this wallet address.');
+          console.warn('   These posts belong to different wallet(s).');
+
+          // Show which wallets own the posts
+          const uniqueWallets = [...new Set(allPosts.map(p => p.users?.wallet_address))];
+          console.warn('   📍 Posts in database belong to these wallet(s):');
+          uniqueWallets.forEach((wallet, idx) => {
+            const postCount = allPosts.filter(p => p.users?.wallet_address === wallet).length;
+            console.warn(`      ${idx + 1}. ${wallet} (${postCount} post${postCount > 1 ? 's' : ''})`);
+          });
+        }
+      }
     }
 
     return NextResponse.json({

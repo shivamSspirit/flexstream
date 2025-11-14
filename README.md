@@ -1,3 +1,5 @@
+<img width="111" height="111" alt="ailogoflex" src="https://github.com/user-attachments/assets/f2a29259-2439-49e9-9007-aaff66bb871c" />
+
 # FlexIt - Social Platform for Solana
 
 A modern social media platform built for crypto traders and streamers to showcase their success, share stream highlights, and connect with the community.

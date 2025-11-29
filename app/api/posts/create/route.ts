@@ -5,14 +5,14 @@ import { MeteoraDBCClient } from '@/lib/meteora-dbc';
 import { DBC_CONFIG } from '@/lib/dbc-config';
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 [POST CREATE] Starting post creation with DBC token launch');
+  console.log('[POST CREATE] Starting post creation with DBC token launch');
 
   try {
     // Initialize Supabase client inside the function to ensure env vars are loaded
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log('🔍 Environment check:', {
+    console.log('Environment check:', {
       hasUrl: !!supabaseUrl,
       hasKey: !!supabaseServiceKey,
       urlPreview: supabaseUrl?.substring(0, 30) + '...',
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Supabase is configured
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('❌ Supabase not configured!', {
+      console.error('Supabase not configured!', {
         hasUrl: !!supabaseUrl,
         hasKey: !!supabaseServiceKey
       });
@@ -35,8 +35,13 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Create Supabase client with service role (bypasses RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Initialize Solana connection
     const connection = new Connection(DBC_CONFIG.RPC_URL, 'confirmed');
@@ -45,16 +50,16 @@ export async function POST(request: NextRequest) {
     
     // Extract post data
     const title = formData.get('title') as string;
-    const ticker = formData.get('ticker') as string;
+    const displayName = formData.get('ticker') as string; // User's chosen display name (can be duplicate)
     const content = formData.get('content') as string;
     const walletAddress = formData.get('wallet') as string;
     const username = formData.get('username') as string;
-    
+
     // Get media files
     const mediaFiles = formData.getAll('media') as File[];
-    
+
     // Validate required fields
-    if (!title || !content || !walletAddress || !ticker) {
+    if (!title || !content || !walletAddress || !displayName) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields: title, content, wallet, ticker',
@@ -78,10 +83,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📝 Post details:', { title, ticker, walletAddress });
+    // Initialize DBC client for symbol generation
+    const dbcClient = new MeteoraDBCClient(connection);
+
+    // Generate unique symbol for anti-rug mechanism
+    const uniqueSymbol = dbcClient.generateUniqueSymbol();
+
+    console.log('Post details:', {
+      title,
+      displayName,
+      uniqueSymbol,
+      walletAddress
+    });
 
     // 1. Find or create user by wallet address
-    console.log('👤 Finding or creating user...');
+    console.log('Finding or creating user...');
     let userId: string;
 
     const { data: existingUser } = await supabase
@@ -92,40 +108,53 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       userId = existingUser.id;
-      console.log('✅ Found existing user:', userId);
+      console.log('Found existing user:', userId);
     } else {
       // Create new user with wallet address
+      // Generate unique username with timestamp to avoid collisions
+      const timestamp = Date.now().toString(36);
+      const walletPrefix = walletAddress.substring(0, 8).toLowerCase();
+      const generatedUsername = username || `${walletPrefix}_${timestamp}`;
+
+      // Generate UUID for the user
+      const { v4: uuidv4 } = await import('uuid');
+      const newUserId = uuidv4();
+
       const { data: newUser, error: userError } = await supabase
         .from('users')
         .insert({
+          id: newUserId,
           wallet_address: walletAddress,
-          username: `user_${walletAddress.substring(0, 8)}`,
-          display_name: `User ${walletAddress.substring(0, 8)}`,
+          username: generatedUsername,
+          display_name: username || `User ${walletPrefix}`,
         })
         .select('id')
         .single();
 
       if (userError || !newUser) {
-        console.error('❌ Failed to create user:', {
+        console.error('Failed to create user:', {
           message: userError?.message,
           details: userError?.details,
           hint: userError?.hint,
           code: userError?.code,
+          walletAddress,
+          attemptedUsername: generatedUsername
         });
         return NextResponse.json({
           success: false,
           error: 'Failed to create user account',
           details: userError?.message || 'Unknown error',
+          hint: userError?.hint,
           code: userError?.code,
         }, { status: 500 });
       }
 
       userId = newUser.id;
-      console.log('✅ Created new user:', userId);
+      console.log('Created new user:', userId, 'username:', generatedUsername);
     }
 
     // 2. Upload media files to Supabase Storage
-    console.log('📤 Uploading media files...');
+    console.log('Uploading media files...');
     const mediaUrls: string[] = [];
 
     for (const file of mediaFiles) {
@@ -134,7 +163,7 @@ export async function POST(request: NextRequest) {
         const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'bin';
         const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-        console.log(`📁 Processing: ${fileName}`);
+        console.log(`Processing: ${fileName}`);
 
         // Next.js 14 FormData File handling - direct upload without conversion
         // Supabase accepts File objects directly
@@ -147,7 +176,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (uploadError) {
-          console.error('❌ Upload error:', uploadError);
+          console.error('Upload error:', uploadError);
           throw new Error(`Failed to upload ${fileName}: ${uploadError.message}`);
         }
 
@@ -156,98 +185,239 @@ export async function POST(request: NextRequest) {
           .from('post-media')
           .getPublicUrl(`${uniqueFileName}`);
 
-        console.log(`✅ Uploaded: ${uniqueFileName}`);
+        console.log(`Uploaded: ${uniqueFileName}`);
         mediaUrls.push(publicUrl);
 
       } catch (fileError) {
-        console.error('❌ Error processing file:', fileError);
+        console.error('Error processing file:', fileError);
         throw fileError;
       }
     }
 
-    console.log('✅ All media uploaded:', mediaUrls);
+    console.log('All media uploaded:', mediaUrls);
 
     // 2. Upload token metadata
-    console.log('📤 Uploading token metadata...');
-    const dbcClient = new MeteoraDBCClient(connection);
+    console.log('Uploading token metadata...');
 
     const metadataUri = await dbcClient.uploadMetadata({
       name: title,
-      symbol: ticker.toUpperCase(),
+      symbol: uniqueSymbol, // Use unique symbol for metadata
       description: content,
       image: mediaUrls[0],
       external_url: `${process.env.NEXT_PUBLIC_APP_URL}/post/`
     }, supabase);
 
-    console.log('✅ Metadata uploaded:', metadataUri);
+    console.log('Metadata uploaded:', metadataUri);
 
-    // 3. Create DBC token and pool transaction (NOT YET SUBMITTED)
-    console.log('🪙 Creating DBC token and pool transaction...');
+    // 3. Create DBC token and pool (BACKEND-ONLY, NO USER SIGNATURE REQUIRED)
+    console.log('Creating DBC token and pool from backend...');
+    console.log('Anti-rug mechanism:', {
+      uniqueSymbol,
+      displayName: displayName.toUpperCase(),
+      note: 'Symbol is unique, display name can be duplicate'
+    });
 
     const tokenResult = await dbcClient.createToken({
       name: title,
-      symbol: ticker.toUpperCase(),
+      symbol: uniqueSymbol, // Auto-generated unique symbol
+      displayName: displayName.toUpperCase(), // User's chosen display name
       description: content,
       imageUri: metadataUri,
-      creator: new PublicKey(walletAddress),
-      initialSupply: 1_000_000_000 // 1 billion tokens
+      tokenType: 'post', // Post-level token
+      // No creator needed - platform creates on behalf of user
+      // initialSupply will be set automatically from POST_TOKEN_CONFIG (1B tokens)
     });
 
-    console.log('✅ Token transaction prepared:', {
+    console.log('Token created successfully:', {
       mint: tokenResult.mint.toBase58(),
-      pool: tokenResult.pool.toBase58()
+      pool: tokenResult.pool.toBase58(),
+      signature: tokenResult.signature
     });
 
-    // 4. Sign transaction with baseMint FIRST (required by Solana)
-    console.log('🔐 Signing transaction with baseMint keypair first...');
-    tokenResult.transaction.partialSign(tokenResult.baseMintKeypair);
+    // 4. Check if this display_name is already taken (Anti-Rug Mechanism)
+    console.log('Checking display_name for anti-rug verification...');
+    const { data: existingTokens } = await supabase
+      .from('tokens')
+      .select('id, display_name')
+      .ilike('display_name', displayName.toUpperCase())
+      .limit(1);
 
-    console.log('📊 Transaction signatures after baseMint sign:',
-      tokenResult.transaction.signatures.map(s => ({
-        pubkey: s.publicKey?.toBase58(),
-        signature: s.signature ? 'present' : 'null'
-      }))
-    );
+    const isFirstWithDisplayName = !existingTokens || existingTokens.length === 0;
 
-    // 5. Serialize PARTIALLY-SIGNED transaction for frontend
-    // The user will add their signature next
-    const serializedTransaction = tokenResult.transaction.serialize({
-      requireAllSignatures: false,
-      verifySignatures: false
+    console.log('Anti-rug check:', {
+      displayName: displayName.toUpperCase(),
+      existingCount: existingTokens?.length || 0,
+      willBeVerified: isFirstWithDisplayName
     });
-    const transactionBase64 = Buffer.from(serializedTransaction).toString('base64');
 
-    console.log('📦 Transaction serialized (baseMint signed, awaiting user signature)');
+    // 5. Get user data for response
+    console.log('Fetching user data for response...');
+    const { data: userData, error: userFetchError } = await supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url, wallet_address')
+      .eq('id', userId)
+      .single();
 
-    // 6. Return transaction to frontend for user signing
-    // Database save happens AFTER user confirms the transaction
+    if (userFetchError || !userData) {
+      console.error('Failed to fetch user data:', userFetchError);
+      // Continue anyway - token is already created
+    }
+
+    // 6. Save post to database
+    console.log('Saving post to database...');
+
+    const { data: post, error: postError } = await supabase
+      .from('posts')
+      .insert({
+        user_id: userId,
+        type: 'trading_journey',
+        title: title,
+        content: content,
+        media_urls: mediaUrls,
+
+        // Token fields - use unique symbol and display name
+        token_mint: tokenResult.mint.toBase58(),
+        token_symbol: uniqueSymbol, // Auto-generated unique symbol
+        token_display_name: displayName.toUpperCase(), // User's chosen display name
+        token_is_verified: isFirstWithDisplayName, // Verification status
+        token_name: title,
+        pool_address: tokenResult.pool.toBase58(),
+        bonding_curve_address: tokenResult.pool.toBase58(),
+        token_metadata_uri: metadataUri,
+        token_signature: tokenResult.signature,
+        is_token_tradable: true,
+
+        verified: false,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (postError) {
+      console.error('Database error:', postError);
+      // Token is already created on-chain, so we return success with warning
+      return NextResponse.json({
+        success: true,
+        warning: 'Token created but database save failed',
+        data: {
+          signature: tokenResult.signature,
+          mint: tokenResult.mint.toBase58(),
+          pool: tokenResult.pool.toBase58(),
+          error: postError.message,
+          explorerUrl: `https://explorer.solana.com/tx/${tokenResult.signature}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`
+        }
+      });
+    }
+
+    console.log('✅ Post saved successfully:', {
+      postId: post.id,
+      userId: userId,
+      userIdMatch: post.user_id === userId,
+      wallet: walletAddress.substring(0, 10) + '...',
+      title: post.title,
+      tokenMint: post.token_mint,
+      createdAt: post.created_at
+    });
+
+    // Verify user exists
+    const { data: verifyUser } = await supabase
+      .from('users')
+      .select('id, username, wallet_address')
+      .eq('id', userId)
+      .single();
+
+    console.log('✅ User verification:', {
+      userId,
+      userExists: !!verifyUser,
+      username: verifyUser?.username,
+      wallet: verifyUser?.wallet_address?.substring(0, 10) + '...'
+    });
+
+    // 7. Save token data to tokens table with anti-rug mechanism
+    console.log('Saving token data with anti-rug mechanism...');
+
+    const { error: tokenError } = await supabase
+      .from('tokens')
+      .insert({
+        mint_address: tokenResult.mint.toBase58(),
+        symbol: uniqueSymbol, // Auto-generated unique symbol
+        display_name: displayName.toUpperCase(), // User's chosen display name
+        name: title,
+        description: content,
+        image_uri: mediaUrls?.[0] || '',
+        metadata_uri: metadataUri,
+        creator_wallet: walletAddress,
+        post_id: post.id,
+        pool_address: tokenResult.pool.toBase58(),
+        bonding_curve_address: tokenResult.pool.toBase58(),
+        config_key: DBC_CONFIG.POST.CONFIG_KEY.toBase58(),
+        initial_supply: 1_000_000_000,
+        is_tradable: true,
+        is_verified: isFirstWithDisplayName, // First token with this display_name is verified
+        creation_signature: tokenResult.signature,
+        created_at: new Date().toISOString(),
+      });
+
+    if (tokenError) {
+      console.error('Token table error:', tokenError);
+      // Don't throw - post is already created
+    }
+
+    console.log('Token data saved with verification:', {
+      symbol: uniqueSymbol,
+      displayName: displayName.toUpperCase(),
+      isVerified: isFirstWithDisplayName
+    });
+
+    // 8. Return success response
     return NextResponse.json({
       success: true,
-      requiresSignature: true,
       data: {
-        // Temporary post data (not yet saved to database)
+        signature: tokenResult.signature,
         post: {
-          title: title,
-          content: content,
-          media_urls: mediaUrls,
+          id: post.id,
+          user_id: post.user_id,
+          type: post.type,
+          title: post.title,
+          content: post.content,
+          media_urls: post.media_urls,
+          token_mint: post.token_mint,
+          token_symbol: post.token_symbol,
+          token_name: post.token_name,
+          pool_address: post.pool_address,
+          bonding_curve_address: post.bonding_curve_address,
+          token_metadata_uri: post.token_metadata_uri,
+          token_signature: post.token_signature,
+          is_token_tradable: post.is_token_tradable,
+          verified: post.verified,
+          created_at: post.created_at,
+          users: userData ? {
+            id: userData.id,
+            username: userData.username,
+            display_name: userData.display_name,
+            avatar_url: userData.avatar_url,
+            wallet_address: userData.wallet_address,
+          } : undefined,
         },
-        // Token data
         token: {
           mint: tokenResult.mint.toBase58(),
-          symbol: ticker.toUpperCase(),
+          symbol: uniqueSymbol, // Unique auto-generated symbol
+          displayName: displayName.toUpperCase(), // User's chosen display name
+          isVerified: isFirstWithDisplayName, // Verification status
           name: title,
           pool: tokenResult.pool.toBase58(),
           metadataUri: metadataUri,
-          transaction: transactionBase64,
-          jupiterUrl: dbcClient.getJupiterTradeUrl(tokenResult.mint.toBase58()),
-          meteoraUrl: dbcClient.getMeteoraTradeUrl(tokenResult.pool.toBase58()),
+          jupiterUrl: dbcClient.getJupiterTradeUrl(tokenResult.mint.toBase58(), DBC_CONFIG.NETWORK as 'devnet' | 'mainnet'),
+          meteoraUrl: dbcClient.getMeteoraTradeUrl(tokenResult.pool.toBase58(), DBC_CONFIG.NETWORK as 'devnet' | 'mainnet'),
         },
-        message: 'Transaction prepared! Please sign in your wallet to create the token.'
+        message: 'Post and token created successfully!',
+        explorerUrl: `https://explorer.solana.com/tx/${tokenResult.signature}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`,
+        tokenExplorerUrl: `https://explorer.solana.com/address/${tokenResult.mint.toBase58()}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`
       }
     });
 
   } catch (error) {
-    console.error('❌ [POST CREATE] Error:', error);
+    console.error('[POST CREATE] Error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorCode = (error as any)?.code;

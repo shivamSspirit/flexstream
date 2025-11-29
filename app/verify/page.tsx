@@ -75,7 +75,7 @@ export default function VerificationPage() {
           screenshot_url: '/api/placeholder/400/300',
           created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
           reviewed_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-          notes: 'Verified pump.fun trade'
+          notes: 'Verified token trade on Solana'
         },
         {
           id: '2',
@@ -241,7 +241,7 @@ export default function VerificationPage() {
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {[
-                      { value: 'pump_fun', label: 'Pump.fun Trade', icon: '🚀' },
+                      { value: 'pump_fun', label: 'Token Trade', icon: '🚀' },
                       { value: 'wallet', label: 'Wallet Verification', icon: '💼' },
                       { value: 'earnings', label: 'Earnings Proof', icon: '💰' },
                     ].map((type) => (

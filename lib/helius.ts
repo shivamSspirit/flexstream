@@ -77,7 +77,7 @@ export async function fetchTokenHolderCount(mintAddress: string, retryCount = 0)
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'FlexStream/1.0',
+        'User-Agent': 'FlexIt/1.0',
         'Cache-Control': 'no-cache',
       },
       body: JSON.stringify({

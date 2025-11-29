@@ -22,10 +22,10 @@ export default function NavigationPage() {
     {
       category: "Main App",
       routes: [
-        { name: "Landing Page", path: "/", description: "Home page with FlexStream branding", icon: HomeIcon, color: "text-emerald-400" },
+        { name: "Landing Page", path: "/", description: "Home page with FlexIt branding", icon: HomeIcon, color: "text-emerald-400" },
         { name: "Feed", path: "/feed", description: "Social feed like Zora", icon: SignalIcon, color: "text-purple-400" },
         { name: "Demo", path: "/demo", description: "Live demo with sample content", icon: PlayIcon, color: "text-blue-400" },
-        { name: "Creator Journey", path: "/demo-flow", description: "How creators use FlexStream", icon: ChartBarIcon, color: "text-cyan-400" },
+        { name: "Creator Journey", path: "/demo-flow", description: "How creators use FlexIt", icon: ChartBarIcon, color: "text-cyan-400" },
       ]
     },
     {
@@ -67,7 +67,7 @@ export default function NavigationPage() {
             <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">FS</span>
             </div>
-            <span className="text-white font-bold text-3xl">FlexStream</span>
+            <span className="text-white font-bold text-3xl">FlexIt</span>
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">
             Navigation Hub

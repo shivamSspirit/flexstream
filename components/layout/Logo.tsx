@@ -11,13 +11,81 @@ interface LogoProps {
 }
 
 /**
- * FlexStream Logo - Modern, Vibrant SocialFi Branding
- *
- * Design Philosophy:
- * - Icon: Abstract "F" + "S" merge creating a flex/stream symbol
- * - Colors: Gradient green→cyan (energy, growth, money)
- * - Typography: Bold, modern, confident
- * - Style: Clean, memorable, scales perfectly
+ * FlexIt Logo - Modern streaming wave icon with Solana gradient
+ * Represents content flowing/streaming on the platform
+ */
+function FlexItIcon({ className }: { className?: string }) {
+  const id = Math.random().toString(36).substr(2, 9);
+  const gradientId = `streamGradient-${id}`;
+  const glowId = `streamGlow-${id}`;
+
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {/* Green-violet-green gradient */}
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="20%" stopColor="#3B0764" />
+          <stop offset="40%" stopColor="#5B21B6" />
+          <stop offset="60%" stopColor="#7C3AED" />
+          <stop offset="80%" stopColor="#A855F7" />
+          <stop offset="100%" stopColor="#14F195" />
+        </linearGradient>
+
+        {/* Meme-style glow */}
+        <filter id={glowId} x="-70%" y="-70%" width="240%" height="240%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feFlood floodColor="#9945FF" floodOpacity="0.6" />
+          <feComposite in2="blur" operator="in" result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Capsule/Elliptic "F" design */}
+
+      {/* Top horizontal capsule - elongated pill shape */}
+      <ellipse
+        cx="28"
+        cy="10"
+        rx="18"
+        ry="5"
+        fill={`url(#${gradientId})`}
+        transform="rotate(-2 28 10)"
+      />
+
+      {/* Middle horizontal capsule - medium pill */}
+      <ellipse
+        cx="22"
+        cy="24"
+        rx="13"
+        ry="5"
+        fill={`url(#${gradientId})`}
+        opacity="0.95"
+        transform="rotate(-3 22 24)"
+      />
+
+      {/* Vertical capsule spine - tall pill connecting bars */}
+      <ellipse
+        cx="12"
+        cy="24"
+        rx="5"
+        ry="18"
+        fill={`url(#${gradientId})`}
+      />
+    </svg>
+  );
+}
+
+/**
+ * FlexIt Logo - Modern, Vibrant SocialFi Streaming Platform
  */
 export function Logo({
   className,
@@ -29,19 +97,19 @@ export function Logo({
 
   const sizes = {
     sm: {
-      icon: 'w-12 h-12',
-      text: 'text-lg',
-      gap: 'gap-2'
+      icon: 'w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16',
+      text: 'text-lg sm:text-xl md:text-2xl',
+      gap: 'gap-2.5 sm:gap-3'
     },
     md: {
-      icon: 'w-14 h-14',
-      text: 'text-xl',
-      gap: 'gap-2.5'
+      icon: 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20',
+      text: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl',
+      gap: 'gap-3 sm:gap-3.5 md:gap-4'
     },
     lg: {
-      icon: 'w-20 h-20',
-      text: 'text-3xl',
-      gap: 'gap-3'
+      icon: 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28',
+      text: 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl',
+      gap: 'gap-4 sm:gap-4.5 md:gap-5'
     }
   };
 
@@ -49,262 +117,36 @@ export function Logo({
     <button
       onClick={() => router.push('/')}
       className={cn(
-        'flex items-center transition-all duration-200 hover:opacity-80 group',
+        'flex items-center transition-all duration-300 hover:opacity-80 group',
         sizes[size].gap,
         className
       )}
-      aria-label="FlexStream Home"
+      aria-label="FlexIt Home"
     >
-      {/* Icon - Modern "FS" Symbol with Flow */}
       {showIcon && (
         <div className="relative">
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 bg-gradient-to-br from-accent-green to-accent-cyan rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
-
-          {/* Icon Container */}
           <div className={cn(
-            'relative rounded-xl bg-gradient-to-br from-accent-green via-accent-cyan to-accent-blue flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-200',
-            sizes[size].icon
+            'relative flex items-center justify-center',
+            'group-hover:scale-110 group-hover:rotate-2',
+            'transition-all duration-300 ease-out'
           )}>
-            <svg
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-[90%] h-[90%]"
-            >
-              {/*
-                🔥 GENIUS LEVEL CONCEPT: "THE INFINITY FLEX"
-
-                A HEXAGONAL COIN that transforms into an INFINITY SYMBOL (∞)
-                with ENERGY STREAMS flowing through it!
-
-                Revolutionary Symbolism:
-                - Hexagon = Blockchain (like crypto wallets/networks)
-                - Infinity loop = Endless stream of content & profits
-                - Center gap forms "F" negative space = FlexStream
-                - Energy flowing = Social posts converting to money
-                - Dynamic movement = Never stops, always growing
-
-                Genius touches:
-                - Hexagon = Tech/Crypto (all crypto logos use geometric shapes)
-                - Infinity = Perpetual earnings machine
-                - Hidden "F" = Subliminal branding
-                - Gradient flow = Value streaming through the system
-                - 3D depth = Premium, sophisticated
-
-                Like FedEx arrow or Amazon smile - HIDDEN MEANING!
-              */}
-
-              <defs>
-                {/* Premium metallic gradient */}
-                <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="1" />
-                  <stop offset="35%" stopColor="#06b6d4" stopOpacity="1" />
-                  <stop offset="70%" stopColor="#3b82f6" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="1" />
-                </linearGradient>
-
-                {/* Flow gradient - left to right */}
-                <linearGradient id="flowGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
-                  <stop offset="50%" stopColor="#06b6d4" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                </linearGradient>
-
-                {/* Flow gradient - right to left */}
-                <linearGradient id="flowGrad2" x1="100%" y1="0%" x2="0%" y2="0%">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
-                  <stop offset="50%" stopColor="#3b82f6" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-                </linearGradient>
-
-                {/* Glow effect */}
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* MAIN SYMBOL: Infinity Loop made from hexagonal crypto coin */}
-
-              {/* Left loop of infinity - THICK & BOLD */}
-              <path
-                d="M 25 50 Q 25 30 35 25 Q 40 23 45 25 Q 50 27 50 35 Q 50 43 45 45 Q 40 47 35 45 Q 25 43 25 50"
-                fill="none"
-                stroke="url(#coinGrad)"
-                strokeWidth="11"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#glow)"
-              />
-
-              {/* Right loop of infinity - THICK & BOLD */}
-              <path
-                d="M 75 50 Q 75 57 65 55 Q 60 53 55 55 Q 50 57 50 65 Q 50 73 55 75 Q 60 77 65 75 Q 75 73 75 50"
-                fill="none"
-                stroke="url(#coinGrad)"
-                strokeWidth="11"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter="url(#glow)"
-              />
-
-              {/* Center crossover - creates the infinity junction */}
-              <ellipse
-                cx="50"
-                cy="50"
-                rx="6"
-                ry="10"
-                fill="url(#coinGrad)"
-                opacity="0.9"
-              />
-
-              {/* THE HIDDEN "F" - negative space in center! */}
-              {/* Top horizontal line of F */}
-              <line
-                x1="48"
-                y1="44"
-                x2="56"
-                y2="44"
-                stroke="#000000"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {/* Middle horizontal line of F */}
-              <line
-                x1="48"
-                y1="50"
-                x2="54"
-                y2="50"
-                stroke="#000000"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {/* Vertical line of F */}
-              <line
-                x1="48"
-                y1="44"
-                x2="48"
-                y2="56"
-                stroke="#000000"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-
-              {/* ANIMATED ENERGY PARTICLES flowing through the infinity loop */}
-
-              {/* Left loop flow - particles moving clockwise */}
-              <circle cx="30" cy="35" r="2" fill="#10b981">
-                <animateMotion
-                  path="M 30 35 Q 35 25 45 30 Q 50 35 45 42 Q 38 47 30 42 Q 25 38 30 35"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0;1;1;0"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-
-              <circle cx="42" cy="28" r="1.5" fill="#06b6d4">
-                <animateMotion
-                  path="M 42 28 Q 46 26 48 32 Q 48 38 44 40 Q 38 42 34 38 Q 30 34 42 28"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0;0.8;0.8;0"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-
-              {/* Right loop flow - particles moving counter-clockwise */}
-              <circle cx="70" cy="65" r="2" fill="#3b82f6">
-                <animateMotion
-                  path="M 70 65 Q 65 75 55 70 Q 50 65 55 58 Q 62 53 70 58 Q 75 62 70 65"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0;1;1;0"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-
-              <circle cx="58" cy="72" r="1.5" fill="#8b5cf6">
-                <animateMotion
-                  path="M 58 72 Q 54 74 52 68 Q 52 62 56 60 Q 62 58 66 62 Q 70 66 58 72"
-                  dur="2.8s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0;0.8;0.8;0"
-                  dur="2.8s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-
-              {/* Center spark - where energy crosses */}
-              <circle cx="50" cy="50" r="2.5" fill="#ffffff" opacity="0.9">
-                <animate
-                  attributeName="r"
-                  values="2.5;4;2.5"
-                  dur="1.5s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0.9;0.4;0.9"
-                  dur="1.5s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-
-              {/* Hexagonal frame corners - subtle tech aesthetic */}
-              <polygon
-                points="50,15 65,22 65,35"
-                fill="none"
-                stroke="url(#coinGrad)"
-                strokeWidth="1.5"
-                opacity="0.3"
-              />
-              <polygon
-                points="50,85 35,78 35,65"
-                fill="none"
-                stroke="url(#coinGrad)"
-                strokeWidth="1.5"
-                opacity="0.3"
-              />
-            </svg>
+            <FlexItIcon className={sizes[size].icon} />
           </div>
         </div>
       )}
 
-      {/* Text - Bold, Modern Typography */}
       {showText && (
-        <div className="flex flex-col leading-none">
-          <span className={cn(
-            'font-black tracking-tight',
-            sizes[size].text
-          )}>
-            <span className="bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue bg-clip-text text-transparent">
-              Flex
-            </span>
-            <span className="text-white">
-              Stream
-            </span>
+        <span className={cn(
+          'font-extrabold tracking-tight',
+          sizes[size].text
+        )}>
+          <span className="bg-gradient-to-r from-[#9945FF] via-[#8A2BE2] to-[#14F195] bg-clip-text text-transparent">
+            Flex
           </span>
-        </div>
+          <span className="text-white/95">
+            It
+          </span>
+        </span>
       )}
     </button>
   );
@@ -332,15 +174,15 @@ export function LogoMinimal({ className }: { className?: string }) {
     <button
       onClick={() => router.push('/')}
       className={cn(
-        'font-black text-2xl tracking-tight hover:opacity-80 transition-opacity',
+        'font-black text-2xl tracking-tight hover:opacity-80 transition-all duration-300',
         className
       )}
     >
-      <span className="bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue bg-clip-text text-transparent">
+      <span className="bg-gradient-to-r from-[#9945FF] via-[#8A2BE2] to-[#14F195] bg-clip-text text-transparent">
         Flex
       </span>
-      <span className="text-white">
-        Stream
+      <span className="text-white/95">
+        It
       </span>
     </button>
   );

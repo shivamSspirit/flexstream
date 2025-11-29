@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const metadata = {
       name,
       symbol,
-      description: description || `${name} token created on FlexStream`,
+      description: description || `${name} token created on FlexIt`,
       image: image || `https://via.placeholder.com/512?text=${symbol}`,
       attributes: [],
       properties: {

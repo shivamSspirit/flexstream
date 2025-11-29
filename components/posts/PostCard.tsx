@@ -12,6 +12,9 @@ import { PostOptionsMenu } from './PostOptionsMenu';
 import { ShareModal } from './ShareModal';
 import { CommentsModal } from './CommentsModal';
 import { ImageCarousel } from './ImageCarousel';
+import { SwapModal } from '@/components/swap/SwapModal';
+import { TokenPriceDisplay } from '@/components/price/TokenPriceDisplay';
+import { TokenBadge } from './TokenBadge';
 import { formatTimeAgo, getSuccessTierIcon } from '@/lib/utils';
 import { FlexPost } from '@/types';
 
@@ -40,7 +43,10 @@ export function PostCard({ post }: PostCardProps) {
     router.push(`/profile/${post.user?.username}`);
   };
 
+  const [showSwapModal, setShowSwapModal] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showInlineSwap, setShowInlineSwap] = useState(false);
+  const [tradeAmount, setTradeAmount] = useState('0.1');
   const [recentActivity, setRecentActivity] = useState({
     viewers: Math.floor(Math.random() * 50) + 10,
     recentBuys: Math.floor(Math.random() * 15) + 3,
@@ -49,25 +55,15 @@ export function PostCard({ post }: PostCardProps) {
 
   const handleBuy = () => {
     if (post.token_address) {
-      setShowBuyModal(true);
+      setShowSwapModal(true);
     }
   };
 
   const handleQuickBuy = (amount: number) => {
     if (post.token_address) {
-      // Open Jupiter with pre-filled amount
-      const solAmount = amount / 100; // Convert $ to approximate SOL (simplified)
-      window.open(`https://jup.ag/swap/SOL-${post.token_address}?inAmount=${solAmount}`, '_blank');
-
-      // Show success toast and Twitter share prompt
-      setTimeout(() => {
-        const shouldShare = window.confirm(
-          `🎉 Just bought $${amount} of ${post.token_address?.slice(0, 4)}...! Share on Twitter?`
-        );
-        if (shouldShare) {
-          handleShareToTwitter(amount);
-        }
-      }, 1000);
+      // Open internal swap modal for integrated experience
+      setShowSwapModal(true);
+      setShowBuyModal(false);
     }
   };
 
@@ -75,8 +71,8 @@ export function PostCard({ post }: PostCardProps) {
     const ticker = post.token_address?.slice(0, 8) || 'TOKEN';
     const priceChange = recentActivity.priceChange;
     const text = amount
-      ? `Just bought $${amount} of $${ticker} on @FlexStream! 🚀\n\nCurrent price: $89 ${parseFloat(priceChange) > 0 ? '📈' : '📉'} ${priceChange}%\n\nJoin me: ${postUrl}`
-      : `Check out this post on @FlexStream! 🔥\n\n${post.title || post.content?.slice(0, 50)}\n\n${postUrl}`;
+      ? `Just bought $${amount} of $${ticker} on @FlexIt!\n\nCurrent price: $89 ${parseFloat(priceChange) > 0 ? '↑' : '↓'} ${priceChange}%\n\nJoin me: ${postUrl}`
+      : `Check out this post on @FlexIt!\n\n${post.title || post.content?.slice(0, 50)}\n\n${postUrl}`;
 
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -98,15 +94,15 @@ export function PostCard({ post }: PostCardProps) {
   const getPostTypeIcon = (type: string) => {
     switch (type) {
       case 'earnings_flex':
-        return '💰';
+        return '$';
       case 'stream_highlight':
-        return '🎥';
+        return '▶';
       case 'lifestyle':
-        return '✨';
+        return '★';
       case 'trading_journey':
-        return '📈';
+        return '↑';
       default:
-        return '📝';
+        return '•';
     }
   };
 
@@ -165,6 +161,19 @@ export function PostCard({ post }: PostCardProps) {
       </CardHeader>
 
       <CardContent className="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 space-y-0">
+        {/* Token Badge - Anti-Rug Mechanism */}
+        {post.token_display_name && (
+          <div className="mb-3 pt-2">
+            <TokenBadge
+              displayName={post.token_display_name}
+              isVerified={post.token_is_verified || false}
+              size="md"
+              showSymbol={true}
+              symbol={post.token_symbol}
+            />
+          </div>
+        )}
+
         {/* Social Proof Indicators - FOMO */}
         <div className="flex items-center gap-3 mb-2 flex-wrap">
           {/* Live viewers */}
@@ -175,7 +184,7 @@ export function PostCard({ post }: PostCardProps) {
 
           {/* Recent buys */}
           <div className="flex items-center gap-1.5 text-xs text-accent-green font-semibold">
-            <span>🔥</span>
+            <span>▲</span>
             <span>{recentActivity.recentBuys} buys in 5m</span>
           </div>
 
@@ -197,24 +206,32 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Post Actions - Market Cap, Comments, Share, Buy */}
-        <div className="flex items-center justify-between gap-3 py-3">
-          <div className="flex items-center gap-3">
-            {/* Market Cap with Green Triangle */}
-            <div className="flex items-center gap-1 text-accent-green">
-              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
-                <path d="M6 2L11 10H1L6 2Z" />
-              </svg>
-              <span className="font-bold text-base">$89</span>
-            </div>
+        <div className="flex items-center justify-between gap-2 py-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Token Price Display */}
+            {post.token_address ? (
+              <TokenPriceDisplay
+                mint={post.token_address}
+                showChange={true}
+                size="md"
+              />
+            ) : (
+              <div className="flex items-center gap-1 text-accent-green">
+                <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M6 2L11 10H1L6 2Z" />
+                </svg>
+                <span className="font-bold text-sm sm:text-base">$--</span>
+              </div>
+            )}
 
             {/* Comment Button */}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleComments}
-              className="h-9 w-9 rounded-full hover:bg-white/5 p-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0"
             >
-              <MessageCircle className="h-5 w-5 text-text-secondary" />
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-text-secondary" />
             </Button>
 
             {/* Share Button */}
@@ -222,29 +239,29 @@ export function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="icon"
               onClick={handleShare}
-              className="h-9 w-9 rounded-full hover:bg-white/5 p-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0"
             >
-              <Share className="h-5 w-5 text-text-secondary" />
+              <Share className="h-4 w-4 sm:h-5 sm:w-5 text-text-secondary" />
             </Button>
           </div>
 
           {/* Quick Buy Buttons - One Tap! */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               onClick={() => handleQuickBuy(5)}
-              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-3 py-2 rounded-full transition-all text-xs h-8"
+              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all text-[11px] sm:text-xs h-7 sm:h-8"
             >
               $5
             </Button>
             <Button
               onClick={() => handleQuickBuy(10)}
-              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-3 py-2 rounded-full transition-all text-xs h-8"
+              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all text-[11px] sm:text-xs h-7 sm:h-8"
             >
               $10
             </Button>
             <Button
               onClick={handleBuy}
-              className="bg-accent-green hover:bg-accent-green/90 text-black font-bold px-6 py-2 rounded-full transition-all text-sm h-9"
+              className="bg-accent-green hover:bg-accent-green/90 text-black font-bold px-3 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all text-xs sm:text-sm h-7 sm:h-9"
             >
               Buy
             </Button>
@@ -299,6 +316,18 @@ export function PostCard({ post }: PostCardProps) {
         postId={post.id}
         commentsCount={post.comments_count}
       />
+
+      {/* Jupiter Swap Modal */}
+      {post.token_address && (
+        <SwapModal
+          isOpen={showSwapModal}
+          onClose={() => setShowSwapModal(false)}
+          tokenMint={post.token_address}
+          tokenSymbol={post.token_address.slice(0, 4).toUpperCase()}
+          tokenName={post.title || `Post Token`}
+          creatorWallet={post.user?.wallet_address}
+        />
+      )}
 
       {/* Quick Buy Modal */}
       {showBuyModal && (

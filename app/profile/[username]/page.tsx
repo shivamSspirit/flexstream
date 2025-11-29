@@ -3,47 +3,51 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   UserPlusIcon,
   UserMinusIcon,
   HeartIcon,
   ChatBubbleLeftIcon,
   ShareIcon,
   CurrencyDollarIcon,
-  TrophyIcon,
-  FireIcon,
-  EyeIcon,
-  ArrowTopRightOnSquareIcon,
   ClipboardDocumentIcon,
-  CheckIcon
+  CheckIcon,
+  Squares2X2Icon,
+  FolderIcon,
+  SparklesIcon,
+  EllipsisHorizontalIcon,
+  WalletIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabase';
 import { FlexPost } from '@/types';
+import { LoadingSpinner } from '@/components/ui/loading';
+import { ActivateCreatorCoinModal } from '@/components/creator-coin/ActivateCreatorCoinModal';
+import { toast } from 'sonner';
+import { usePosts } from '@/hooks/usePosts';
+import { useUserStats } from '@/hooks/useUserStats';
 
 interface UserProfile {
   id: string;
-  display_name: string;
+  wallet_address: string;
   username: string;
+  display_name: string;
   bio?: string;
   avatar_url?: string;
+  cover_url?: string;
+  twitter?: string;
+  instagram?: string;
+  website?: string;
   verified: boolean;
   success_tier: string;
   created_at: string;
-  wallet_address?: string;
-}
-
-interface UserStats {
-  total_posts: number;
-  total_likes: number;
-  total_comments: number;
-  total_shares: number;
-  total_earnings: number;
-  followers_count: number;
-  following_count: number;
-  profile_views: number;
+  creator_coin_enabled?: boolean;
+  creator_coin_mint?: string;
+  creator_coin_pool?: string;
+  creator_coin_metadata_uri?: string;
 }
 
 export default function UserProfileViewPage() {
@@ -54,12 +58,11 @@ export default function UserProfileViewPage() {
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [posts, setPosts] = useState<FlexPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
+  const [activeTab, setActiveTab] = useState<'grid' | 'collected' | 'activity' | 'wallet'>('grid');
+  const [showActivateCoinModal, setShowActivateCoinModal] = useState(false);
 
   // Fetch current user ID from wallet
   useEffect(() => {
@@ -82,90 +85,59 @@ export default function UserProfileViewPage() {
     fetchCurrentUser();
   }, [connected, publicKey]);
 
+  // Load user profile
   useEffect(() => {
     if (username) {
-      fetchUserProfile();
+      loadUserProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
-  const fetchUserProfile = async () => {
+  const loadUserProfile = async () => {
+    if (!supabase) {
+      console.error('Supabase not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('🔍 Loading profile for username:', username);
       setLoading(true);
 
-      if (!supabase) {
-        console.error('Supabase not configured');
-        setLoading(false);
-        router.push('/discover');
-        return;
-      }
-
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
+      const { data: user, error } = await supabase
         .from('users')
         .select('*')
         .eq('username', username)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        router.push('/discover');
+      if (error) {
+        console.error('❌ Error loading profile:', error);
+        toast.error('User not found');
+        router.push('/explore');
         return;
       }
 
-      if (!profileData) {
-        router.push('/discover');
-        return;
-      }
-
-      setProfile(profileData);
-
-      // Fetch user's posts
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          user:users(*)
-        `)
-        .eq('user_id', profileData.id)
-        .order('created_at', { ascending: false });
-
-      if (postsError) {
-        console.error('Error fetching posts:', postsError);
-        return;
-      }
-
-      setPosts(postsData || []);
-
-      // Calculate stats
-      const totalLikes = (postsData || []).reduce((sum, post) => sum + (post.likes_count || 0), 0);
-      const totalComments = (postsData || []).reduce((sum, post) => sum + (post.comments_count || 0), 0);
-      const totalShares = (postsData || []).reduce((sum, post) => sum + (post.shares_count || 0), 0);
-      const totalEarnings = (postsData || []).reduce((sum, post) => sum + (post.earnings_amount || 0), 0);
-
-      setStats({
-        total_posts: postsData?.length || 0,
-        total_likes: totalLikes,
-        total_comments: totalComments,
-        total_shares: totalShares,
-        total_earnings: totalEarnings,
-        followers_count: Math.floor(Math.random() * 1000) + 100, // Mock data
-        following_count: Math.floor(Math.random() * 500) + 50, // Mock data
-        profile_views: Math.floor(Math.random() * 5000) + 1000, // Mock data
-      });
-
-      // Check if current user is following this user
-      if (currentUserId) {
-        // Mock following status - in real app, check followers table
-        setFollowing(Math.random() > 0.5);
-      }
-
+      setProfile(user);
+      console.log('✅ Profile loaded:', user);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error loading profile:', error);
+      toast.error('Failed to load profile');
+      router.push('/explore');
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch user's posts using the hook
+  const { data: postsData, isLoading: postsLoading, refetch: refetchPosts } = usePosts({
+    userId: profile?.id,
+    enabled: !!profile?.id
+  });
+
+  const posts = postsData?.data?.posts || [];
+
+  // Fetch real user stats using the hook
+  const { data: statsData, isLoading: statsLoading } = useUserStats(profile?.id);
 
   const handleFollow = async () => {
     if (!currentUserId || !profile) return;
@@ -173,402 +145,655 @@ export default function UserProfileViewPage() {
     try {
       // In real app, update followers table
       setFollowing(!following);
-      
-      if (stats) {
-        setStats({
-          ...stats,
-          followers_count: following ? stats.followers_count - 1 : stats.followers_count + 1
-        });
-      }
+      toast.success(following ? 'Unfollowed' : 'Following!');
     } catch (error) {
       console.error('Error updating follow status:', error);
+      toast.error('Failed to update follow status');
     }
   };
 
-  const copyWalletAddress = async () => {
+  const copyWalletAddress = () => {
     if (!profile?.wallet_address) return;
 
-    try {
-      await navigator.clipboard.writeText(profile.wallet_address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Error copying wallet address:', error);
-    }
+    navigator.clipboard.writeText(profile.wallet_address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Wallet address copied!');
+  };
+
+  // Check if this is the current user's own profile
+  const isOwnProfile = connected && publicKey && profile?.wallet_address === publicKey.toBase58();
+
+  // Tab change handler
+  const handleTabChange = (tab: 'grid' | 'collected' | 'activity' | 'wallet') => {
+    setActiveTab(tab);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
+      <AppLayout showWallet={true} showSearch={true}>
+        <LoadingSpinner message="Loading profile" submessage="Getting everything ready..." />
+      </AppLayout>
     );
   }
 
-  if (!currentUserId) {
-    return null;
-  }
-
-  if (loading) {
+  if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-4 pb-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-64 bg-gray-700 rounded-lg"></div>
-            <div className="h-32 bg-gray-700 rounded-lg"></div>
-            <div className="h-48 bg-gray-700 rounded-lg"></div>
+      <AppLayout showWallet={true} showSearch={true}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">User Not Found</h2>
+            <p className="text-white/70 mb-6">This profile doesn&apos;t exist</p>
+            <Button onClick={() => router.push('/explore')} className="bg-purple-500 hover:bg-purple-600">
+              Back to Explore
+            </Button>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
-
-  if (!profile || !stats) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white mb-4">User not found</p>
-          <Button onClick={() => router.push('/discover')} className="bg-purple-600 hover:bg-purple-700">
-            Back to Discover
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const isOwnProfile = currentUserId === profile.id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center space-x-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="text-gray-400 hover:text-white"
+    <AppLayout showWallet={true} showSearch={true}>
+      <div className="w-full max-w-5xl mx-auto pb-20 md:pb-8">
+        {/* Cover Image */}
+        {profile.cover_url ? (
+          <div
+            className="h-40 sm:h-48 md:h-56 sm:rounded-2xl mb-12 sm:mb-16 bg-cover bg-center relative overflow-hidden group"
+            style={{ backgroundImage: `url(${profile.cover_url})` }}
           >
-            ← Back
-          </Button>
-        </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-accent-green/0 via-accent-cyan/10 to-accent-blue/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          </div>
+        ) : (
+          <div className="h-40 sm:h-48 md:h-56 sm:rounded-2xl mb-12 sm:mb-16 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-green/20 via-accent-cyan/20 to-accent-blue/20 animate-gradient-shift"></div>
+            <div className="absolute inset-0 bg-gradient-to-tl from-accent-purple/10 via-transparent to-accent-pink/10 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70"></div>
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-accent-green/30 rounded-full blur-3xl animate-float"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-accent-cyan/20 rounded-full blur-3xl animate-float-delayed"></div>
+          </div>
+        )}
 
         {/* Profile Header */}
-        <Card className="bg-gray-800/50 border-gray-700/50 mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-24 h-24 bg-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-2xl">
-                    {profile.display_name?.charAt(0) || 'U'}
-                  </span>
-                </div>
-                {profile.verified && (
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                )}
+        <div className="flex flex-col items-center text-center px-4 sm:px-6 -mt-8 sm:-mt-12">
+          {/* Avatar */}
+          <Avatar className="h-28 w-28 sm:h-32 sm:w-32 mb-3 sm:mb-4 ring-4 ring-accent-green/40 shadow-2xl shadow-accent-green/30 border-4 border-black">
+            <AvatarImage src={profile.avatar_url} />
+            <AvatarFallback className="bg-gradient-to-br from-accent-green via-accent-cyan to-accent-blue text-black font-black text-4xl sm:text-5xl">
+              {profile.display_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+
+          {/* Display Name */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-1 sm:mb-2 tracking-tight leading-none">
+            {profile.display_name || 'Anonymous User'}
+          </h1>
+
+          {/* Username */}
+          <p className="text-white/70 mb-3 sm:mb-4 text-sm sm:text-base font-semibold">
+            @{profile.username || 'unknown'}
+          </p>
+
+          {/* Bio */}
+          {profile.bio && (
+            <p className="text-white/90 text-sm sm:text-base mb-3 sm:mb-4 max-w-xl leading-relaxed">
+              {profile.bio}
+            </p>
+          )}
+
+          {/* Wallet Address Badge */}
+          <button
+            onClick={copyWalletAddress}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full text-white/90 text-xs sm:text-sm mb-3 transition-all font-mono border border-white/20 hover:border-accent-green/50 hover:shadow-lg hover:shadow-accent-green/20"
+          >
+            <span>💎</span>
+            <span>{profile.wallet_address.slice(0, 4)}...{profile.wallet_address.slice(-4)}</span>
+            {copied && <CheckIcon className="w-4 h-4 text-green-400" />}
+          </button>
+
+          {/* Creator Coin Address - Only show if coin is activated */}
+          {profile.creator_coin_enabled && profile.creator_coin_mint && (
+            <a
+              href={`https://solscan.io/token/${profile.creator_coin_mint}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-gradient-to-r from-accent-green/20 to-accent-cyan/20 hover:from-accent-green/30 hover:to-accent-cyan/30 px-4 py-2 rounded-full text-white/90 text-xs sm:text-sm mb-4 sm:mb-5 transition-all font-mono border border-accent-green/40 hover:border-accent-green/60 hover:shadow-lg hover:shadow-accent-green/20 group"
+            >
+              <span className="text-base">🪙</span>
+              <span className="text-accent-green font-bold">Token:</span>
+              <span>{profile.creator_coin_mint.slice(0, 4)}...{profile.creator_coin_mint.slice(-4)}</span>
+              <svg className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
+
+          {/* Social Links - Always visible for social proof & reputation */}
+          <div className="flex items-center justify-center gap-4 sm:gap-5 mb-4 sm:mb-5">
+            {/* Twitter/X */}
+            {profile.twitter ? (
+              <a
+                href={`https://twitter.com/${profile.twitter}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-accent-cyan transition-all hover:scale-110 transform p-2 rounded-lg hover:bg-white/10"
+                aria-label="Twitter profile"
+              >
+                <svg width="24" height="24" className="sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+            ) : (
+              isOwnProfile && (
+                <button
+                  onClick={() => router.push('/profile/edit')}
+                  className="text-white/30 hover:text-white/50 transition-all hover:scale-110 transform p-2 rounded-lg hover:bg-white/10 cursor-pointer"
+                  aria-label="Add Twitter"
+                >
+                  <svg width="24" height="24" className="sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </button>
+              )
+            )}
+
+            {/* Instagram */}
+            {profile.instagram ? (
+              <a
+                href={`https://instagram.com/${profile.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-accent-pink transition-all text-2xl sm:text-3xl hover:scale-110 transform p-2 rounded-lg hover:bg-white/10"
+                aria-label="Instagram profile"
+              >
+                📷
+              </a>
+            ) : (
+              isOwnProfile && (
+                <button
+                  onClick={() => router.push('/profile/edit')}
+                  className="text-white/30 hover:text-white/50 transition-all text-2xl sm:text-3xl hover:scale-110 transform p-2 rounded-lg hover:bg-white/10 cursor-pointer"
+                  aria-label="Add Instagram"
+                >
+                  📷
+                </button>
+              )
+            )}
+
+            {/* Website */}
+            {profile.website ? (
+              <a
+                href={profile.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-accent-blue transition-all text-2xl sm:text-3xl hover:scale-110 transform p-2 rounded-lg hover:bg-white/10"
+                aria-label="Website"
+              >
+                🌐
+              </a>
+            ) : (
+              isOwnProfile && (
+                <button
+                  onClick={() => router.push('/profile/edit')}
+                  className="text-white/30 hover:text-white/50 transition-all text-2xl sm:text-3xl hover:scale-110 transform p-2 rounded-lg hover:bg-white/10 cursor-pointer"
+                  aria-label="Add Website"
+                >
+                  🌐
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Social Verification Badge - Show when user has social links */}
+          {(profile.twitter || profile.instagram || profile.website) && (
+            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-5">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-cyan/20 to-accent-blue/20 border border-accent-cyan/30 rounded-full">
+                <svg className="w-3.5 h-3.5 text-accent-cyan" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs sm:text-sm font-bold text-white/90">Verified Social</span>
               </div>
+            </div>
+          )}
 
-              {/* Profile Info */}
-              <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h1 className="text-2xl font-bold text-white">{profile.display_name}</h1>
-                      {profile.verified && (
-                        <Badge className="bg-blue-600 text-white">Verified</Badge>
+          {/* Stats Grid - 3 key metrics */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6 w-full max-w-2xl">
+            {/* Posts */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10 hover:border-accent-green/50 transition-all duration-300 hover:scale-105 cursor-pointer group">
+              {statsLoading ? (
+                <div className="h-10 w-full bg-white/10 animate-pulse rounded mb-1"></div>
+              ) : (
+                <div className="text-3xl sm:text-4xl font-black mb-1 sm:mb-1.5 bg-gradient-to-r from-accent-green to-accent-cyan bg-clip-text text-transparent leading-none group-hover:scale-110 transition-transform">
+                  {statsData?.data?.posts_count || 0}
+                </div>
+              )}
+              <div className="text-white/60 group-hover:text-white/80 text-xs sm:text-sm font-semibold transition-colors">Posts</div>
+            </div>
+
+            {/* Holders */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10 hover:border-accent-purple/50 transition-all duration-300 hover:scale-105 cursor-pointer group">
+              {statsLoading ? (
+                <div className="h-10 w-full bg-white/10 animate-pulse rounded mb-1"></div>
+              ) : (
+                <div className="text-3xl sm:text-4xl font-black mb-1 sm:mb-1.5 bg-gradient-to-r from-accent-purple to-accent-pink bg-clip-text text-transparent leading-none group-hover:scale-110 transition-transform">
+                  {statsData?.data?.total_holders || 0}
+                </div>
+              )}
+              <div className="text-white/60 group-hover:text-white/80 text-xs sm:text-sm font-semibold transition-colors">Holders</div>
+            </div>
+
+            {/* Portfolio Value */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10 hover:border-accent-cyan/50 transition-all duration-300 hover:scale-105 cursor-pointer group relative">
+              <div className="text-2xl sm:text-3xl font-black mb-1 sm:mb-1.5 bg-gradient-to-r from-accent-cyan to-accent-blue bg-clip-text text-transparent leading-none group-hover:scale-110 transition-transform">
+                $3.60
+              </div>
+              <div className="text-white/60 group-hover:text-white/80 text-xs sm:text-sm font-semibold transition-colors">Value</div>
+            </div>
+          </div>
+
+          {/* Creator Coin Status - Only shown if user has activated */}
+          {profile.creator_coin_enabled && (
+            <div className="w-full max-w-2xl mb-4 sm:mb-5 space-y-3">
+              {/* Main Coin Card */}
+              <div className="relative bg-gradient-to-br from-accent-green/20 via-accent-cyan/20 to-accent-blue/20 border-2 border-accent-green/40 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-xl shadow-accent-green/20 backdrop-blur-md overflow-hidden group hover:shadow-2xl hover:shadow-accent-green/30 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-accent-green/0 via-accent-green/10 to-accent-green/0 opacity-0 group-hover:opacity-100 animate-pulse-slow"></div>
+                <div className="relative flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+                        <span className="text-2xl sm:text-3xl animate-bounce-slow">🪙</span>
+                        <p className="text-white font-black text-base sm:text-lg">Creator Coin Active</p>
+                      </div>
+                      <p className="text-accent-green font-bold text-sm sm:text-base truncate mb-2">
+                        ${profile.username?.toUpperCase().substring(0, 10)}
+                      </p>
+                      {profile.creator_coin_mint && (
+                        <button
+                          onClick={() => window.open(`https://explorer.solana.com/address/${profile.creator_coin_mint}?cluster=devnet`, '_blank')}
+                          className="text-white/60 hover:text-white text-xs font-mono flex items-center gap-1 hover:underline"
+                        >
+                          <span>CA: {profile.creator_coin_mint.slice(0, 4)}...{profile.creator_coin_mint.slice(-4)}</span>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </button>
                       )}
-                      <Badge className="bg-purple-600 text-white">
-                        {profile.success_tier.replace('_', ' ')}
-                      </Badge>
                     </div>
-                    <p className="text-gray-400 mb-2">@{profile.username}</p>
-                    {profile.bio && (
-                      <p className="text-gray-300 mb-4">{profile.bio}</p>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-3">
-                    {!isOwnProfile && (
-                      <Button
-                        onClick={handleFollow}
-                        variant={following ? 'outline' : 'default'}
-                        className={following 
-                          ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                          : 'bg-purple-600 hover:bg-purple-700'
-                        }
-                      >
-                        {following ? (
-                          <>
-                            <UserMinusIcon className="h-4 w-4 mr-2" />
-                            Following
-                          </>
-                        ) : (
-                          <>
-                            <UserPlusIcon className="h-4 w-4 mr-2" />
-                            Follow
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      onClick={() => window.open(`https://jup.ag/swap/SOL-${profile.creator_coin_mint}`, '_blank')}
+                      className="bg-accent-green hover:bg-accent-green/90 text-black font-black whitespace-nowrap text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 rounded-xl shadow-lg hover:shadow-accent-green/50 hover:scale-105 transition-all w-full sm:w-auto"
                     >
-                      <ShareIcon className="h-4 w-4 mr-2" />
-                      Share
+                      Trade Now
                     </Button>
                   </div>
                 </div>
+              </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-white">{stats.total_posts}</div>
-                    <div className="text-sm text-gray-400">Posts</div>
+              {/* Market Cap Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Market Cap */}
+                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 hover:border-accent-green/30 transition-all">
+                  <p className="text-white/60 text-xs sm:text-sm font-semibold mb-1">Market Cap</p>
+                  <p className="text-accent-green font-black text-xl sm:text-2xl">$12.2K</p>
+                  <p className="text-accent-green/70 text-xs mt-0.5">+24.5% today</p>
+                </div>
+
+                {/* Price */}
+                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 hover:border-accent-cyan/30 transition-all">
+                  <p className="text-white/60 text-xs sm:text-sm font-semibold mb-1">Price</p>
+                  <p className="text-accent-cyan font-black text-xl sm:text-2xl">$0.042</p>
+                  <p className="text-accent-cyan/70 text-xs mt-0.5">per token</p>
+                </div>
+              </div>
+
+              {/* Top Holders */}
+              <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-black text-sm sm:text-base flex items-center gap-2">
+                    <span className="text-lg">👥</span>
+                    Top Holders
+                  </h3>
+                  <span className="text-white/60 text-xs sm:text-sm font-semibold">2 total</span>
+                </div>
+
+                <div className="space-y-2">
+                  {/* Holder 1 */}
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-accent-purple to-accent-pink flex items-center justify-center text-sm sm:text-base flex-shrink-0 group-hover:scale-110 transition-transform">
+                        🔥
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-xs sm:text-sm truncate">devjak.sol</p>
+                        <p className="text-white/40 text-[10px] sm:text-xs">5Fww...xB2m</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <p className="text-accent-purple font-black text-sm sm:text-base">45%</p>
+                      <p className="text-white/40 text-[10px] sm:text-xs">135K tokens</p>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-white">{stats.followers_count.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Followers</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-white">{stats.following_count.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Following</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-white">${stats.total_earnings.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Earnings</div>
+
+                  {/* Holder 2 */}
+                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-accent-cyan to-accent-blue flex items-center justify-center text-sm sm:text-base flex-shrink-0 group-hover:scale-110 transition-transform">
+                        💎
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-xs sm:text-sm truncate">whale.sol</p>
+                        <p className="text-white/40 text-[10px] sm:text-xs">8Hkk...mP9x</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <p className="text-accent-cyan font-black text-sm sm:text-base">32%</p>
+                      <p className="text-white/40 text-[10px] sm:text-xs">96K tokens</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
 
-        {/* Wallet Address */}
-        {profile.wallet_address && (
-          <Card className="bg-gray-800/50 border-gray-700/50 mb-6">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <CurrencyDollarIcon className="h-5 w-5" />
-                <span>Wallet Address</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <code className="flex-1 bg-gray-900/50 p-3 rounded text-sm text-gray-300 font-mono">
-                  {profile.wallet_address}
-                </code>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 sm:gap-3 w-full max-w-2xl mb-6 sm:mb-7">
+            {isOwnProfile ? (
+              <>
+                {profile.creator_coin_enabled && (
+                  <Button
+                    onClick={() => window.open(`https://jup.ag/swap/SOL-${profile.creator_coin_mint}`, '_blank')}
+                    className="flex-1 bg-accent-green hover:bg-accent-green/90 text-black font-black h-12 sm:h-13 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-accent-green/30 hover:scale-105 transition-all"
+                  >
+                    💎 Trade
+                  </Button>
+                )}
                 <Button
-                  size="sm"
+                  onClick={() => router.push('/profile/edit')}
                   variant="outline"
-                  onClick={copyWalletAddress}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className={`${profile.creator_coin_enabled ? '' : 'flex-1'} bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 hover:border-white/40 font-bold h-12 sm:h-13 text-base sm:text-lg rounded-xl ${profile.creator_coin_enabled ? 'px-6 sm:px-8' : ''} hover:scale-105 transition-all`}
                 >
-                  {copied ? (
-                    <CheckIcon className="h-4 w-4 text-green-400" />
+                  Edit
+                </Button>
+                {!profile.creator_coin_enabled && (
+                  <Button
+                    onClick={() => {
+                      // Check if profile is complete - Nikita Bier strategy: Guide users, don't block them
+                      const isProfileComplete = profile.display_name && profile.bio && profile.avatar_url;
+                      if (!isProfileComplete) {
+                        // Smart onboarding: Direct them to complete profile with positive messaging
+                        toast.error('✨ Complete your profile to unlock your coin', {
+                          description: 'Add your name, bio, and avatar to get started',
+                          action: {
+                            label: 'Edit Profile',
+                            onClick: () => router.push('/profile/edit')
+                          }
+                        });
+                        return;
+                      }
+                      setShowActivateCoinModal(true);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black h-12 sm:h-13 text-base sm:text-lg rounded-xl hover:scale-105 transition-all relative overflow-hidden group"
+                  >
+                    <span className="relative z-10">Activate Coin</span>
+                    {(!profile.display_name || !profile.bio || !profile.avatar_url) && (
+                      <span className="absolute top-1 right-2 text-[10px] bg-gradient-to-r from-accent-purple via-accent-pink to-accent-purple text-white px-2 py-0.5 rounded-full font-bold shadow-lg shadow-accent-purple/50 animate-pulse border border-white/30">
+                        Complete Profile
+                      </span>
+                    )}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleFollow}
+                  className={`flex-1 font-black h-12 sm:h-13 text-base sm:text-lg rounded-xl hover:scale-105 transition-all ${
+                    following
+                      ? 'bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
+                      : 'bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue text-black hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90'
+                  }`}
+                >
+                  {following ? (
+                    <>
+                      <UserMinusIcon className="h-5 w-5 mr-2" />
+                      Following
+                    </>
                   ) : (
-                    <ClipboardDocumentIcon className="h-4 w-4" />
+                    <>
+                      <UserPlusIcon className="h-5 w-5 mr-2" />
+                      Follow
+                    </>
                   )}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tabs */}
-        <div className="flex space-x-1 mb-6 bg-gray-800/50 p-1 rounded-lg">
-          <Button
-            variant={activeTab === 'posts' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('posts')}
-            className={`flex-1 ${
-              activeTab === 'posts' 
-                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            Posts ({stats.total_posts})
-          </Button>
-          <Button
-            variant={activeTab === 'about' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('about')}
-            className={`flex-1 ${
-              activeTab === 'about' 
-                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            About
-          </Button>
+                {profile.creator_coin_enabled && (
+                  <Button
+                    onClick={() => window.open(`https://jup.ag/swap/SOL-${profile.creator_coin_mint}`, '_blank')}
+                    className="flex-1 bg-accent-green hover:bg-accent-green/90 text-black font-black h-12 sm:h-13 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-accent-green/30 hover:scale-105 transition-all"
+                  >
+                    💎 Trade
+                  </Button>
+                )}
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 hover:border-white/40 h-12 w-12 sm:h-13 sm:w-13 rounded-xl hover:scale-105 transition-all flex-shrink-0"
+            >
+              <ShareIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Button>
+          </div>
         </div>
 
-        {/* Content */}
-        {activeTab === 'posts' && (
-          <div className="space-y-4">
-            {posts.length === 0 ? (
-              <Card className="bg-gray-800/50 border-gray-700/50">
-                <CardContent className="p-6 text-center">
-                  <p className="text-gray-400">No posts yet</p>
-                </CardContent>
-              </Card>
+        {/* Tab Navigation */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-6 px-4">
+          <button
+            onClick={() => handleTabChange('grid')}
+            className={`relative flex items-center gap-2 px-5 sm:px-6 py-3 rounded-xl font-black text-sm sm:text-base transition-all duration-300 overflow-hidden group ${
+              activeTab === 'grid'
+                ? 'bg-gradient-to-r from-accent-green to-accent-cyan text-black shadow-lg shadow-accent-green/30 scale-105'
+                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white hover:scale-102'
+            }`}
+          >
+            {activeTab !== 'grid' && <div className="absolute inset-0 bg-gradient-to-r from-accent-green/0 via-accent-green/10 to-accent-green/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
+            <Squares2X2Icon className={`h-5 w-5 sm:h-6 sm:w-6 relative z-10 ${activeTab === 'grid' ? 'animate-pulse-slow' : ''}`} />
+            <span className="hidden sm:inline relative z-10">Posts</span>
+          </button>
+          <button
+            onClick={() => handleTabChange('wallet')}
+            className={`relative flex items-center gap-2 px-5 sm:px-6 py-3 rounded-xl font-black text-sm sm:text-base transition-all duration-300 overflow-hidden group ${
+              activeTab === 'wallet'
+                ? 'bg-gradient-to-r from-accent-cyan to-accent-blue text-black shadow-lg shadow-accent-cyan/30 scale-105'
+                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white hover:scale-102'
+            }`}
+          >
+            {activeTab !== 'wallet' && <div className="absolute inset-0 bg-gradient-to-r from-accent-cyan/0 via-accent-cyan/10 to-accent-cyan/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
+            <WalletIcon className={`h-5 w-5 sm:h-6 sm:w-6 relative z-10 ${activeTab === 'wallet' ? 'animate-pulse-slow' : ''}`} />
+            <span className="hidden sm:inline relative z-10">Wallet</span>
+          </button>
+          <button
+            onClick={() => handleTabChange('collected')}
+            className={`relative flex items-center gap-2 px-5 sm:px-6 py-3 rounded-xl font-black text-sm sm:text-base transition-all duration-300 overflow-hidden group ${
+              activeTab === 'collected'
+                ? 'bg-gradient-to-r from-accent-blue to-accent-purple text-black shadow-lg shadow-accent-blue/30 scale-105'
+                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white hover:scale-102'
+            }`}
+          >
+            {activeTab !== 'collected' && <div className="absolute inset-0 bg-gradient-to-r from-accent-blue/0 via-accent-blue/10 to-accent-blue/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
+            <FolderIcon className={`h-5 w-5 sm:h-6 sm:w-6 relative z-10 ${activeTab === 'collected' ? 'animate-pulse-slow' : ''}`} />
+            <span className="hidden sm:inline relative z-10">Collected</span>
+          </button>
+          <button
+            onClick={() => handleTabChange('activity')}
+            className={`relative flex items-center gap-2 px-5 sm:px-6 py-3 rounded-xl font-black text-sm sm:text-base transition-all duration-300 overflow-hidden group ${
+              activeTab === 'activity'
+                ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-black shadow-lg shadow-accent-purple/30 scale-105'
+                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white hover:scale-102'
+            }`}
+          >
+            {activeTab !== 'activity' && <div className="absolute inset-0 bg-gradient-to-r from-accent-purple/0 via-accent-purple/10 to-accent-purple/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
+            <SparklesIcon className={`h-5 w-5 sm:h-6 sm:w-6 relative z-10 ${activeTab === 'activity' ? 'animate-pulse-slow' : ''}`} />
+            <span className="hidden sm:inline relative z-10">Activity</span>
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'wallet' ? (
+          <div className="max-w-2xl mx-auto px-4 sm:px-0 space-y-4">
+            {/* SOL Balance Card */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 hover:border-accent-cyan/30 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent-cyan to-accent-blue flex items-center justify-center shadow-lg shadow-accent-cyan/20">
+                    <span className="text-2xl sm:text-3xl">◎</span>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs sm:text-sm font-semibold">Solana Balance</p>
+                    <p className="text-white font-black text-xl sm:text-2xl">0.00 SOL</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/40 text-xs sm:text-sm">USD Value</p>
+                  <p className="text-white/70 font-bold text-lg sm:text-xl">$0</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Portfolio Value Card */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-white/10 hover:border-accent-green/30 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-accent-green to-accent-cyan flex items-center justify-center shadow-lg shadow-accent-green/20">
+                    <span className="text-2xl sm:text-3xl">💰</span>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs sm:text-sm font-semibold">Total Portfolio Value</p>
+                    <p className="text-white font-black text-xl sm:text-2xl">$3.60</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/40 text-xs sm:text-sm">Coins Created</p>
+                  <p className="text-accent-green font-bold text-lg sm:text-xl">{statsData?.data?.tokens_created || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* More features coming */}
+            <div className="bg-gradient-to-br from-white/5 to-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-8 sm:p-10 border border-white/10 text-center mt-6">
+              <div className="text-4xl sm:text-5xl mb-3">🚀</div>
+              <p className="text-white/90 text-base sm:text-lg font-bold mb-2">More Wallet Features Coming</p>
+              <p className="text-white/60 text-xs sm:text-sm">Token swaps, earnings tracking, and more</p>
+            </div>
+          </div>
+        ) : activeTab === 'collected' ? (
+          <div className="max-w-2xl mx-auto px-4 sm:px-0">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-12 sm:p-16 border-2 border-white/20 text-center">
+              <div className="text-6xl mb-4">📂</div>
+              <p className="text-white/90 text-lg font-bold mb-2">Collection Coming Soon</p>
+              <p className="text-white/60 text-sm">View tokens you&apos;ve collected from other creators</p>
+            </div>
+          </div>
+        ) : activeTab === 'activity' ? (
+          <div className="max-w-2xl mx-auto px-4 sm:px-0">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-12 sm:p-16 border-2 border-white/20 text-center">
+              <div className="text-6xl mb-4">⚡</div>
+              <p className="text-white/90 text-lg font-bold mb-2">Activity Feed Coming Soon</p>
+              <p className="text-white/60 text-sm">Track all your trades, likes, and interactions</p>
+            </div>
+          </div>
+        ) : (
+          /* Posts Grid */
+          <div className="px-4">
+            <div className="grid grid-cols-3 gap-2 max-w-5xl mx-auto">
+            {postsLoading ? (
+              // Loading skeleton
+              Array.from({ length: 9 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square bg-gradient-to-br from-white/10 via-white/5 to-white/10 rounded-lg overflow-hidden relative"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                </div>
+              ))
+            ) : posts.length === 0 ? (
+              // Empty state
+              <div className="col-span-3 text-center py-20">
+                <div className="max-w-lg mx-auto">
+                  <div className="text-8xl mb-8">📸</div>
+                  <h3 className="text-4xl font-black text-white mb-4 leading-tight">
+                    No Posts Yet
+                  </h3>
+                  <p className="text-white/70 text-base mb-6 leading-relaxed max-w-md mx-auto">
+                    {isOwnProfile ? 'Create your first post to see it here!' : `${profile.display_name} hasn't posted yet`}
+                  </p>
+                  {isOwnProfile && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          console.log('🔍 [DEBUG] Forcing posts refetch...');
+                          refetchPosts();
+                        }}
+                        variant="outline"
+                        className="mr-2 mb-4"
+                      >
+                        🔄 Refresh Posts
+                      </Button>
+                      <Button
+                        onClick={() => router.push('/create')}
+                        size="lg"
+                        className="bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black text-lg px-10 h-16 rounded-xl shadow-xl hover:shadow-accent-green/30 hover:scale-105 transition-all"
+                      >
+                        🚀 Create Your First Post
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
             ) : (
+              // Posts grid - Enhanced hover effects
               posts.map((post) => (
-                <Card key={post.id} className="bg-gray-800/50 border-gray-700/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {profile.display_name?.charAt(0) || 'U'}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-white">{profile.display_name}</h3>
-                          {profile.verified && (
-                            <Badge className="bg-blue-600 text-white text-xs">Verified</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-400">
-                          @{profile.username} • {new Date(post.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-gray-200 mb-4">{post.content}</p>
-                    
-                    {post.media_urls && post.media_urls.length > 0 && (
-                      <div className="mb-4">
-                        {post.media_urls.map((url, index) => (
-                          <div key={index} className="mb-2">
-                            {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                              <img 
-                                src={url} 
-                                alt={`Post media ${index + 1}`}
-                                className="w-full h-64 object-cover rounded-lg"
-                              />
-                            ) : url.match(/\.(mp4|webm|ogg|avi|mov)$/i) ? (
-                              <video 
-                                src={url} 
-                                controls
-                                className="w-full h-64 object-cover rounded-lg"
-                              />
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {post.social_link && (
-                      <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <a 
-                          href={post.social_link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 text-sm flex items-center space-x-2"
-                        >
-                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                          <span>{post.social_link}</span>
-                        </a>
-                      </div>
-                    )}
-
-                    {post.earnings_amount && (
-                      <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <CurrencyDollarIcon className="h-5 w-5 text-green-400" />
-                          <span className="text-green-400 font-semibold">
-                            ${post.earnings_amount.toLocaleString()} earned
-                          </span>
-                          {post.verified && (
-                            <Badge className="bg-green-500/20 text-green-300 text-xs">Verified</Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6 text-gray-400">
-                        <button className="flex items-center space-x-1 hover:text-red-400 transition-colors">
-                          <HeartIcon className="h-4 w-4" />
-                          <span className="text-sm">{post.likes_count}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 hover:text-blue-400 transition-colors">
-                          <ChatBubbleLeftIcon className="h-4 w-4" />
-                          <span className="text-sm">{post.comments_count}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 hover:text-green-400 transition-colors">
-                          <ShareIcon className="h-4 w-4" />
-                          <span className="text-sm">{post.shares_count}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <button
+                  key={post.id}
+                  onClick={() => router.push(`/post/${post.id}`)}
+                  className="group aspect-square overflow-hidden bg-black cursor-pointer relative rounded-lg hover:scale-[1.03] transition-all duration-300 shadow-lg hover:shadow-2xl"
+                >
+                  {post.media_urls && post.media_urls.length > 0 && (
+                    <>
+                      <img
+                        src={post.media_urls[0]}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </>
+                  )}
+                </button>
               ))
             )}
+            </div>
           </div>
         )}
-
-        {activeTab === 'about' && (
-          <Card className="bg-gray-800/50 border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="text-white">About {profile.display_name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Performance Stats</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-900/50 rounded-lg">
-                    <div className="text-2xl font-bold text-white">{stats.total_likes.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Total Likes</div>
-                  </div>
-                  <div className="p-3 bg-gray-900/50 rounded-lg">
-                    <div className="text-2xl font-bold text-white">{stats.total_comments.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Total Comments</div>
-                  </div>
-                  <div className="p-3 bg-gray-900/50 rounded-lg">
-                    <div className="text-2xl font-bold text-white">{stats.total_shares.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Total Shares</div>
-                  </div>
-                  <div className="p-3 bg-gray-900/50 rounded-lg">
-                    <div className="text-2xl font-bold text-white">{stats.profile_views.toLocaleString()}</div>
-                    <div className="text-sm text-gray-400">Profile Views</div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Member Since</h3>
-                <p className="text-gray-300">
-                  {new Date(profile.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-
-              {profile.bio && (
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Bio</h3>
-                  <p className="text-gray-300">{profile.bio}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
-    </div>
+
+      {/* Creator Coin Activation Modal */}
+      {profile && isOwnProfile && (
+        <ActivateCreatorCoinModal
+          isOpen={showActivateCoinModal}
+          onClose={() => setShowActivateCoinModal(false)}
+          onSuccess={() => {
+            setShowActivateCoinModal(false);
+            loadUserProfile(); // Reload profile to show new creator coin
+          }}
+          userProfile={{
+            username: profile.username,
+            display_name: profile.display_name,
+            avatar_url: profile.avatar_url,
+            bio: profile.bio,
+          }}
+        />
+      )}
+    </AppLayout>
   );
 }

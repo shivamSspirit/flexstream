@@ -2,15 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@jup-ag/wallet-adapter';
-// import { usePrivy, useWallets } from '@privy-io/react-auth';
-// import { useSignTransaction } from '@privy-io/react-auth/solana';
-import { Transaction, Connection, clusterApiUrl } from '@solana/web3.js';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PublicKey } from '@solana/web3.js';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useInvalidatePosts } from '@/hooks/usePosts';
-
-import { 
+import { supabase } from '@/lib/supabase';
+import { createTokenForPost } from '@/lib/dbc';
+import {
   XMarkIcon,
   CloudArrowUpIcon,
   PhotoIcon,
@@ -18,8 +16,7 @@ import {
   MusicalNoteIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
-  RocketLaunchIcon,
-  CheckCircleIcon
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 
@@ -32,57 +29,34 @@ interface FilePreview {
   sizeFormatted: string;
 }
 
+interface FileError {
+  fileName: string;
+  error: string;
+}
+
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  maxFiles?: number;
+  maxSizeGB?: number;
 }
-
-type CreationStep = 'idle' | 'uploading' | 'creating' | 'signing' | 'confirming' | 'complete' | 'error';
 
 export function CreatePostModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  maxFiles = 1,
+  maxSizeGB = 6
 }: CreatePostModalProps) {
   const router = useRouter();
-  const { connected, publicKey, sendTransaction } = useWallet();
-  // const { authenticated } = usePrivy();
-  // const { wallets } = useWallets();
-  // const { signTransaction } = useSignTransaction();
-  const invalidatePosts = useInvalidatePosts();
-
-  // TODO: Add authentication and wallet connection
-  const authenticated = false;
-  const solanaWallet = null;
-
-  // Debug wallet connection state
-  useEffect(() => {
-    console.log('🔍 [CreatePostModal] Wallet state:', {
-      connected,
-      publicKey: publicKey?.toBase58(),
-      hasPublicKey: !!publicKey,
-      hasSendTransaction: !!sendTransaction
-    });
-  }, [connected, publicKey, sendTransaction]);
-
-  // Create Solana connection for devnet
-  const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('devnet');
-  const connection = new Connection(rpcUrl, 'confirmed');
-
-  // Debug connection
-  useEffect(() => {
-    console.log('🔗 [CreatePostModal] Solana connection:', {
-      rpcUrl,
-      endpoint: connection.rpcEndpoint,
-      commitment: connection.commitment,
-      isDevnet: connection.rpcEndpoint.includes('devnet')
-    });
-  }, [rpcUrl]);
+  const queryClient = useQueryClient();
+  const { publicKey, connected } = useWallet();
   
   // File upload state
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [errors, setErrors] = useState<FileError[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Post data state
@@ -91,10 +65,8 @@ export function CreatePostModal({
   const [ticker, setTicker] = useState('');
   
   // Creation state
-  const [currentStep, setCurrentStep] = useState<CreationStep>('idle');
+  const [isCreating, setIsCreating] = useState(false);
   const [progress, setProgress] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [tokenData, setTokenData] = useState<any>(null);
 
   // Cleanup function to prevent memory leaks
   useEffect(() => {
@@ -108,22 +80,24 @@ export function CreatePostModal({
   // Reset everything when modal closes
   useEffect(() => {
     if (!isOpen) {
+      // Clean up file URLs
+      files.forEach(file => URL.revokeObjectURL(file.url));
       // Reset all state
-      setFiles((prevFiles) => {
-        // Clean up file URLs before clearing
-        prevFiles.forEach(file => URL.revokeObjectURL(file.url));
-        return [];
-      });
+      setFiles([]);
+      setErrors([]);
       setIsDragOver(false);
-      setCurrentStep('idle');
+      setIsCreating(false);
       setProgress('');
-      setError(null);
       setTitle('');
       setDescription('');
       setTicker('');
-      setTokenData(null);
+    } else {
+      console.log('🚀 CreatePostModal opened');
+      console.log('🚀 File input ref:', fileInputRef.current);
+      console.log('🚀 Max files:', maxFiles);
+      console.log('🚀 Connected wallet:', publicKey?.toBase58());
     }
-  }, [isOpen]); // Only depend on isOpen, not files
+  }, [isOpen, maxFiles, maxSizeGB, publicKey]);
 
   // Helper: Format file size
   const formatFileSize = (bytes: number): string => {
@@ -132,6 +106,19 @@ export function CreatePostModal({
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Helper: Validate file type
+  const isValidFileType = (file: File): boolean => {
+    const validTypes = [
+      // Images
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      // Videos
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo',
+      // Audio
+      'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm'
+    ];
+    return validTypes.includes(file.type);
   };
 
   // Helper: Get file type category
@@ -159,12 +146,23 @@ export function CreatePostModal({
     setIsDragOver(false);
     
     const droppedFiles = Array.from(e.dataTransfer.files);
+    console.log('📁 Files dropped:', droppedFiles.length);
     addFiles(droppedFiles);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Don't preventDefault on file input onChange - it blocks file selection!
+    console.log('🎯 handleFileSelect triggered');
+    console.log('🎯 Event target:', e.target);
+    console.log('🎯 Files from event:', e.target.files);
+    
     const selectedFiles = Array.from(e.target.files || []);
-    if (selectedFiles.length === 0) return;
+    console.log('📁 Files selected:', selectedFiles.length, selectedFiles);
+    
+    if (selectedFiles.length === 0) {
+      console.warn('⚠️ No files selected');
+      return;
+    }
     
     addFiles(selectedFiles);
     
@@ -177,50 +175,108 @@ export function CreatePostModal({
   const addFiles = (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     
-    setError(null);
+    setErrors([]); // Clear previous errors
     
-    const maxSizeBytes = 6 * 1024 * 1024 * 1024; // 6GB
+    const maxSizeBytes = maxSizeGB * 1024 * 1024 * 1024;
+    const newErrors: FileError[] = [];
     const validFiles: File[] = [];
+    
+    console.log(`📊 Processing ${newFiles.length} file(s)...`);
+    console.log(`📊 Current files: ${files.length}, Max allowed: ${maxFiles}`);
+    
+    // Check if adding these files would exceed max count
+    if (files.length >= maxFiles) {
+      setErrors([{ 
+        fileName: 'Multiple files', 
+        error: `Maximum ${maxFiles} file(s) allowed. Remove existing files first.` 
+      }]);
+      return;
+    }
     
     // Process each file
     newFiles.forEach(file => {
+      console.log(`🔍 Checking: ${file.name} (${formatFileSize(file.size)}, ${file.type})`);
+      
+      // Check file count limit
+      if (files.length + validFiles.length >= maxFiles) {
+        newErrors.push({ 
+          fileName: file.name, 
+          error: `Maximum ${maxFiles} file(s) allowed` 
+        });
+        return;
+      }
+      
       // Check file size
       if (file.size > maxSizeBytes) {
-        setError(`File ${file.name} is too large (max 6GB)`);
+        newErrors.push({ 
+          fileName: file.name, 
+          error: `File too large (max ${maxSizeGB}GB). Size: ${formatFileSize(file.size)}` 
+        });
+        console.error(`❌ ${file.name}: Too large`);
         return;
       }
       
       // Check file size is not 0
       if (file.size === 0) {
-        setError(`File ${file.name} is empty`);
+        newErrors.push({ 
+          fileName: file.name, 
+          error: 'File is empty (0 bytes)' 
+        });
+        console.error(`❌ ${file.name}: Empty file`);
+        return;
+      }
+      
+      // Check file type
+      if (!isValidFileType(file)) {
+        newErrors.push({ 
+          fileName: file.name, 
+          error: `Invalid file type: ${file.type}. Supported: images, videos, audio` 
+        });
+        console.error(`❌ ${file.name}: Invalid type (${file.type})`);
         return;
       }
       
       // File is valid
       validFiles.push(file);
+      console.log(`✅ ${file.name}: Valid`);
     });
+    
+    // Update errors state
+    if (newErrors.length > 0) {
+      setErrors(newErrors);
+      console.error(`❌ ${newErrors.length} file(s) rejected`);
+    }
     
     // Create previews for valid files
     if (validFiles.length > 0) {
-      const filePreviews: FilePreview[] = validFiles.map(file => ({
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    const filePreviews: FilePreview[] = validFiles.map(file => {
+      const preview: FilePreview = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         file,
         url: URL.createObjectURL(file),
-        type: getFileType(file),
-        size: file.size,
-        sizeFormatted: formatFileSize(file.size)
-      }));
+          type: getFileType(file),
+          size: file.size,
+          sizeFormatted: formatFileSize(file.size)
+      };
+        console.log(`📎 Created preview for: ${file.name}`);
+      return preview;
+    });
 
-      setFiles(prev => [...prev, ...filePreviews]);
+    setFiles(prev => {
+      const newFilesList = [...prev, ...filePreviews];
+        console.log(`✅ Total files now: ${newFilesList.length}`);
+        return newFilesList;
+      });
     }
   };
 
   const removeFile = (id: string) => {
-    setError(null);
+    setErrors([]); // Clear errors when removing files
     setFiles(prev => {
       const fileToRemove = prev.find(f => f.id === id);
       if (fileToRemove) {
         URL.revokeObjectURL(fileToRemove.url);
+        console.log(`🗑️ Removed: ${fileToRemove.file.name}`);
       }
       return prev.filter(f => f.id !== id);
     });
@@ -229,312 +285,187 @@ export function CreatePostModal({
   const handleCreatePost = async () => {
     // Validate required fields
     if (!title.trim()) {
-      setError('Post title is required');
+      setErrors([{ fileName: 'Validation', error: 'Post title is required' }]);
       return;
     }
 
     if (!ticker.trim()) {
-      setError('Token ticker is required');
-      return;
-    }
-
-    if (ticker.trim().length < 3) {
-      setError('Token ticker must be at least 3 characters');
-      return;
-    }
-
-    if (ticker.trim().length > 10) {
-      setError('Token ticker must be 10 characters or less');
+      setErrors([{ fileName: 'Validation', error: 'Token ticker is required' }]);
       return;
     }
 
     if (!description.trim()) {
-      setError('Post description is required');
+      setErrors([{ fileName: 'Validation', error: 'Post description is required' }]);
       return;
     }
 
     if (files.length === 0) {
-      setError('At least one media file (image/video) is required');
+      setErrors([{ fileName: 'Validation', error: 'Please upload at least one image' }]);
       return;
     }
 
     if (!connected || !publicKey) {
-      setError('Please connect your wallet to create a post and launch a token.');
+      setErrors([{ fileName: 'Wallet', error: 'Please connect your wallet first' }]);
       return;
     }
 
-    setCurrentStep('uploading');
-    setError(null);
-    setProgress('Uploading media and creating token...');
+    setIsCreating(true);
+    setErrors([]);
+    setProgress('Uploading media...');
 
     try {
-      // 1. Create post and token via API
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('ticker', ticker.toUpperCase());
-      formData.append('content', description);
-      formData.append('wallet', publicKey.toBase58());
-      formData.append('username', 'user'); // TODO: Get actual username
+      // 1. Upload media files to storage
+      let mediaUrls: string[] = [];
       
-      // Append all media files (extract File object from FilePreview)
-      files.forEach(filePreview => {
-        formData.append('media', filePreview.file);
+      // TODO: Implement actual upload to Supabase Storage or S3
+      // For now, using the object URLs (you'll need to replace this)
+      mediaUrls = files.map(f => f.url);
+      console.log('📸 Media URLs:', mediaUrls);
+      setProgress('Media uploaded ✓');
+
+      // 2. Create DBC token
+      setProgress('Creating token on Solana...');
+      
+      const tokenData = await createTokenForPost({
+        name: title,
+        symbol: ticker.toUpperCase(),
+        description: description,
+        imageUrl: mediaUrls[0],
+        creatorWallet: publicKey,
       });
 
-      const response = await fetch('/api/posts/create', {
-        method: 'POST',
-        body: formData,
-      });
+      console.log('🪙 Token created:', tokenData);
+      setProgress(`Token created! ${tokenData.mint.substring(0, 8)}... ✓`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
-        throw new Error(errorData.error || `Failed to create post (${response.status})`);
+      // 3. Save post to Supabase
+      setProgress('Saving post to database...');
+
+      if (!supabase) {
+        throw new Error('Supabase client not initialized');
       }
 
-      const result = await response.json();
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: publicKey.toBase58(), // TODO: Map to actual user ID from your users table
+          type: 'trading_journey', // Or let user select
+          title: title,
+          content: description,
+          media_urls: mediaUrls,
+          token_address: tokenData.mint,
+          token_mint: tokenData.mint,
+          token_symbol: tokenData.symbol,
+          token_name: tokenData.name,
+          pool_address: tokenData.poolAddress,
+          bonding_curve_address: tokenData.bondingCurveAddress,
+          token_signature: tokenData.signature,
+          is_token_tradable: true,
+          verified: false,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-      console.log('📦 API Response:', result);
-      console.log('📋 Response structure:', {
-        success: result.success,
-        requiresSignature: result.requiresSignature,
-        hasData: !!result.data,
-        hasToken: !!result.data?.token,
-        hasTransaction: !!result.data?.token?.transaction
-      });
-
-      // Check if the backend is asking for signature
-      if (!result.success || !result.requiresSignature) {
-        console.error('❌ Unexpected response format:', result);
-        throw new Error('Unexpected response format from server');
+      if (postError) {
+        console.error('❌ Supabase error:', postError);
+        throw new Error(postError.message);
       }
 
-      console.log('✅ Transaction prepared:', result);
+      console.log('📝 Post created:', postData);
 
-      setTokenData(result.data);
-      setCurrentStep('signing');
-      setProgress('Please sign the transaction in your wallet...');
-
-      // 2. Deserialize the transaction
-      let transaction: Transaction;
-      try {
-        console.log('📦 Deserializing transaction...');
-        transaction = Transaction.from(Buffer.from(result.data.token.transaction, 'base64'));
-        console.log('✅ Transaction deserialized successfully');
-        console.log('📋 Transaction info:', {
-          hasFeePayer: !!transaction.feePayer,
-          hasRecentBlockhash: !!transaction.recentBlockhash,
-          signatures: transaction.signatures.length,
-          instructions: transaction.instructions.length,
-          feePayer: transaction.feePayer?.toBase58(),
-          signers: transaction.signatures.map((sig, index) => ({
-            index,
-            signature: sig.signature ? 'present' : 'missing',
-            publicKey: sig.publicKey?.toBase58()
-          }))
+      // 4. Save to tokens table
+      setProgress('Saving token data...');
+      
+      await supabase
+        .from('tokens')
+        .insert({
+          mint_address: tokenData.mint,
+          symbol: tokenData.symbol,
+          name: tokenData.name,
+          description: description,
+          image_uri: mediaUrls[0],
+          creator_wallet: publicKey.toBase58(),
+          post_id: postData.id,
+          pool_address: tokenData.poolAddress,
+          bonding_curve_address: tokenData.bondingCurveAddress,
+          creation_signature: tokenData.signature,
+          is_tradable: true,
         });
-      } catch (deserializeError) {
-        console.error('❌ Failed to deserialize transaction:', deserializeError);
-        throw new Error(`Failed to deserialize transaction: ${deserializeError instanceof Error ? deserializeError.message : 'Unknown error'}`);
-      }
 
-      // 3. Send the partially-signed transaction using sendTransaction
-      // This handles signing and sending in one step, avoiding wallet compatibility issues
-      console.log('🔐 Sending transaction with user signature...');
-      console.log('📊 Transaction state before sending:', {
-        signatures: transaction.signatures.map((s: any) => ({
-          pubkey: s.publicKey?.toBase58(),
-          hasSig: !!s.signature
-        }))
-      });
+      setProgress('Complete! ✅');
 
-      setCurrentStep('signing');
-      setProgress('Please approve the transaction in your wallet...');
+      // Invalidate all posts queries to show new post immediately
+      console.log('🔄 Invalidating posts cache...');
+      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['userStats'] });
 
-      let signature: string;
-
-      try {
-        if (!sendTransaction) {
-          throw new Error('Wallet does not support sending transactions. Please try a different wallet.');
-        }
-
-        // Send the transaction - wallet will sign it and send to the network
-        // The transaction already has the baseMint signature, wallet adds user signature
-        signature = await sendTransaction(transaction, connection);
-        console.log('✅ Transaction sent successfully:', signature);
-
-      } catch (sendError) {
-        console.error('❌ Transaction send failed:', sendError);
-        throw new Error(`Transaction send failed: ${sendError instanceof Error ? sendError.message : 'Unknown error'}`);
-      }
-
-      // 4. Wait for confirmation and save to database
-      setCurrentStep('confirming');
-      setProgress('Waiting for blockchain confirmation...');
-
-      console.log('⏳ Waiting for transaction confirmation...');
-
-      try {
-        // Wait for confirmation with timeout
-        const latestBlockhash = await connection.getLatestBlockhash();
-        const confirmation = await connection.confirmTransaction({
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        }, 'confirmed');
-
-        if (confirmation.value.err) {
-          throw new Error(`Transaction failed on chain: ${JSON.stringify(confirmation.value.err)}`);
-        }
-
-        console.log('✅ Transaction confirmed on chain');
-
-      } catch (confirmError) {
-        console.error('❌ Confirmation error:', confirmError);
-        throw new Error(`Failed to confirm transaction: ${confirmError instanceof Error ? confirmError.message : 'Unknown error'}`);
-      }
-
-      // 5. Save post and token data to database
-      console.log('💾 Saving post and token data...');
-
-      const confirmResponse = await fetch('/api/posts/confirm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          signature: signature,
-          postData: {
-            title,
-            ticker: ticker.toUpperCase(),
-            content: description,
-            wallet: publicKey.toBase58(),
-            mediaUrls: result.data.post.media_urls,
-            mint: result.data.token.mint,
-            pool: result.data.token.pool,
-            metadataUri: result.data.token.metadataUri,
-          }
-        }),
-      });
-
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json();
-        console.error('❌ Database save error:', errorData);
-        // Don't throw - transaction is already confirmed on chain
-        console.warn('⚠️ Post created on-chain but failed to save to database');
-      } else {
-        const confirmResult = await confirmResponse.json();
-        console.log('✅ Post saved to database:', confirmResult);
-      }
-
-      // 5. Complete the process
-      setCurrentStep('complete');
-      setProgress('Post and token created successfully!');
-
-      // Invalidate posts to refresh the feed
-      invalidatePosts();
-
-      // Show success message
-      toast.success('Post and token created successfully!', {
-        description: `Transaction: ${signature.slice(0, 8)}...${signature.slice(-8)}`
-      });
-
-      // Close modal after a short delay
+      // Success!
       setTimeout(() => {
+        setProgress('');
         onSuccess?.();
         onClose();
-      }, 2000);
+        router.push('/'); // Navigate to home feed
+      }, 1000);
 
     } catch (error) {
       console.error('❌ Error creating post:', error);
-      setCurrentStep('error');
-      setError(error instanceof Error ? error.message : 'Failed to create post and token');
+      setErrors([{ 
+        fileName: 'Creation Error', 
+        error: error instanceof Error ? error.message : 'Failed to create post and token' 
+      }]);
       setProgress('');
+    } finally {
+      setIsCreating(false);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center sm:items-start justify-center sm:p-4 overflow-y-auto z-[9999]">
+    <div className="fixed inset-0 flex items-start justify-center p-4 overflow-y-auto" style={{ zIndex: 9999 }}>
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      {/* Modal - Full screen on mobile, card on desktop */}
-      <div className="relative w-full h-full sm:h-auto sm:max-w-2xl bg-gradient-to-br from-app-bg via-card-bg to-app-bg sm:rounded-3xl border-0 sm:border border-white/10 shadow-2xl shadow-accent-purple/10 sm:animate-in sm:fade-in-0 sm:zoom-in-95 duration-300 sm:my-8 sm:max-h-[calc(100vh-4rem)] flex flex-col">
-        {/* Header - Mobile Optimized */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-gradient-to-r from-transparent via-accent-purple/5 to-transparent flex-shrink-0">
-          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-            <div className="relative flex-shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-purple to-accent-pink rounded-xl blur-md opacity-50"></div>
-              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-accent-purple to-accent-pink flex items-center justify-center shadow-lg">
-                <RocketLaunchIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
+      
+      {/* Modal */}
+      <div className="relative w-full max-w-2xl bg-app-bg rounded-3xl border border-white/10 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300 my-8 max-h-[calc(100vh-4rem)] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+              <RocketLaunchIcon className="w-5 h-5 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent-purple via-accent-pink to-accent-blue truncate">
-                Create Post & Launch Token
-              </h2>
-              <p className="text-xs text-text-muted font-medium mt-0.5 hidden sm:block">
-                Share your story and create a tradable token
-              </p>
-            </div>
+            <h2 className="text-2xl font-bold text-primary">
+              Create Post & Launch Token
+          </h2>
           </div>
           <button
             onClick={onClose}
-            disabled={currentStep !== 'idle' && currentStep !== 'error'}
-            className="btn-icon w-10 h-10 sm:w-11 sm:h-11 disabled:opacity-30 flex-shrink-0"
+            disabled={isCreating}
+            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50"
             aria-label="Close modal"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <XMarkIcon className="w-5 h-5 text-secondary" />
           </button>
         </div>
 
-        {/* Content - Mobile Optimized Padding */}
-        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
+        {/* Content */}
+        <div className="p-6 flex-1 overflow-y-auto">
           {/* Progress Indicator */}
-          {currentStep !== 'idle' && (
+          {progress && (
             <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <div className="flex items-center gap-3">
-                {currentStep === 'complete' ? (
-                  <CheckCircleIcon className="w-5 h-5 text-green-400" />
-                ) : currentStep === 'error' ? (
-                  <ExclamationTriangleIcon className="w-5 h-5 text-red-400" />
-                ) : (
-                  <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                )}
-                <p className={cn(
-                  "font-medium text-sm",
-                  currentStep === 'complete' ? "text-green-400" : 
-                  currentStep === 'error' ? "text-red-400" : "text-blue-400"
-                )}>
-                  {progress}
-                </p>
+                <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-blue-400 font-medium text-sm">{progress}</p>
               </div>
             </div>
           )}
 
-          {/* Wallet Connection Status */}
-          <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-xl">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <p className="text-sm text-primary">
-                {connected ? `Wallet Connected: ${publicKey?.toBase58().slice(0, 8)}...${publicKey?.toBase58().slice(-8)}` : 'Wallet Not Connected'}
-              </p>
-            </div>
-            {!connected && (
-              <p className="text-xs text-secondary mt-1">
-                Please connect your wallet using the button in the header to create posts and launch tokens.
-              </p>
-            )}
-          </div>
-
           {/* Post Title Input */}
-          <div className="mb-5">
-            <label htmlFor="post-title" className="block text-sm font-bold text-text-primary mb-2.5 uppercase tracking-wide">
+          <div className="mb-4">
+            <label htmlFor="post-title" className="block text-sm font-semibold text-primary mb-2">
               Post Title *
             </label>
             <input
@@ -542,43 +473,35 @@ export function CreatePostModal({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., My Epic Trading Journey"
-              disabled={currentStep !== 'idle'}
+              placeholder="e.g., My Epic Pump.fun Trade"
+              disabled={isCreating}
               maxLength={100}
-              required
-              className="w-full px-5 py-3.5 bg-card-bg border-2 border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-purple/30 focus:border-accent-purple/50 transition-all disabled:opacity-50 hover:border-white/20 font-semibold"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50"
             />
-            <p className="text-xs text-text-muted mt-2 font-medium">{title.length}/100 characters</p>
+            <p className="text-xs text-secondary mt-1">{title.length}/100 characters</p>
           </div>
 
           {/* Token Ticker Input */}
-          <div className="mb-5">
-            <label htmlFor="token-ticker" className="block text-sm font-bold text-text-primary mb-2.5 uppercase tracking-wide">
+          <div className="mb-4">
+            <label htmlFor="token-ticker" className="block text-sm font-semibold text-primary mb-2">
               Token Ticker *
             </label>
-            <div className="relative">
-              <input
-                id="token-ticker"
-                type="text"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                placeholder="e.g., TRADE"
-                disabled={currentStep !== 'idle'}
-                maxLength={10}
-                minLength={3}
-                required
-                className="w-full px-5 py-3.5 bg-gradient-to-br from-accent-green/5 to-accent-cyan/5 border-2 border-accent-green/20 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 transition-all disabled:opacity-50 uppercase font-mono font-bold text-lg hover:border-accent-green/30"
-              />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-green text-xs font-bold px-2 py-1 bg-accent-green/10 rounded-md">
-                ${ticker || 'XXX'}
-              </div>
-            </div>
-            <p className="text-xs text-text-muted mt-2 font-medium">3-10 characters, letters and numbers only</p>
+            <input
+              id="token-ticker"
+              type="text"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              placeholder="e.g., PUMP"
+              disabled={isCreating}
+              maxLength={10}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 uppercase font-mono"
+            />
+            <p className="text-xs text-secondary mt-1">3-10 characters, letters and numbers only</p>
           </div>
 
           {/* Description Textarea */}
           <div className="mb-6">
-            <label htmlFor="post-description" className="block text-sm font-bold text-text-primary mb-2.5 uppercase tracking-wide">
+            <label htmlFor="post-description" className="block text-sm font-semibold text-primary mb-2">
               Description *
             </label>
             <textarea
@@ -586,91 +509,97 @@ export function CreatePostModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell the story behind this post and token..."
-              disabled={currentStep !== 'idle'}
+              disabled={isCreating}
               maxLength={500}
               rows={4}
-              required
-              className="w-full px-5 py-3.5 bg-card-bg border-2 border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue/50 transition-all disabled:opacity-50 resize-none hover:border-white/20 leading-relaxed"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 resize-none"
             />
-            <p className="text-xs text-text-muted mt-2 font-medium">{description.length}/500 characters</p>
+            <p className="text-xs text-secondary mt-1">{description.length}/500 characters</p>
           </div>
 
           {/* File Upload Section */}
           <div className="mb-4">
-            <p className="block text-sm font-bold text-text-primary mb-3 uppercase tracking-wide">
+            <p className="block text-sm font-semibold text-primary mb-3">
               Upload Image/Video *
-            </p>
+          </p>
 
-            {/* Upload Area */}
+          {/* Upload Area */}
             <label
               htmlFor="file-upload"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={cn(
-                "block border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all duration-300 cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-accent-pink/30 focus-within:ring-offset-2 focus-within:ring-offset-app-bg",
-                isDragOver
-                  ? "border-accent-pink bg-gradient-to-br from-accent-purple/10 to-accent-pink/10 scale-[1.02] shadow-lg shadow-accent-pink/20"
-                  : "border-white/20 hover:border-accent-pink/40 hover:bg-gradient-to-br hover:from-accent-purple/5 hover:to-accent-pink/5",
-                currentStep !== 'idle' && "opacity-50 pointer-events-none"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+                "block border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all duration-200 cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500 focus-within:ring-offset-2 focus-within:ring-offset-app-bg",
+              isDragOver 
+                  ? "border-purple-400 bg-purple-500/10 scale-[1.02]" 
+                  : "border-white/20 hover:border-white/30 hover:bg-white/5",
+                isCreating && "opacity-50 pointer-events-none",
+                files.length >= maxFiles && "cursor-not-allowed opacity-60"
               )}
             >
               {/* Icon */}
-              <div className={cn(
-                "relative w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all duration-300",
-                isDragOver && "scale-110 rotate-6"
+            <div className={cn(
+                "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center mx-auto mb-3 transition-transform",
+                isDragOver && "scale-110",
+                "from-purple-500 to-pink-500 shadow-lg"
               )}>
-                <div className="absolute inset-0 bg-gradient-to-br from-accent-purple to-accent-pink rounded-2xl blur-lg opacity-50"></div>
-                <div className="relative w-full h-full bg-gradient-to-br from-accent-purple to-accent-pink rounded-2xl flex items-center justify-center shadow-xl">
-                  <CloudArrowUpIcon className="w-10 h-10 text-white" aria-hidden="true" />
-                </div>
-              </div>
-
+                <CloudArrowUpIcon className="w-8 h-8 text-white" aria-hidden="true" />
+            </div>
+            
               {/* Heading */}
-              <p className="text-text-primary font-bold text-base mb-2">
+              <p className="text-primary font-medium text-sm mb-3">
                 {isDragOver ? "Drop your file here" : files.length > 0 ? "File uploaded ✓" : "Drag & drop or choose file"}
               </p>
-              <p className="text-text-muted text-sm mb-4 font-medium">
-                Images, videos up to 6GB
-              </p>
-
-              {/* Browse Button */}
+              
+              {/* Browse Button - Styled span */}
               <span
                 className={cn(
-                  "inline-block px-6 py-3 rounded-xl border-2 border-accent-pink/30 bg-gradient-to-r from-accent-purple/10 to-accent-pink/10 text-text-primary text-sm font-bold transition-all shadow-lg hover:shadow-xl hover:scale-105 hover:border-accent-pink/50",
+                  "inline-block px-5 py-2 rounded-lg border border-white/20 bg-white/5 text-primary text-sm font-medium transition-all",
+                  files.length === 0 && "hover:bg-white/10",
+                  files.length >= maxFiles && "opacity-50"
                 )}
                 aria-hidden="true"
               >
                 {files.length > 0 ? "Change File" : "Choose File"}
               </span>
-
+              
               {/* Hidden file input */}
-              <input
+            <input
                 id="file-upload"
-                ref={fileInputRef}
-                type="file"
+              ref={fileInputRef}
+              type="file"
+                multiple={maxFiles > 1}
                 accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg,audio/mpeg,audio/mp3,audio/wav"
-                onChange={handleFileSelect}
-                disabled={currentStep !== 'idle'}
+              onChange={handleFileSelect}
+                disabled={isCreating}
                 className="sr-only"
                 aria-label="Choose a file to upload"
-              />
+            />
             </label>
           </div>
 
           {/* Error Messages */}
-          {error && (
+          {errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 mb-2">
                 <ExclamationTriangleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-red-400 font-semibold text-sm mb-1">Error</p>
-                  <p className="text-red-300 text-sm">{error}</p>
+                  <p className="text-red-400 font-semibold text-sm mb-2">
+                    {errors.length === 1 ? 'File Error:' : `${errors.length} File Errors:`}
+                  </p>
+                  <ul className="space-y-1">
+                    {errors.map((error, index) => (
+                      <li key={index} className="text-red-300 text-xs">
+                        <span className="font-medium">{error.fileName}:</span> {error.error}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <button
-                  onClick={() => setError(null)}
+                  onClick={() => setErrors([])}
                   className="text-red-400 hover:text-red-300 transition-colors"
-                  aria-label="Dismiss error"
+                  aria-label="Dismiss errors"
                 >
                   <XMarkIcon className="w-4 h-4" />
                 </button>
@@ -679,7 +608,7 @@ export function CreatePostModal({
           )}
 
           {/* Success Message */}
-          {files.length > 0 && !error && (
+          {files.length > 0 && errors.length === 0 && (
             <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
               <p className="text-green-400 text-sm font-medium">
                 ✅ {files.length} file(s) ready to upload
@@ -687,10 +616,10 @@ export function CreatePostModal({
             </div>
           )}
 
-          {/* File Previews */}
+          {/* File Previews - Compact */}
           {files.length > 0 && (
             <div className="mt-4">
-              {files.map((file) => (
+                {files.map((file) => (
                 <div 
                   key={file.id} 
                   className="relative group bg-card-bg rounded-xl border border-white/10 overflow-hidden hover:border-white/20 transition-all"
@@ -732,77 +661,66 @@ export function CreatePostModal({
                     <button
                       type="button"
                       onClick={() => removeFile(file.id)}
-                      disabled={currentStep !== 'idle'}
+                      disabled={isCreating}
                       className="w-8 h-8 bg-red-500/10 hover:bg-red-500/20 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
                       aria-label={`Remove ${file.file.name}`}
                     >
                       <XMarkIcon className="w-4 h-4 text-red-400" aria-hidden="true" />
                     </button>
                   </div>
-                </div>
-              ))}
+                  </div>
+                ))}
             </div>
           )}
         </div>
 
-        {/* Footer - Mobile Optimized */}
-        <div className="p-4 sm:p-6 border-t border-white/10 flex-shrink-0">
+        {/* Footer */}
+        <div className="p-6 border-t border-white/10 flex-shrink-0">
           {/* Token Creation Info */}
-          <div className="mb-3 sm:mb-4 p-3 sm:p-4 glass-card border-brand-primary/20">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-primary flex-shrink-0 mt-0.5" />
+          <div className="mb-4 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl">
+            <div className="flex items-start gap-2">
+              <SparklesIcon className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-xs sm:text-sm font-semibold text-brand-primary mb-1">
+                <p className="text-sm font-semibold text-purple-400 mb-1">
                   Automatic Token Launch
                 </p>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  A tradable token will be created on Solana (via Meteora DBC) and linked to your post.
+                <p className="text-xs text-secondary">
+                  A tradable token will be created on Solana (via Meteora DBC) and linked to your post. 
                   Instantly tradable on Jupiter & Meteora!
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons - Mobile Stack */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          {/* Action Buttons */}
+          <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={currentStep !== 'idle' && currentStep !== 'error'}
-              className="btn-ghost w-full sm:flex-1 disabled:opacity-30 font-bold h-12 sm:h-auto"
+              disabled={isCreating}
+              className="flex-1 border-white/20 text-secondary hover:bg-card-bg/80 disabled:opacity-50"
             >
               Cancel
             </Button>
-            <div className="relative sm:flex-[2]">
-              <div className="absolute inset-0 bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue rounded-xl blur-md opacity-50"></div>
-              <Button
-                type="button"
-                onClick={handleCreatePost}
-                disabled={currentStep !== 'idle' || !title.trim() || !ticker.trim() || ticker.trim().length < 3 || !description.trim() || files.length === 0 || !connected}
-                className="relative w-full bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 sm:gap-2.5 px-6 py-3 sm:py-3.5 h-12 sm:h-auto rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] text-sm sm:text-base"
-              >
-                {currentStep === 'idle' ? (
-                  <>
-                    <RocketLaunchIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline">Launch Post & Token</span>
-                    <span className="sm:hidden">Launch</span>
-                  </>
-                ) : currentStep === 'complete' ? (
-                  <>
-                    <CheckCircleIcon className="w-5 h-5" />
-                    Complete!
-                  </>
-                ) : (
-                  <>
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                    {currentStep === 'uploading' ? 'Creating...' :
-                     currentStep === 'signing' ? 'Signing...' :
-                     currentStep === 'confirming' ? 'Confirming...' : 'Processing...'}
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              onClick={handleCreatePost}
+              disabled={isCreating || !title || !ticker || !description || files.length === 0}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+              {isCreating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <RocketLaunchIcon className="w-5 h-5" />
+                  Launch Post & Token
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>

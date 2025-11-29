@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useWallet } from '@jup-ag/wallet-adapter';
+import { useQuery } from '@tanstack/react-query';
 import {
   HomeIcon,
   MagnifyingGlassIcon,
@@ -18,10 +20,28 @@ import {
 export function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { publicKey, connected } = useWallet();
+
+  // Fetch current user data
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser', publicKey?.toBase58()],
+    queryFn: async () => {
+      if (!publicKey) return null;
+      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    },
+    enabled: !!publicKey && connected,
+  });
 
   const handleWalletClick = () => {
-    // Navigate to profile wallet tab
-    router.push('/profile?tab=wallet');
+    // Navigate to user's profile wallet tab
+    if (currentUser?.username) {
+      router.push(`/profile/${currentUser.username}?tab=wallet`);
+    } else {
+      router.push('/profile/edit'); // Redirect to edit if no username
+    }
   };
 
   const navItems = [
@@ -55,10 +75,10 @@ export function MobileNav() {
       label: 'Wallet',
       isWallet: true
     },
-    { 
-      icon: UserCircleIcon, 
+    {
+      icon: UserCircleIcon,
       activeIcon: UserSolidIcon,
-      path: '/profile', 
+      path: currentUser?.username ? `/profile/${currentUser.username}` : '/profile/edit',
       active: pathname.startsWith('/profile'),
       label: 'Profile'
     },
@@ -70,17 +90,24 @@ export function MobileNav() {
         {navItems.map((item, index) => {
           const Icon = item.active ? item.activeIcon : item.icon;
 
-          // Special styling for Create button (elevated)
+          // Special styling for Create button (elevated) - Vibrant Sky Blue Design
           if (item.isSpecial) {
             return (
               <Link
                 key={item.label}
                 href={item.path!}
                 prefetch={true}
-                className="relative w-12 h-12 -mt-6 bg-gradient-to-br from-accent-purple to-accent-pink rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50 hover:scale-110 active:scale-95 transition-transform"
+                className="relative w-14 h-14 -mt-7 group"
                 aria-label={item.label}
               >
-                <Icon className="w-6 h-6 text-white stroke-[2.5]" />
+                {/* Main button - Vibrant sky blue border */}
+                <div className="relative w-full h-full bg-gradient-to-br from-gray-700/40 via-gray-800/60 to-gray-900/80 backdrop-blur-xl rounded-full flex items-center justify-center border-[3px] border-sky-400 group-hover:scale-110 group-active:scale-95 group-hover:border-sky-300 group-hover:shadow-[0_0_20px_rgba(56,189,248,0.4)] transition-all duration-300 ease-out">
+                  {/* Top highlight (glass shine) */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-transparent rounded-full opacity-50"></div>
+
+                  {/* Icon - Simple white */}
+                  <Icon className="relative z-10 w-7 h-7 text-white stroke-[2.5]" />
+                </div>
               </Link>
             );
           }

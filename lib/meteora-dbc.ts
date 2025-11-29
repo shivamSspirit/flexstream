@@ -1,22 +1,58 @@
-import { Connection, PublicKey, Transaction, Keypair } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, Keypair, sendAndConfirmTransaction } from '@solana/web3.js';
 import { DynamicBondingCurveClient } from '@meteora-ag/dynamic-bonding-curve-sdk';
-import { DBC_CONFIG } from '@/lib/dbc-config';
+import { DBC_CONFIG, POST_TOKEN_CONFIG, CREATOR_TOKEN_CONFIG } from '@/lib/dbc-config';
+import bs58 from 'bs58';
+
+export type TokenType = 'post' | 'creator';
 
 export interface TokenLaunchParams {
   name: string;
   symbol: string;
+  displayName?: string; // User-chosen display name (can be duplicate) - for anti-rug mechanism
   description: string;
   imageUri: string;
-  creator: PublicKey;
+  creator?: PublicKey; // Optional - platform creates on behalf of user
   initialSupply?: number;
+  tokenType?: TokenType; // Specify if this is a post or creator token
 }
 
 export interface TokenLaunchResult {
   mint: PublicKey;
   pool: PublicKey;
-  transaction: Transaction;
-  baseMintKeypair: Keypair;  // Needed to sign after user signs
-  signature?: string;
+  signature: string; // Confirmed transaction signature
+  transaction?: Transaction; // Optional for legacy support
+  baseMintKeypair?: Keypair; // Optional for legacy support
+}
+
+/**
+ * Load platform keypair from environment variable
+ * This keypair is used to pay transaction fees and create pools on behalf of users
+ */
+export function getPlatformKeypair(): Keypair {
+  const secretKey = DBC_CONFIG.PLATFORM_KEYPAIR_SECRET;
+
+  if (!secretKey) {
+    throw new Error(
+      'PLATFORM_KEYPAIR_SECRET not configured. Please set this environment variable with your platform wallet secret key (base58 or JSON array format).'
+    );
+  }
+
+  try {
+    // Support both base58 and JSON array formats
+    let secretArray: number[];
+
+    if (secretKey.startsWith('[')) {
+      // JSON array format: [1,2,3,...]
+      secretArray = JSON.parse(secretKey);
+    } else {
+      // Base58 format (from Phantom, Solflare, etc.)
+      secretArray = Array.from(bs58.decode(secretKey));
+    }
+
+    return Keypair.fromSecretKey(new Uint8Array(secretArray));
+  } catch (error) {
+    throw new Error(`Failed to parse PLATFORM_KEYPAIR_SECRET: ${error instanceof Error ? error.message : 'Invalid format'}`);
+  }
 }
 
 export interface PoolInfo {
@@ -45,24 +81,28 @@ export class MeteoraDBCClient {
 
   /**
    * Create a new token with DBC pool initialization
-   * Uses the official Meteora DBC SDK method: pool.createPool
+   * Backend-only: Signs and submits transaction using platform keypair
+   * No user signature required!
    */
   async createToken(params: TokenLaunchParams): Promise<TokenLaunchResult> {
     try {
-      console.log('🚀 Creating token with Meteora DBC:', params.name);
-
       const {
         name,
         symbol,
         description,
         imageUri,
-        creator,
-        initialSupply = 1_000_000_000 // 1 billion tokens default
+        tokenType = 'post', // Default to post token
       } = params;
 
+      // Select appropriate config based on token type
+      const tokenConfig = tokenType === 'creator' ? CREATOR_TOKEN_CONFIG : POST_TOKEN_CONFIG;
+      const initialSupply = params.initialSupply || tokenConfig.DEFAULT_INITIAL_SUPPLY;
+
+      console.log(`[DBC] Creating ${tokenType.toUpperCase()} token (backend-only):`, name);
+
       // Validate inputs
-      if (!name || !symbol || !creator) {
-        throw new Error('Missing required parameters: name, symbol, creator');
+      if (!name || !symbol) {
+        throw new Error('Missing required parameters: name, symbol');
       }
 
       // Validate connection
@@ -75,78 +115,122 @@ export class MeteoraDBCClient {
         throw new Error('DBC client not initialized');
       }
 
-      console.log('📊 Creating token with params:', {
-        name,
-        symbol,
-        creator: creator.toBase58(),
-        initialSupply,
-        configKey: DBC_CONFIG.CONFIG_KEY.toBase58()
-      });
+      // Load platform keypair (pays fees and creates pool)
+      const platformKeypair = getPlatformKeypair();
+      console.log('[DBC] Using platform wallet:', platformKeypair.publicKey.toBase58());
 
       // Generate a new keypair for the base mint (token)
       const baseMint = Keypair.generate();
-      console.log('🪙 Generated base mint:', baseMint.publicKey.toBase58());
+      console.log('[DBC] Generated base mint:', baseMint.publicKey.toBase58());
+
+      console.log('[DBC] Creating token with params:', {
+        type: tokenType,
+        name,
+        symbol,
+        platformWallet: platformKeypair.publicKey.toBase58(),
+        initialSupply,
+        configKey: tokenConfig.CONFIG_KEY.toBase58(),
+        feeBps: tokenConfig.DEFAULT_FEE_BPS
+      });
 
       // Create token and pool using official Meteora DBC SDK
-      // Based on the example from the docs
+      // Platform wallet acts as both payer and poolCreator
       const createPoolParams = {
         baseMint: baseMint.publicKey,
-        config: DBC_CONFIG.CONFIG_KEY,
+        config: tokenConfig.CONFIG_KEY,
         name: name,
         symbol: symbol.toUpperCase(),
         uri: imageUri,
-        payer: creator,
-        poolCreator: creator,
+        payer: platformKeypair.publicKey,        // Platform pays fees
+        poolCreator: platformKeypair.publicKey,  // Platform creates pool
       };
 
-      console.log('🏊 Creating pool with params:', createPoolParams);
+      console.log('[DBC] Calling SDK createPool...');
 
       // Call the official SDK method
       const transaction = await this.dbcClient.pool.createPool(createPoolParams);
 
-      console.log('✅ Pool creation transaction prepared');
+      console.log('[DBC] Pool creation transaction prepared');
 
-      // Get recent blockhash BEFORE signing
+      // Get recent blockhash
       const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
 
-      console.log('🔗 Got recent blockhash:', blockhash.substring(0, 20) + '...');
+      console.log('[DBC] Got recent blockhash:', blockhash.substring(0, 20) + '...');
 
-      // Set transaction parameters required for signing
+      // Set transaction parameters
       transaction.recentBlockhash = blockhash;
       transaction.lastValidBlockHeight = lastValidBlockHeight;
-      transaction.feePayer = creator;
+      transaction.feePayer = platformKeypair.publicKey;
 
-      // IMPORTANT: Do NOT sign here - we'll sign on the backend AFTER the user signs
-      // This avoids wallet adapter issues with partially-signed transactions
-      // We need to return the baseMint keypair secret so the backend can sign after user
-      console.log('✅ Transaction prepared (unsigned) - baseMint will sign on backend after user');
+      // Sign transaction with BOTH required keypairs
+      // 1. baseMint keypair (new token being created)
+      // 2. platform keypair (payer + poolCreator)
+      console.log('[DBC] Signing transaction with platform and baseMint keypairs...');
+      transaction.sign(platformKeypair, baseMint);
+
+      console.log('[DBC] Transaction signed successfully');
+
+      // Submit transaction to Solana
+      console.log('[DBC] Submitting transaction to Solana...');
+      const signature = await this.connection.sendRawTransaction(
+        transaction.serialize(),
+        {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        }
+      );
+
+      console.log('[DBC] Transaction submitted:', signature);
+
+      // Wait for confirmation
+      console.log('[DBC] Waiting for confirmation...');
+      const confirmation = await this.connection.confirmTransaction(
+        {
+          signature,
+          blockhash,
+          lastValidBlockHeight,
+        },
+        'confirmed'
+      );
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      console.log('[DBC] Transaction confirmed!');
 
       // Derive the pool address (this is deterministic based on config and base mint)
       const [poolAddress] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('pool'),
-          DBC_CONFIG.CONFIG_KEY.toBuffer(),
+          tokenConfig.CONFIG_KEY.toBuffer(),
           baseMint.publicKey.toBuffer(),
         ],
-        DBC_CONFIG.PROGRAM_ID
+        tokenConfig.PROGRAM_ID
       );
 
-      console.log('✅ Token and pool created:', {
+      console.log(`[DBC] ${tokenType.toUpperCase()} token and pool created successfully:`, {
+        type: tokenType,
         mint: baseMint.publicKey.toBase58(),
         pool: poolAddress.toBase58(),
+        signature,
         name,
-        symbol
+        symbol,
+        supply: initialSupply,
+        config: tokenConfig.CONFIG_KEY.toBase58()
       });
 
       return {
         mint: baseMint.publicKey,
         pool: poolAddress,
+        signature: signature,
+        // Legacy support (not needed for backend-only flow)
         transaction: transaction,
-        baseMintKeypair: baseMint  // Return keypair to sign on backend after user
+        baseMintKeypair: baseMint
       };
 
     } catch (error) {
-      console.error('❌ Error creating token:', error);
+      console.error('[DBC] Error creating token:', error);
       throw new Error(`Failed to create token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -234,7 +318,7 @@ export class MeteoraDBCClient {
         });
 
       if (error) {
-        console.error('❌ Metadata upload error details:', error);
+        console.error('Metadata upload error details:', error);
         throw new Error(`Failed to upload metadata: ${error.message}`);
       }
 
@@ -242,11 +326,11 @@ export class MeteoraDBCClient {
         .from('flexstream')
         .getPublicUrl(`token-metadata/${fileName}`);
 
-      console.log('📤 Metadata uploaded:', publicUrl);
+      console.log('Metadata uploaded:', publicUrl);
       return publicUrl;
 
     } catch (error) {
-      console.error('❌ Error uploading metadata:', error);
+      console.error('Error uploading metadata:', error);
       const err = error as Error;
       throw new Error(`Failed to upload metadata: ${err.message}`);
     }
@@ -254,13 +338,30 @@ export class MeteoraDBCClient {
 
   /**
    * Generate a unique token symbol from post content
+   * Format: POST_{RANDOM}_{SEQUENCE}
+   * Example: POST_A7X9K_1, POST_B3M2P_1
    */
-  generateTokenSymbol(_content: string, username: string): string {
-    // Take first 3 letters of username and add random suffix
-    const userPrefix = username.substring(0, 3).toUpperCase();
-    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+  generateTokenSymbol(_content: string, _username: string): string {
+    // Generate a unique random identifier
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
 
-    return `${userPrefix}${randomSuffix}`;
+    // Combine to create unique symbol (max 10 chars for readability)
+    return `${timestamp.slice(-5)}${random}`.substring(0, 10);
+  }
+
+  /**
+   * Generate a truly unique token symbol for anti-rug mechanism
+   * Format: Timestamp-based + Random (max 10 chars for Solana)
+   * This ensures no collisions even with high volume
+   */
+  generateUniqueSymbol(): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    // Create a unique 9-character symbol (safe for Solana's 10 char limit)
+    // Example: T5K9PA7M3 or similar
+    return `${timestamp.slice(-5)}${random}`.substring(0, 9);
   }
 
   /**
@@ -324,26 +425,28 @@ export function createDBCClient(connection: Connection): MeteoraDBCClient {
 }
 
 /**
- * Helper function to create token for post (backward compatibility)
+ * Helper function to create token
+ * Backend-only: Creates and submits token without user signature
+ * Supports both post-level and creator-level tokens
  */
 export async function createTokenForPost(params: {
   name: string;
   symbol: string;
   description: string;
   imageUrl?: string;
-  creatorWallet: PublicKey;
   initialSupply?: number;
+  tokenType?: TokenType; // 'post' or 'creator'
 }): Promise<{
-  transaction: string;
+  signature: string;
   mint: string;
   name: string;
   symbol: string;
   description: string;
   imageUri: string;
-  creator: string;
   poolAddress: string;
   bondingCurveAddress: string;
   createdAt: number;
+  tokenType: TokenType;
 }> {
   const connection = new Connection(DBC_CONFIG.RPC_URL, 'confirmed');
   const dbcClient = createDBCClient(connection);
@@ -353,23 +456,20 @@ export async function createTokenForPost(params: {
     symbol: params.symbol,
     description: params.description,
     imageUri: params.imageUrl || '',
-    creator: params.creatorWallet,
-    initialSupply: params.initialSupply
+    initialSupply: params.initialSupply,
+    tokenType: params.tokenType || 'post', // Default to post token
   });
 
-  // Serialize transaction for frontend
-  const serializedTx = result.transaction.serialize();
-  
   return {
-    transaction: Buffer.from(serializedTx).toString('base64'),
+    signature: result.signature,
     mint: result.mint.toBase58(),
     name: params.name,
     symbol: params.symbol,
     description: params.description,
     imageUri: params.imageUrl || '',
-    creator: params.creatorWallet.toBase58(),
     poolAddress: result.pool.toBase58(),
     bondingCurveAddress: result.pool.toBase58(),
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    tokenType: params.tokenType || 'post',
   };
 }

@@ -10,7 +10,7 @@ import { DBC_CONFIG } from '@/lib/dbc-config';
  * It submits the signed transaction to Solana and saves the post/token to database.
  */
 export async function POST(request: NextRequest) {
-  console.log('🔐 [POST CONFIRM] Starting post confirmation after user signature');
+  console.log('[POST CONFIRM] Starting post confirmation after user signature');
 
   try {
     // Initialize Supabase client
@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📝 Saving post to database:', { title, ticker, mint, pool, signature });
+    console.log('Saving post to database:', { title, ticker, mint, pool, signature });
 
     // Transaction is already confirmed on-chain by the frontend
     // This endpoint just saves to the database
 
     // 1. Find or create user by wallet address
-    console.log('👤 Finding or creating user...');
+    console.log('Finding or creating user...');
     let userId: string;
 
     const { data: existingUser } = await supabase
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       userId = existingUser.id;
-      console.log('✅ [POST CONFIRM] Found existing user for wallet:', {
+      console.log('[POST CONFIRM] Found existing user for wallet:', {
         userId: userId,
         wallet: wallet.substring(0, 10) + '...',
         fullWallet: wallet
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (userError || !newUser) {
-        console.error('❌ Failed to create user:', userError);
+        console.error('Failed to create user:', userError);
         return NextResponse.json({
           success: false,
           error: 'Failed to create user account',
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       }
 
       userId = newUser.id;
-      console.log('✅ [POST CONFIRM] Created NEW user for wallet:', {
+      console.log('[POST CONFIRM] Created NEW user for wallet:', {
         userId: userId,
         wallet: wallet.substring(0, 10) + '...',
         fullWallet: wallet,
@@ -100,8 +100,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Save post to database
-    console.log('💾 Saving post to database...');
+    // 2. Get user data for response
+    console.log('Fetching user data for response...');
+    const { data: userData, error: userFetchError } = await supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url, wallet_address')
+      .eq('id', userId)
+      .single();
+
+    if (userFetchError || !userData) {
+      console.error('Failed to fetch user data:', userFetchError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch user data',
+      }, { status: 500 });
+    }
+
+    // 3. Save post to database
+    console.log('Saving post to database...');
 
     const { data: post, error: postError } = await supabase
       .from('posts')
@@ -129,7 +145,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (postError) {
-      console.error('❌ Database error:', postError);
+      console.error('Database error:', postError);
       // Transaction is already confirmed on-chain, so we log the error but don't fail
       return NextResponse.json({
         success: true,
@@ -143,7 +159,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('✅ [POST CONFIRM] Post saved successfully:', {
+    console.log('[POST CONFIRM] Post saved successfully:', {
       postId: post.id,
       userId: userId,
       wallet: wallet.substring(0, 10) + '...',
@@ -153,7 +169,7 @@ export async function POST(request: NextRequest) {
       createdAt: post.created_at
     });
 
-    console.log('🔗 [POST CONFIRM] MAPPING: Wallet → User → Post:', {
+    console.log('[POST CONFIRM] MAPPING: Wallet → User → Post:', {
       walletAddress: wallet,
       userId: userId,
       postId: post.id,
@@ -161,7 +177,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 3. Save token data to tokens table
-    console.log('💾 [POST CONFIRM] Saving token data...');
+    console.log('[POST CONFIRM] Saving token data...');
 
     const { error: tokenError } = await supabase
       .from('tokens')
@@ -176,7 +192,7 @@ export async function POST(request: NextRequest) {
         post_id: post.id,
         pool_address: pool,
         bonding_curve_address: pool,
-        config_key: DBC_CONFIG.CONFIG_KEY.toBase58(),
+        config_key: DBC_CONFIG.POST.CONFIG_KEY.toBase58(),
         initial_supply: 1_000_000_000,
         is_tradable: true,
         creation_signature: signature,
@@ -184,23 +200,41 @@ export async function POST(request: NextRequest) {
       });
 
     if (tokenError) {
-      console.error('❌ Token table error:', tokenError);
+      console.error('Token table error:', tokenError);
       // Don't throw - post is already created
     }
 
-    console.log('✅ Token data saved');
+    console.log('Token data saved');
 
-    // 4. Return success response
+    // 4. Return success response with full post and user data
     return NextResponse.json({
       success: true,
       data: {
         signature,
         post: {
           id: post.id,
+          user_id: post.user_id,
+          type: post.type,
           title: post.title,
           content: post.content,
           media_urls: post.media_urls,
+          token_mint: post.token_mint,
+          token_symbol: post.token_symbol,
+          token_name: post.token_name,
+          pool_address: post.pool_address,
+          bonding_curve_address: post.bonding_curve_address,
+          token_metadata_uri: post.token_metadata_uri,
+          token_signature: post.token_signature,
+          is_token_tradable: post.is_token_tradable,
+          verified: post.verified,
           created_at: post.created_at,
+          users: {
+            id: userData.id,
+            username: userData.username,
+            display_name: userData.display_name,
+            avatar_url: userData.avatar_url,
+            wallet_address: userData.wallet_address,
+          },
         },
         token: {
           mint,
@@ -215,7 +249,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [POST CONFIRM] Error:', error);
+    console.error('[POST CONFIRM] Error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 

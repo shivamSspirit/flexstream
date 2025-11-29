@@ -10,8 +10,11 @@
     "db:generate": "supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/database.types.ts"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.35.4",
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.0.18",
     "@hookform/resolvers": "^3.3.2",
+    "@jup-ag/referral-sdk": "^0.3.0",
     "@jup-ag/wallet-adapter": "^0.2.4",
     "@meteora-ag/dynamic-bonding-curve-sdk": "^1.4.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -74,6 +77,8 @@
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
     "postcss": "^8",
+    "puppeteer": "^24.28.0",
+    "sharp": "^0.34.4",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }

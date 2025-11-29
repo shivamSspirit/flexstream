@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@jup-ag/wallet-adapter';
-import { Transaction, Connection, clusterApiUrl } from '@solana/web3.js';
+// Solana imports no longer needed - backend handles everything
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useInvalidatePosts } from '@/hooks/usePosts';
+import { useInvalidatePosts, useAddPostToCache, Post } from '@/hooks/usePosts';
 import {
   PhotoIcon,
   SparklesIcon,
@@ -30,8 +30,9 @@ import { cn } from '@/lib/utils';
 
 export default function CreatePage() {
   const router = useRouter();
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey } = useWallet();
   const invalidatePosts = useInvalidatePosts();
+  const addPostToCache = useAddPostToCache();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Simplified form state - ONLY essentials
@@ -61,11 +62,6 @@ export default function CreatePage() {
       avgFirstDay: `$${(Math.random() * 500 + 100).toFixed(0)}`,
     });
   }, []);
-
-  const connection = new Connection(
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('devnet'),
-    'confirmed'
-  );
 
   // Handle image selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,81 +136,59 @@ export default function CreatePage() {
 
       const result = await response.json();
 
-      if (!result.success || !result.requiresSignature) {
-        throw new Error('Unexpected response from server');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create token');
       }
 
-      setProgress('Please sign the transaction...');
-
-      // Deserialize and send transaction
-      const transaction = Transaction.from(
-        Buffer.from(result.data.token.transaction, 'base64')
-      );
-
-      const signature = await sendTransaction(transaction, connection);
-
-      setProgress('Confirming on blockchain...');
-
-      // Wait for confirmation
-      const latestBlockhash = await connection.getLatestBlockhash();
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-        },
-        'confirmed'
-      );
-
-      if (confirmation.value.err) {
-        throw new Error('Transaction failed on chain');
-      }
-
-      setProgress('Saving to database...');
-
-      // Save to database
-      await fetch('/api/posts/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          signature,
-          postData: {
-            title: title || ticker,
-            ticker: ticker.toUpperCase(),
-            content: description || `Launch of $${ticker}`,
-            wallet: publicKey.toBase58(),
-            mediaUrls: result.data.post.media_urls,
-            mint: result.data.token.mint,
-            pool: result.data.token.pool,
-            metadataUri: result.data.token.metadataUri,
-          },
-        }),
-      });
+      // Backend-only flow: Token already created and saved!
+      // No user signature required - platform keypair handles everything
+      setProgress('Token created on Solana! ✓');
 
       // SUCCESS! Show confetti
       setShowConfetti(true);
       setProgress(`🎉 $${ticker} launched successfully!`);
 
+      const postData = result.data.post;
+      const tokenMint = result.data.token.mint;
+      const explorerUrl = result.data.tokenExplorerUrl;
+
+      // INSTANT VISIBILITY: Add post to cache immediately (optimistic update)
+      console.log('✨ Adding post to cache optimistically...', { postId: postData.id, title: postData.title });
+      addPostToCache(postData as Post);
+
+      // Also invalidate to fetch fresh data in background
+      console.log('🔄 Invalidating posts cache for fresh data...');
       invalidatePosts();
 
-      // Prompt to share on Twitter
+      // Show success message with explorer link
+      toast.success(
+        <div className="flex flex-col gap-2">
+          <div className="font-bold">🎉 Token Created Successfully!</div>
+          <div className="text-sm">
+            <div className="mb-2">Token: ${ticker}</div>
+            <div className="mb-2 font-mono text-xs truncate">{tokenMint}</div>
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View on Solana Explorer →
+            </a>
+          </div>
+        </div>,
+        { duration: 10000 }
+      );
+
+      // Also show in console for easy access
+      console.log('🎉 Token Created!');
+      console.log('Token Mint:', tokenMint);
+      console.log('Explorer URL:', explorerUrl);
+
+      // Navigate to home immediately - post is already in cache!
       setTimeout(() => {
-        const shouldShare = window.confirm(
-          `🚀 Your token $${ticker} is LIVE! Share on Twitter?`
-        );
-
-        if (shouldShare) {
-          const tweetText = `Just launched my token $${ticker} on @FlexStream! 🚀\n\nToken: ${result.data.token.mint.slice(0, 8)}...\nTrade now: ${window.location.origin}\n\n#Solana #Crypto`;
-          window.open(
-            `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`,
-            '_blank'
-          );
-        }
-
-        // Navigate to home after 2s
-        setTimeout(() => {
-          router.push('/');
-        }, 2000);
+        router.push('/');
       }, 1500);
     } catch (error) {
       console.error('Error creating token:', error);
@@ -476,7 +450,7 @@ export default function CreatePage() {
 
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <p className="text-xs text-text-muted text-center">
-                    🔥 Join {stats.activeTraders}+ creators earning on FlexStream
+                    🔥 Join {stats.activeTraders}+ creators earning on FlexIt
                   </p>
                 </div>
               </div>

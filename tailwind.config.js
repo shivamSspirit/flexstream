@@ -50,30 +50,31 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // FlexStream Design System - Zora-Inspired (Deep Black + Vibrant Accents)
-        'app-bg': '#000000',           // Pure black background (Zora style)
-        'card-bg': '#0A0A0A',          // Very deep gray for cards
-        'card-hover': '#141414',       // Subtle hover state
-        'text-primary': '#FFFFFF',     // Bright white for maximum contrast
-        'text-secondary': '#A3A3A3',   // Medium gray for secondary content
-        'text-muted': '#737373',       // Muted gray for labels/dividers
+        // FlexIt Design System - Premium Crypto Native (Inspired by Stripe, Linear, Phantom)
+        // Background Layer - Rich blacks with depth
+        'app-bg': '#0A0A0F',           // Deep midnight blue-black (not pure black - more sophisticated)
+        'card-bg': '#121218',          // Elevated card surface (subtle blue tint)
+        'card-hover': '#1A1A24',       // Interactive hover state
+        'text-primary': '#F5F5F7',     // Off-white for reduced eye strain (Apple-style)
+        'text-secondary': '#9B9BA5',   // Cool gray for secondary content
+        'text-muted': '#6B6B75',       // Muted gray for labels/dividers
 
-        // Vibrant Accent Colors (Zora-style bright, energetic)
-        'accent-green': '#00FF00',     // Bright electric green (primary CTA)
-        'accent-blue': '#0066FF',      // Bright blue (links, info)
-        'accent-cyan': '#00E5FF',      // Bright cyan (highlights)
-        'accent-purple': '#8B5CF6',    // Vibrant purple (premium)
-        'accent-pink': '#FF0080',      // Hot pink (energy)
+        // Sophisticated Accent Colors - Carefully curated, not AI-generated
+        'accent-green': '#00D787',     // Solana green (verified, success, money) - professional teal-green
+        'accent-blue': '#5B8DEF',      // Trust blue (links, info) - not too bright, just right
+        'accent-cyan': '#14F195',      // Highlight cyan (attention) - Phantom wallet inspired
+        'accent-purple': '#9945FF',    // Solana purple (premium, exclusive) - THE official Solana brand color
+        'accent-pink': '#FF6FCF',      // Energy pink (excitement) - softer, more tasteful
 
-        // Functional Colors (High Contrast)
-        'success': '#00FF00',          // Bright green (positive, growth)
-        'success-muted': '#00CC00',    // Slightly muted green
-        'danger': '#FF0000',           // Bright red (alerts, negative)
-        'danger-muted': '#CC0000',     // Slightly muted red
-        'warning': '#FFA500',          // Orange (warnings)
-        'warning-muted': '#FF8C00',    // Dark orange
-        'info': '#0066FF',             // Bright blue (informational)
-        'info-muted': '#0052CC',       // Darker blue
+        // Functional Colors - Professional, not garish
+        'success': '#00D787',          // Solana green (positive, growth)
+        'success-muted': '#00B872',    // Deeper green
+        'danger': '#FF5757',           // Coral red (alerts) - not pure red, easier on eyes
+        'danger-muted': '#E04545',     // Darker coral
+        'warning': '#FFB84D',          // Amber (warnings) - warm, not alarming
+        'warning-muted': '#E5A03D',    // Deeper amber
+        'info': '#5B8DEF',             // Trust blue (informational)
+        'info-muted': '#4A7CD9',       // Deeper blue
 
         // Legacy support (map old names to new vibrant system)
         'brand-primary': '#0066FF',    // Bright blue
@@ -161,6 +162,14 @@ module.exports = {
           "0%, 100%": { boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)" },
           "50%": { boxShadow: "0 0 30px rgba(168, 85, 247, 0.8)" },
         },
+        "pulse-slow": {
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0.7 },
+        },
+        "bounce-slow": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -168,6 +177,15 @@ module.exports = {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
+        "bounce-slow": "bounce-slow 2s ease-in-out infinite",
+      },
+      backgroundSize: {
+        '200': '200%',
+      },
+      backgroundPosition: {
+        'pos-0': '0% center',
+        'pos-100': '100% center',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],

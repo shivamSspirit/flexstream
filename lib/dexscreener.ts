@@ -51,7 +51,7 @@ export async function fetchDexScreenerTokenData(tokenAddress: string, retryCount
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'FlexStream/1.0',
+        'User-Agent': 'FlexIt/1.0',
         'Cache-Control': 'no-cache',
       },
       signal: AbortSignal.timeout(DEXSCREENER_CONFIG.TIMEOUT),

@@ -5,11 +5,20 @@
 
 // App Configuration
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'FlexStream';
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'FlexIt';
 
-// Solana Configuration
-export const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-export const SOLANA_NETWORK = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'mainnet-beta';
+// Solana Configuration (Default/Fallback)
+export const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+export const SOLANA_NETWORK = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
+
+// Meteora DBC Configuration - DEVNET (Token Creation)
+export const METEORA_RPC_URL = process.env.NEXT_PUBLIC_METEORA_RPC_URL || 'https://api.devnet.solana.com';
+export const METEORA_NETWORK = process.env.NEXT_PUBLIC_METEORA_NETWORK || 'devnet';
+export const METEORA_DBC_PROGRAM_ID = process.env.NEXT_PUBLIC_METEORA_DBC_PROGRAM_ID || 'dbcMHgYPYtvBWfnLmZWqYb9LoPBwsVMjdxCzCHbM1Dn';
+
+// Jupiter Configuration - MAINNET (Swaps)
+export const JUPITER_RPC_URL = process.env.NEXT_PUBLIC_JUPITER_RPC_URL || 'https://api.mainnet-beta.solana.com';
+export const JUPITER_NETWORK = process.env.NEXT_PUBLIC_JUPITER_NETWORK || 'mainnet-beta';
 
 // Database Configuration
 export const DATABASE_URL = process.env.DATABASE_URL || process.env.NEXT_DATABASE_URL || '';

@@ -38,6 +38,11 @@ export function ExploreListCard({
     }
   };
 
+  const handleCreatorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/profile/${creator}`);
+  };
+
   return (
     <article
       className="bg-transparent rounded-xl overflow-hidden cursor-pointer group transition-all"
@@ -81,8 +86,13 @@ export function ExploreListCard({
           <span className="text-white/40 text-[10px] shrink-0">{timeAgo}</span>
         </div>
 
-        {/* Creator */}
-        <p className="text-white/50 text-[10px] mb-1.5 truncate">{creator}</p>
+        {/* Creator - Clickable */}
+        <button
+          onClick={handleCreatorClick}
+          className="text-white/50 text-[10px] mb-1.5 truncate hover:text-white/70 transition-colors"
+        >
+          {creator}
+        </button>
 
         {/* Stats Row */}
         <div className="flex items-center gap-2">

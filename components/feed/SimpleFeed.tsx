@@ -1,18 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { usePosts, Post } from '@/hooks/usePosts';
 import { PostCard } from '@/components/posts/PostCard';
 import { FlexPost } from '@/types';
 
 export function SimpleFeed() {
+  console.log('🔄 [FEED] Component rendering...');
+
   const { data, isLoading, error } = usePosts();
 
-  const posts = data?.data?.posts || [];
+  console.log('📊 [FEED] Raw query data:', {
+    hasData: !!data,
+    isLoading,
+    hasError: !!error,
+    postCount: data?.data?.posts?.length || 0
+  });
+
+  const posts = useMemo(() => {
+    const result = data?.data?.posts || [];
+    console.log('🧮 [FEED] Memoized posts:', result.length);
+    return result;
+  }, [data?.data?.posts]);
 
   // Debug logging
   useEffect(() => {
-    console.log('📰 [FEED] All posts (newest first):', {
+    console.log('📰 [FEED] Effect triggered - All posts (newest first):', {
       totalPosts: posts.length,
       isLoading,
       hasError: !!error,
@@ -112,12 +125,31 @@ export function SimpleFeed() {
     );
   }
 
-  // Show empty state
+  // Show empty state with viral CTA - Nikita Bier Strategy
   if (posts.length === 0) {
     return (
-      <div className="text-center py-16 card-base">
-        <p className="heading-4 mb-2">No posts yet</p>
-        <p className="text-text-muted text-sm">Be the first to create a post and launch a token!</p>
+      <div className="text-center py-16 card-base relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-green/5 via-accent-cyan/5 to-accent-purple/5 animate-gradient-shift"></div>
+
+        <div className="relative z-10">
+          <div className="text-7xl mb-6 animate-bounce-slow">🚀</div>
+          <h3 className="text-3xl font-black text-white mb-3">
+            Your Feed is Empty
+          </h3>
+          <p className="text-text-muted text-base mb-6 max-w-md mx-auto leading-relaxed">
+            Be the <span className="text-accent-green font-bold">first</span> to launch a token and start the movement
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button
+              onClick={() => window.location.href = '/create'}
+              className="bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-lg hover:shadow-accent-green/50 text-base"
+            >
+              Create First Post
+            </button>
+            <p className="text-white/40 text-xs">No posts exist yet. Make history.</p>
+          </div>
+        </div>
       </div>
     );
   }

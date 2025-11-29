@@ -52,6 +52,7 @@ export function PostComments({ postId }: PostCommentsProps) {
 
   useEffect(() => {
     fetchComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   const fetchComments = async () => {

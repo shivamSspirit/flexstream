@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@jup-ag/wallet-adapter';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import {
 export default function EditProfilePage() {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
+  const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +48,7 @@ export default function EditProfilePage() {
     }
 
     loadUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey]);
 
   const loadUserProfile = async () => {
@@ -158,15 +161,27 @@ export default function EditProfilePage() {
   };
 
   const handleSave = async () => {
-    console.log('💾 Starting save process...');
+    console.log('💾 =========================');
+    console.log('💾 STARTING SAVE PROCESS');
+    console.log('💾 =========================');
+    console.log('💾 Button clicked! Function is running.');
 
     if (!connected || !publicKey) {
-      console.error('❌ Wallet not connected');
+      console.error('❌ Wallet not connected', { connected, publicKey: publicKey?.toBase58() });
       toast.error('Please connect your wallet');
       return;
     }
 
-    console.log('✅ Wallet connected:', publicKey.toBase58());
+    const walletAddr = publicKey.toBase58();
+    console.log('✅ Wallet connected:', walletAddr);
+    console.log('📝 Current values:', {
+      displayName,
+      username,
+      bio: bio?.substring(0, 20) + '...',
+      website,
+      twitter,
+      instagram
+    });
 
     if (!displayName.trim()) {
       toast.error('Display name is required');
@@ -189,49 +204,29 @@ export default function EditProfilePage() {
 
     try {
       setSaving(true);
+      toast.loading('Saving your profile...', { id: 'save-profile' });
 
-      if (!supabase) {
-        console.error('❌ Supabase not configured');
-        throw new Error('Supabase not configured');
-      }
-
-      console.log('✅ Supabase configured');
-
-      // Check if username is taken by another user
-      console.log('🔍 Checking if username is available:', username);
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('wallet_address')
-        .eq('username', username)
-        .neq('wallet_address', publicKey.toBase58())
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 means no rows returned, which is what we want
-        console.error('❌ Error checking username:', checkError);
-      }
-
-      if (existingUser) {
-        console.log('❌ Username taken by:', existingUser.wallet_address);
-        toast.error('Username is already taken');
-        setSaving(false);
-        return;
-      }
-
-      console.log('✅ Username available');
+      console.log('💾 Starting profile save process...');
 
       // Upload avatar if changed
       let newAvatarUrl = avatarUrl;
       if (avatarFile) {
+        if (!supabase) {
+          console.error('❌ Supabase not configured for file upload');
+          toast.error('File upload not available', { id: 'save-profile' });
+          setSaving(false);
+          return;
+        }
+
         console.log('📤 Uploading avatar...');
-        toast.info('Uploading avatar...');
+        toast.loading('Uploading avatar...', { id: 'save-profile' });
         const uploadedUrl = await uploadImage(avatarFile, 'avatar');
         if (uploadedUrl) {
           newAvatarUrl = uploadedUrl;
           console.log('✅ Avatar uploaded:', uploadedUrl);
         } else {
           console.error('❌ Failed to upload avatar');
-          toast.error('Failed to upload avatar');
+          toast.error('Failed to upload avatar', { id: 'save-profile' });
           setSaving(false);
           return;
         }
@@ -240,85 +235,96 @@ export default function EditProfilePage() {
       // Upload cover if changed
       let newCoverUrl = coverUrl;
       if (coverFile) {
+        if (!supabase) {
+          console.error('❌ Supabase not configured for file upload');
+          toast.error('File upload not available', { id: 'save-profile' });
+          setSaving(false);
+          return;
+        }
+
         console.log('📤 Uploading cover...');
-        toast.info('Uploading cover image...');
+        toast.loading('Uploading cover image...', { id: 'save-profile' });
         const uploadedUrl = await uploadImage(coverFile, 'cover');
         if (uploadedUrl) {
           newCoverUrl = uploadedUrl;
           console.log('✅ Cover uploaded:', uploadedUrl);
         } else {
           console.error('❌ Failed to upload cover');
-          toast.error('Failed to upload cover image');
+          toast.error('Failed to upload cover image', { id: 'save-profile' });
           setSaving(false);
           return;
         }
       }
 
-      // Update user profile
-      console.log('💾 Updating profile in database...', {
+      // Update user profile via API
+      const updatePayload = {
+        walletAddress: publicKey.toBase58(),
         displayName,
         username,
         bio,
         website,
         twitter,
         instagram,
-        hasAvatar: !!newAvatarUrl,
-        hasCover: !!newCoverUrl
-      });
-
-      // Build update object
-      const updateData: Record<string, any> = {
-        display_name: displayName,
-        username: username,
-        bio: bio,
-        website: website,
-        twitter: twitter,
-        instagram: instagram,
-        avatar_url: newAvatarUrl,
-        updated_at: new Date().toISOString(),
+        avatarUrl: newAvatarUrl,
+        coverUrl: newCoverUrl
       };
 
-      // Only add cover_url if we have one (in case column doesn't exist yet)
-      if (newCoverUrl) {
-        updateData.cover_url = newCoverUrl;
+      console.log('💾 Updating profile via API...', {
+        ...updatePayload,
+        walletAddress: updatePayload.walletAddress.substring(0, 8) + '...'
+      });
+
+      toast.loading('Updating profile...', { id: 'save-profile' });
+
+      console.log('📡 Making API request to /api/users/update-profile');
+      console.log('📡 Request payload:', JSON.stringify(updatePayload, null, 2));
+
+      const response = await fetch('/api/users/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      console.log('📡 API Response status:', response.status, response.statusText);
+
+      // Show response status in toast for debugging
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
       }
 
-      const { data: updateResult, error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('wallet_address', publicKey.toBase58())
-        .select();
+      const result = await response.json();
+      console.log('📡 API Response data:', result);
 
-      if (error) {
-        console.error('❌ Error updating profile:', error);
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        throw error;
+      if (!response.ok || !result.success) {
+        const errorMsg = result.error || 'Failed to update profile';
+        console.error('❌ Error updating profile:', errorMsg);
+        console.error('❌ Full error response:', result);
+        throw new Error(errorMsg);
       }
 
-      console.log('✅ Profile updated in database:', updateResult);
+      console.log('✅ Profile updated successfully:', result.data);
 
       console.log('✅ Profile updated successfully!');
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: 'save-profile', duration: 2000 });
 
       // Clean up preview URLs
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
       if (coverPreview) URL.revokeObjectURL(coverPreview);
 
-      // Redirect to profile page
-      setTimeout(() => {
-        console.log('🔄 Redirecting to profile...');
-        router.push('/profile');
-        // Force a hard refresh to reload the page with new data
-        window.location.href = '/profile';
-      }, 1000);
+      // Invalidate all user-related caches to show fresh data
+      console.log('🔄 Invalidating user caches...');
+      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+
+      // Redirect to profile page with username - using window.location for hard refresh to show updated data
+      console.log('🔄 Redirecting to profile page...');
+      window.location.href = `/profile/${username}`;
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast.error('Failed to save profile');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save profile';
+      toast.error(errorMessage, { id: 'save-profile' });
     } finally {
       setSaving(false);
     }
@@ -517,17 +523,20 @@ export default function EditProfilePage() {
               Cancel
             </Button>
             <Button
-              onClick={handleSave}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-10 sm:h-11 text-sm sm:text-base"
+              onClick={() => {
+                console.log('🔥 BUTTON CLICKED!');
+                handleSave();
+              }}
+              className="flex-1 bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black h-12 sm:h-13 text-base sm:text-lg shadow-lg hover:shadow-accent-green/30 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               disabled={saving}
             >
               {saving ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Saving...
+                  <div className="w-5 h-5 border-3 border-black border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
                 </div>
               ) : (
-                'Save Changes'
+                <span>💾 Save Changes</span>
               )}
             </Button>
           </div>

@@ -102,8 +102,16 @@ export function ExploreCard({
             <span className="text-white/40 text-xs shrink-0">{timeAgo}</span>
           </div>
 
-          {/* Creator */}
-          <p className="text-white/50 text-xs mb-3 truncate">{creator}</p>
+          {/* Creator - Clickable */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/profile/${creator}`);
+            }}
+            className="text-white/50 text-xs mb-3 truncate hover:text-white/70 transition-colors"
+          >
+            {creator}
+          </button>
 
           {/* Stats Row */}
           <div className="flex items-center gap-2.5">

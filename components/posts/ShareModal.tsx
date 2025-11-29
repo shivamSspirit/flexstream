@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy } from 'lucide-react';
+import { Copy, Check, Share2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -23,19 +22,22 @@ export function ShareModal({ isOpen, onClose, postUrl, postId }: ShareModalProps
 
   const handleShare = (platform: string) => {
     let shareUrl = '';
+    const text = 'Check out this post on FlexStream!';
 
     switch (platform) {
       case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}`;
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(text)}`;
         break;
-      case 'farcaster':
-        shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(postUrl)}`;
-        break;
-      case 'lens':
-        shareUrl = `https://hey.xyz/?text=${encodeURIComponent(postUrl)}`;
-        break;
+      case 'instagram':
+        // Instagram doesn't support direct URL sharing, copy link instead
+        handleCopy();
+        return;
+      case 'youtube':
+        // YouTube doesn't have a share URL, copy link instead
+        handleCopy();
+        return;
       case 'telegram':
-        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}`;
+        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(text)}`;
         break;
     }
 
@@ -49,115 +51,125 @@ export function ShareModal({ isOpen, onClose, postUrl, postId }: ShareModalProps
       id: 'twitter',
       name: 'X',
       icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
       ),
-      bgColor: 'bg-black',
-      hoverColor: 'hover:bg-gray-900',
     },
     {
-      id: 'farcaster',
-      name: 'Farcaster',
+      id: 'instagram',
+      name: 'Instagram',
       icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path d="M6 4h12v16h-2V8H8v12H6V4z"/>
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
         </svg>
       ),
-      bgColor: 'bg-purple-600',
-      hoverColor: 'hover:bg-purple-700',
     },
     {
-      id: 'lens',
-      name: 'Lens',
+      id: 'youtube',
+      name: 'YouTube',
       icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <circle cx="12" cy="12" r="8"/>
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
         </svg>
       ),
-      bgColor: 'bg-green-600',
-      hoverColor: 'hover:bg-green-700',
     },
     {
       id: 'telegram',
       name: 'Telegram',
       icon: (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
         </svg>
       ),
-      bgColor: 'bg-blue-500',
-      hoverColor: 'hover:bg-blue-600',
     },
   ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-card-bg to-app-bg border-2 border-white/10 text-text-primary p-0 gap-0">
-        {/* Header - Bold & Vibrant */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-white/10 bg-gradient-to-r from-accent-purple/5 to-accent-pink/5">
+      <DialogContent className="sm:max-w-[380px] bg-card-bg border border-white/10 text-text-primary p-0 gap-0 rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-accent-purple to-accent-pink flex items-center justify-center shadow-lg">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
+              <Share2 className="w-5 h-5 text-accent-cyan" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-accent-purple via-accent-pink to-accent-blue">Share & Earn</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Share Post</h2>
+              <p className="text-xs text-text-muted">Share with your community</p>
+            </div>
           </div>
         </div>
 
-        {/* Content - Mobile Optimized */}
-        <div className="px-4 sm:px-6 py-5 sm:py-6 space-y-5 sm:space-y-6">
-          {/* Share Icons - Bigger & Bolder */}
-          <div className="grid grid-cols-4 gap-3 sm:gap-4">
+        {/* Share Options */}
+        <div className="px-6 pb-4">
+          <div className="flex justify-center gap-4">
             {shareOptions.map((option) => (
               <button
                 key={option.id}
                 onClick={() => handleShare(option.id)}
-                className={`${option.bgColor} ${option.hoverColor} p-4 sm:p-5 rounded-2xl text-white transition-all hover:scale-110 active:scale-95 shadow-lg flex flex-col items-center gap-2`}
-                title={`Share on ${option.name}`}
+                className="group flex flex-col items-center gap-2"
               >
-                <div className="w-6 h-6 sm:w-7 sm:h-7">
-                  {option.icon}
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-accent-purple/20 group-hover:border-accent-purple/30 group-hover:scale-105 group-active:scale-95">
+                  <span className="text-text-secondary group-hover:text-accent-purple transition-colors">
+                    {option.icon}
+                  </span>
                 </div>
-                <span className="text-xs font-bold hidden sm:block">{option.name}</span>
+                <span className="text-[11px] font-medium text-text-muted group-hover:text-text-secondary transition-colors">
+                  {option.name}
+                </span>
               </button>
             ))}
           </div>
+        </div>
 
-          {/* URL Copy Section - Enhanced */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 p-3 sm:p-4 bg-white/5 border-2 border-white/10 rounded-xl hover:border-white/20 transition-colors">
-              <input
-                type="text"
-                value={postUrl}
-                readOnly
-                className="flex-1 bg-transparent text-text-secondary text-xs sm:text-sm outline-none truncate font-mono"
-              />
-            </div>
-            <Button
-              onClick={handleCopy}
-              className="w-full bg-gradient-to-r from-accent-green to-accent-cyan hover:from-accent-green/90 hover:to-accent-cyan/90 text-black font-black py-3 sm:py-3.5 rounded-xl transition-all hover:scale-105 shadow-lg text-sm sm:text-base h-12 sm:h-auto"
-            >
-              <Copy className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              {copied ? '✓ Copied!' : 'Copy Link'}
-            </Button>
+        {/* Divider */}
+        <div className="mx-6 border-t border-white/5" />
+
+        {/* Copy Link Section */}
+        <div className="px-6 py-4 space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl">
+            <input
+              type="text"
+              value={postUrl}
+              readOnly
+              className="flex-1 bg-transparent text-text-secondary text-sm outline-none truncate"
+            />
           </div>
 
-          {/* Rewards Section - More Engaging */}
-          <div className="flex items-start gap-3 p-4 sm:p-5 bg-gradient-to-br from-accent-purple/10 to-accent-pink/10 border-2 border-accent-purple/20 rounded-xl hover:border-accent-purple/30 transition-colors">
-            <div className="p-2 sm:p-2.5 bg-gradient-to-br from-accent-purple to-accent-pink rounded-xl shadow-lg flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <button
+            onClick={handleCopy}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
+              copied
+                ? 'bg-accent-green text-black'
+                : 'bg-accent-purple hover:bg-accent-purple/90 text-white'
+            }`}
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Rewards Banner */}
+        <div className="mx-6 mb-6 p-4 bg-gradient-to-r from-accent-purple/10 to-accent-cyan/10 border border-accent-purple/20 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-accent-cyan/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-accent-purple to-accent-pink mb-1">
-                💰 Earn Rewards
-              </p>
-              <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
-                Get paid when someone buys from your share link!
-              </p>
+            <div>
+              <p className="text-sm font-semibold text-text-primary">Earn Rewards</p>
+              <p className="text-xs text-text-muted">Get paid when someone buys from your link</p>
             </div>
           </div>
         </div>

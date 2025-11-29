@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { useRouter } from 'next/navigation';
-import { 
-  Settings, 
-  LogOut, 
+import { useQuery } from '@tanstack/react-query';
+import {
+  Settings,
+  LogOut,
   ChevronDown,
   UserCircle
 } from 'lucide-react';
@@ -17,8 +18,22 @@ export function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch current user data
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser', publicKey?.toBase58()],
+    queryFn: async () => {
+      if (!publicKey) return null;
+      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    },
+    enabled: !!publicKey && connected,
+  });
+
   const address = publicKey ? publicKey.toBase58() : '';
   const addressLabel = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'Not connected';
+  const displayName = currentUser?.display_name || addressLabel;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -48,7 +63,11 @@ export function UserDropdown() {
       icon: UserCircle,
       label: 'Profile',
       onClick: () => {
-        router.push('/profile');
+        if (currentUser?.username) {
+          router.push(`/profile/${currentUser.username}`);
+        } else {
+          router.push('/profile/edit');
+        }
         setIsOpen(false);
       }
     },
@@ -83,17 +102,17 @@ export function UserDropdown() {
         className="flex items-center space-x-3 hover:bg-gray-800 rounded-lg px-2 py-1 transition-colors"
       >
         <Avatar className="h-8 w-8">
-          <AvatarImage src={''} alt={addressLabel} />
+          <AvatarImage src={currentUser?.avatar_url || ''} alt={displayName} />
           <AvatarFallback>
-            {address ? address.slice(0, 2).toUpperCase() : 'W'}
+            {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (address ? address.slice(0, 2).toUpperCase() : 'W')}
           </AvatarFallback>
         </Avatar>
         <div className="hidden sm:block text-left">
           <p className="text-sm font-medium text-white">
-            {addressLabel}
+            {displayName}
           </p>
           <p className="text-xs text-gray-400">
-            Connected
+            {currentUser?.username ? `@${currentUser.username}` : 'Connected'}
           </p>
         </div>
         <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -107,17 +126,17 @@ export function UserDropdown() {
             <div className="px-4 py-3 border-b border-gray-700">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={''} alt={addressLabel} />
+                  <AvatarImage src={currentUser?.avatar_url || ''} alt={displayName} />
                   <AvatarFallback>
-                    {address ? address.slice(0, 2).toUpperCase() : 'W'}
+                    {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (address ? address.slice(0, 2).toUpperCase() : 'W')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium text-white">
-                    {addressLabel}
+                    {displayName}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Wallet connected
+                    {currentUser?.username ? `@${currentUser.username}` : addressLabel}
                   </p>
                 </div>
               </div>

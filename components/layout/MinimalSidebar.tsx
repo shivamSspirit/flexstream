@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useWallet } from '@jup-ag/wallet-adapter';
+import { useQuery } from '@tanstack/react-query';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,7 +28,21 @@ interface MinimalSidebarProps {
 
 export function MinimalSidebar({ className }: MinimalSidebarProps) {
   const pathname = usePathname();
+  const { publicKey, connected } = useWallet();
   const [unreadNotifications] = useState(1);
+
+  // Fetch current user data
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser', publicKey?.toBase58()],
+    queryFn: async () => {
+      if (!publicKey) return null;
+      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    },
+    enabled: !!publicKey && connected,
+  });
 
   const isActive = (path: string) => pathname === path;
 
@@ -134,30 +150,40 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
 
       {/* Profile Avatar at Bottom */}
       <div className="mt-auto">
-        <Link
-          href="/profile"
-          prefetch={true}
-          className="relative group cursor-pointer block"
-          aria-label="Go to profile"
-        >
-          <Avatar className="h-9 w-9 md:h-11 md:w-11 cursor-pointer border-2 border-white/10 hover:border-white/20 transition-all duration-200 hover:scale-105">
-            <AvatarImage
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"
-              alt="Profile"
-            />
-            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm md:text-base">
-              U
-            </AvatarFallback>
-          </Avatar>
+        {connected ? (
+          <Link
+            href={currentUser?.username ? `/profile/${currentUser.username}` : `/profile/${publicKey?.toBase58()}`}
+            prefetch={true}
+            className="relative group cursor-pointer block"
+            aria-label="Go to profile"
+          >
+            <Avatar className="h-9 w-9 md:h-11 md:w-11 cursor-pointer border-2 border-white/10 hover:border-white/20 transition-all duration-200 hover:scale-105">
+              <AvatarImage
+                src={currentUser?.avatar_url || ''}
+                alt={currentUser?.display_name || 'Profile'}
+              />
+              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm md:text-base">
+                {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (publicKey ? publicKey.toBase58().slice(0, 2).toUpperCase() : 'U')}
+              </AvatarFallback>
+            </Avatar>
 
-          {/* Online Status Indicator */}
-          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-metric-green rounded-full border-2 border-app-bg" />
+            {/* Online Status Indicator */}
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-metric-green rounded-full border-2 border-app-bg" />
 
-          {/* Tooltip - Hidden on small screens */}
-          <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-card-bg border border-white/10 rounded-lg text-xs md:text-sm text-primary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
-            Profile
+            {/* Tooltip - Hidden on small screens */}
+            <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-card-bg border border-white/10 rounded-lg text-xs md:text-sm text-primary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
+              {currentUser?.display_name || 'Profile'}
+            </div>
+          </Link>
+        ) : (
+          <div className="h-9 w-9 md:h-11 md:w-11 cursor-not-allowed opacity-50">
+            <Avatar className="h-full w-full border-2 border-white/10">
+              <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-800 text-white font-semibold text-sm md:text-base">
+                U
+              </AvatarFallback>
+            </Avatar>
           </div>
-        </Link>
+        )}
       </div>
     </aside>
   );

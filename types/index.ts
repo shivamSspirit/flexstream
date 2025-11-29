@@ -32,6 +32,9 @@ export interface FlexPost {
   social_link?: string
   earnings_amount?: number
   token_address?: string
+  token_symbol?: string // Auto-generated unique symbol (e.g., T5K9P_A7M3X)
+  token_display_name?: string // User's chosen display name (can be duplicate, e.g., PEPE)
+  token_is_verified?: boolean // True if this is the first token with this display_name
   verified: boolean
   likes_count: number
   comments_count: number

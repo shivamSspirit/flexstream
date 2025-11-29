@@ -10,6 +10,7 @@ import {
   Bars3Icon,
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
+import { Logo } from './Logo';
 
 interface UniversalHeaderProps {
   className?: string;
@@ -27,12 +28,20 @@ export function UniversalHeader({
   const router = useRouter();
   const { connected, publicKey } = useWallet();
   const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Only render wallet-dependent UI after mount to avoid hydration errors
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Debug wallet connection state
   useEffect(() => {
-    console.log('🔍 [Wallet] UniversalHeader - Connected:', connected);
-    console.log('🔍 [Wallet] UniversalHeader - PublicKey:', publicKey?.toBase58());
-  }, [connected, publicKey]);
+    if (mounted) {
+      console.log('🔍 [Wallet] UniversalHeader - Connected:', connected);
+      console.log('🔍 [Wallet] UniversalHeader - PublicKey:', publicKey?.toBase58());
+    }
+  }, [connected, publicKey, mounted]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +60,11 @@ export function UniversalHeader({
     >
       <div className="max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
+          {/* Logo - Mobile only (desktop has sidebar) */}
+          <div className="flex items-center md:hidden">
+            <Logo size="md" showText={false} />
+          </div>
+
           {/* Search Bar - Mobile First */}
           <div className="flex items-center gap-2 sm:gap-4 md:gap-6 flex-1">
             {showSearch && (
@@ -72,13 +86,10 @@ export function UniversalHeader({
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Wallet Button */}
-            {showWallet && (
-              <div className="relative scale-75 sm:scale-90 md:scale-100 origin-right">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent-green to-accent-cyan rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                <div className="relative" data-wallet-button>
-                  <UnifiedWalletButton />
-                </div>
+            {/* Wallet Button - Simple & Clean */}
+            {showWallet && mounted && (
+              <div className="relative scale-75 sm:scale-90 md:scale-100 origin-right" data-wallet-button>
+                <UnifiedWalletButton />
               </div>
             )}
 

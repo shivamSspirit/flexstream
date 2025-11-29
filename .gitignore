@@ -17,6 +17,11 @@ dist/
 .env.production.local
 .env.local.backup
 
+# Platform keypairs (NEVER commit these!)
+platform-keypair.json
+*-keypair.json
+keypair.json
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

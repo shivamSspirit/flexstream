@@ -10,7 +10,6 @@
     "db:generate": "supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/database.types.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.35.4",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.0.18",
     "@hookform/resolvers": "^3.3.2",

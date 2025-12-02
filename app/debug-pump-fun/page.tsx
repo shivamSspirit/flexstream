@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function DebugPumpFunPage() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
   const [testResult, setTestResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +14,6 @@ export default function DebugPumpFunPage() {
     
     try {
       console.log('🧪 [DEBUG] Starting Pump.fun API test...');
-      console.log('👤 [DEBUG] User state:', { user: !!isSignedIn, isLoaded, userId: userId });
       
       const response = await fetch('/api/pump-fun/all-live-streams?maxCoins=50');
       console.log('📡 [DEBUG] API Response:', response);
@@ -73,14 +70,6 @@ export default function DebugPumpFunPage() {
     }
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-900 p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -90,23 +79,21 @@ export default function DebugPumpFunPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-white">
-              <p><strong>User Status:</strong> {isSignedIn ? 'Signed In' : 'Signed Out'}</p>
-              <p><strong>User ID:</strong> {userId || 'N/A'}</p>
-              <p><strong>Email:</strong> {userId || 'N/A'}</p>
+              <p><strong>Auth:</strong> Removed (using Privy now)</p>
             </div>
-            
+
             <div className="flex space-x-4 flex-wrap gap-2">
-              <Button 
+              <Button
                 onClick={testPumpFunAPI}
-                disabled={loading || !isSignedIn}
+                disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 {loading ? 'Testing...' : 'Test All Live Streams (50)'}
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={testJWTGeneration}
-                disabled={loading || !isSignedIn}
+                disabled={loading}
                 className="bg-green-600 hover:bg-green-700"
               >
                 {loading ? 'Testing...' : 'Test JWT Generation'}
@@ -134,7 +121,6 @@ export default function DebugPumpFunPage() {
           </CardHeader>
           <CardContent className="text-gray-300">
             <ol className="list-decimal list-inside space-y-2">
-              <li>Make sure you're signed in (if not, go to /auth/signin)</li>
               <li>Click "Test JWT Generation" first to verify JWT token creation</li>
               <li>Click "Test Pump.fun API" to test the live streams endpoint</li>
               <li>Check the browser console for detailed logs</li>

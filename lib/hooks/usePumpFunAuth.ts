@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface PumpFunTokenResponse {
@@ -13,7 +12,6 @@ interface PumpFunTokenResponse {
 }
 
 export function usePumpFunAuth() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
   const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(null);
 
@@ -24,20 +22,13 @@ export function usePumpFunAuth() {
     error: tokenError,
     refetch: refetchToken,
   } = useQuery<PumpFunTokenResponse>({
-    queryKey: ['pump-fun-token', userId],
+    queryKey: ['pump-fun-token'],
     queryFn: async () => {
-      if (!isSignedIn || !userId) throw new Error('User not authenticated');
-
       const response = await fetch('/api/auth/pump-fun-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId,
         },
-        body: JSON.stringify({
-          // You can add wallet address here if needed
-          // walletAddress: user.publicMetadata?.walletAddress
-        }),
       });
 
       if (!response.ok) {
@@ -47,7 +38,7 @@ export function usePumpFunAuth() {
 
       return response.json();
     },
-    enabled: isLoaded && isSignedIn && !!userId,
+    enabled: true,
     staleTime: 50 * 60 * 1000, // 50 minutes (tokens expire in 1 hour)
     retry: 1,
   });
@@ -73,23 +64,23 @@ export function usePumpFunAuth() {
   }, [queryClient]);
 
   // Check if user is authenticated and has a valid token
-  const isAuthenticated = isSignedIn && !!userId && !!token;
-  const isLoading = !isLoaded || isTokenLoading;
+  const isAuthenticated = !!token;
+  const isLoading = isTokenLoading;
 
   return {
     // Authentication state
     isAuthenticated,
     isLoading,
-    authenticated: isSignedIn,
-    user: { id: userId },
-    
+    authenticated: !!token,
+    user: { id: tokenData?.userId },
+
     // Token management
     token,
     tokenData,
     tokenError,
     refreshToken,
     clearToken,
-    
+
     // Helper functions
     hasValidToken: !!token,
     canAccessPumpFun: isAuthenticated,

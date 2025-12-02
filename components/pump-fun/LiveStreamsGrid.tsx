@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { LiveStreamCard } from './LiveStreamCard';
 import { LiveStreamSorting } from './LiveStreamSorting';
 import { usePumpFunLiveStreams } from '@/lib/hooks/usePumpFunLiveStreams';
 import { PumpFunStreamFilter, PumpFunLiveStream } from '@/types';
 import { SortOption, sortLiveStreams, getDefaultSortOption } from '@/lib/sorting';
-import { 
-  SignalIcon, 
+import {
+  SignalIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
   LockClosedIcon
@@ -22,7 +21,6 @@ interface LiveStreamsGridProps {
 }
 
 export function LiveStreamsGrid({ onWatchStream, onViewToken }: LiveStreamsGridProps) {
-  const { isLoaded, isSignedIn } = useAuth();
   const [filters, setFilters] = useState<PumpFunStreamFilter>({});
   const [sortOption, setSortOption] = useState<SortOption>(getDefaultSortOption());
   const { ToastContainer } = useToast();
@@ -41,7 +39,7 @@ export function LiveStreamsGrid({ onWatchStream, onViewToken }: LiveStreamsGridP
   const sortedStreams = sortLiveStreams(liveStreams || [], sortOption);
 
   // Show loading state while checking authentication
-  if (!isLoaded || isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">

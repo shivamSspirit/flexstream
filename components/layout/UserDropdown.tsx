@@ -18,7 +18,7 @@ export function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch current user data
+  // Fetch current user data with real-time updates
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser', publicKey?.toBase58()],
     queryFn: async () => {
@@ -29,6 +29,8 @@ export function UserDropdown() {
       return result.success ? result.data : null;
     },
     enabled: !!publicKey && connected,
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    staleTime: 1000, // Consider data stale after 1 second for faster updates
   });
 
   const address = publicKey ? publicKey.toBase58() : '';

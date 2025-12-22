@@ -37,11 +37,21 @@ export function ActivateCreatorCoinModal({
       return;
     }
 
+    // Validate that we have at least a display name
+    if (!userProfile.display_name) {
+      toast.error('Please set up your profile first (display name required)');
+      return;
+    }
+
     setIsActivating(true);
     setStep('activating');
 
     try {
-      console.log('🚀 Activating creator coin...');
+      console.log('🚀 Activating creator coin...', {
+        wallet: publicKey.toBase58(),
+        username: userProfile.username,
+        displayName: userProfile.display_name
+      });
 
       const response = await fetch('/api/creators/activate-coin', {
         method: 'POST',
@@ -50,33 +60,62 @@ export function ActivateCreatorCoinModal({
         },
         body: JSON.stringify({
           walletAddress: publicKey.toBase58(),
-          username: userProfile.username,
+          username: userProfile.username || `user_${Date.now().toString(36)}`,
           displayName: userProfile.display_name,
-          bio: userProfile.bio,
-          avatarUrl: userProfile.avatar_url,
+          bio: userProfile.bio || `${userProfile.display_name}'s profile`,
+          avatarUrl: userProfile.avatar_url || null,
         }),
       });
 
       const result = await response.json();
 
+      console.log('📡 Activation response:', result);
+
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to activate creator coin');
+        // Show detailed error message
+        const errorMsg = result.error || result.details || 'Failed to activate creator coin';
+        throw new Error(errorMsg);
       }
 
       console.log('✅ Creator coin activated:', result.data);
 
       setTokenMint(result.data.token.mint);
       setStep('success');
-      toast.success('Creator Coin Activated!');
+
+      // Show detailed success notification with CA
+      toast.success(
+        <div className="flex flex-col gap-2">
+          <div className="font-bold">🎉 Creator Coin Activated!</div>
+          <div className="text-sm">
+            <div className="mb-2">Your token is now live and tradable</div>
+            <div className="font-mono text-xs bg-black/20 p-2 rounded">
+              CA: {result.data.token.mint}
+            </div>
+          </div>
+        </div>,
+        { duration: 8000 }
+      );
 
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 2000);
     } catch (error) {
-      console.error('Error activating creator coin:', error);
+      console.error('❌ Error activating creator coin:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to activate creator coin';
-      toast.error(errorMessage);
+
+      // Show detailed error toast
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <div className="font-bold">Activation Failed</div>
+          <div className="text-sm">{errorMessage}</div>
+          <div className="text-xs text-white/60 mt-1">
+            Check console for details or try again
+          </div>
+        </div>,
+        { duration: 6000 }
+      );
+
       setStep('confirm');
     } finally {
       setIsActivating(false);

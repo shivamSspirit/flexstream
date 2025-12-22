@@ -9,6 +9,8 @@ export interface Post {
   media_urls: string[];
   token_mint: string | null;
   token_symbol: string | null;
+  token_display_name: string | null;
+  token_is_verified: boolean | null;
   token_name: string | null;
   pool_address: string | null;
   bonding_curve_address: string | null;
@@ -56,13 +58,14 @@ export function usePosts(options: UsePostsOptions = {}) {
       if (userId) params.append('userId', userId);
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
-      // Add timestamp to bust all caches
+
+      // Add timestamp to prevent ANY caching
       params.append('_t', Date.now().toString());
 
-      console.log('Fetching posts from API:', `/api/posts?${params.toString()}`);
+      console.log('🔄 [FETCH] Fetching posts from API:', `/api/posts?${params.toString()}`);
 
       const response = await fetch(`/api/posts?${params.toString()}`, {
-        cache: 'no-store', // Disable caching for fresh data
+        cache: 'no-store', // Disable Next.js caching
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -72,22 +75,23 @@ export function usePosts(options: UsePostsOptions = {}) {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Failed to fetch posts:', error);
+        console.error('❌ [FETCH] Failed to fetch posts:', error);
         throw new Error(error.error || 'Failed to fetch posts');
       }
 
       const data = await response.json();
-      console.log('Fetched posts:', {
+      console.log('✅ [FETCH] Fetched posts from REAL DATABASE:', {
         totalPosts: data.data?.posts?.length || 0,
-        posts: data.data?.posts?.map((p: any) => ({ id: p.id, title: p.title })) || []
+        posts: data.data?.posts?.map((p: any) => ({ id: p.id, title: p.title })) || [],
+        timestamp: new Date().toISOString()
       });
 
       return data;
     },
     enabled,
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache (previously cacheTime)
-    refetchOnMount: 'always', // Refetch every time component mounts
+    staleTime: 0, // Always consider data stale (forces fresh fetch)
+    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
     refetchOnReconnect: true, // Refetch on internet reconnect
   });
@@ -95,15 +99,20 @@ export function usePosts(options: UsePostsOptions = {}) {
 
 /**
  * Hook to invalidate posts cache (use after creating a new post)
+ * Only marks queries as stale - they refetch naturally when needed
+ * This prevents overwriting optimistic updates with stale data
  */
 export function useInvalidatePosts() {
   const queryClient = useQueryClient();
 
   return () => {
-    // Invalidate all posts queries to force refetch
+    // Only mark as stale, don't force immediate refetch
+    // The query will refetch naturally when:
+    // - Component remounts
+    // - Window regains focus
+    // - Network reconnects
+    // This prevents race conditions where refetch returns stale data
     queryClient.invalidateQueries({ queryKey: ['posts'] });
-    // Also refetch immediately
-    queryClient.refetchQueries({ queryKey: ['posts'] });
   };
 }
 
@@ -121,6 +130,7 @@ export function useRefetchPosts() {
 /**
  * Hook to add a new post optimistically to the cache
  * This makes the new post appear instantly on the feed
+ * Returns a promise that resolves when the cache is updated
  */
 export function useAddPostToCache() {
   const queryClient = useQueryClient();
@@ -128,7 +138,7 @@ export function useAddPostToCache() {
   return (newPost: Post) => {
     console.log('[ADD POST TO CACHE] Starting...', { postId: newPost.id, postTitle: newPost.title });
 
-    // Update all posts queries
+    // Update all posts queries (both main feed and profile queries)
     queryClient.setQueriesData<PostsResponse>(
       { queryKey: ['posts'] },
       (oldData) => {
@@ -138,7 +148,23 @@ export function useAddPostToCache() {
         });
 
         if (!oldData) {
-          console.warn('[ADD POST TO CACHE] No existing cache data, cannot add post');
+          console.warn('[ADD POST TO CACHE] No existing cache data, creating new cache');
+          // If no cache exists, create initial data structure
+          return {
+            success: true,
+            data: {
+              posts: [newPost],
+              count: 1,
+              limit: 20,
+              offset: 0,
+            },
+          };
+        }
+
+        // Check if post already exists in cache (prevent duplicates)
+        const postExists = oldData.data.posts.some(p => p.id === newPost.id);
+        if (postExists) {
+          console.log('[ADD POST TO CACHE] Post already exists in cache, skipping');
           return oldData;
         }
 
@@ -159,13 +185,6 @@ export function useAddPostToCache() {
         return updatedData;
       }
     );
-
-    console.log('[ADD POST TO CACHE] Scheduling background refetch...');
-    // Delay the background refetch slightly to ensure database has committed
-    setTimeout(() => {
-      console.log('[ADD POST TO CACHE] Executing delayed background refetch...');
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-    }, 1000);
 
     console.log('[ADD POST TO CACHE] Complete!');
   };

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile API Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        pre { background: #000; padding: 15px; border: 2px solid #00ff00; overflow: auto; }
+        button { padding: 10px 20px; font-size: 16px; background: #00ff00; color: #000; border: none; cursor: pointer; margin: 5px; }
+        button:hover { background: #00cc00; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #333; }
+        h2 { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Profile API Debugger</h1>
+
+    <div class="section">
+        <h2>Step 1: Test Posts API</h2>
+        <p>User ID: <code>8f493b96-1894-44bd-a760-9f59931bebeb</code></p>
+        <button onclick="testPostsAPI()">Test Posts API</button>
+        <pre id="posts-result">Click button to test...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Test Stats API</h2>
+        <button onclick="testStatsAPI()">Test Stats API</button>
+        <pre id="stats-result">Click button to test...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Step 3: Test Direct Database Query</h2>
+        <button onclick="testDirectQuery()">Test Direct Query</button>
+        <pre id="direct-result">This will show what's actually in the database...</pre>
+    </div>
+
+    <script>
+        const userId = '8f493b96-1894-44bd-a760-9f59931bebeb';
+        const baseUrl = 'http://localhost:3000';
+
+        async function testPostsAPI() {
+            const result = document.getElementById('posts-result');
+            result.textContent = 'Loading...';
+
+            try {
+                const url = `${baseUrl}/api/posts?userId=${userId}&_t=${Date.now()}`;
+                console.log('Fetching:', url);
+
+                const response = await fetch(url, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                    }
+                });
+
+                const data = await response.json();
+
+                result.textContent = JSON.stringify(data, null, 2);
+
+                // Analysis
+                const posts = data?.data?.posts || [];
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📊 POSTS API TEST RESULTS:');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('Success:', data.success);
+                console.log('Total posts returned:', posts.length);
+                console.log('Posts:', posts.map(p => ({ id: p.id, title: p.title })));
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+                if (posts.length === 0) {
+                    alert('❌ API returned 0 posts! But database has 2 posts for this user.');
+                } else {
+                    alert(`✅ API returned ${posts.length} posts!`);
+                }
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+                console.error('Error testing posts API:', error);
+            }
+        }
+
+        async function testStatsAPI() {
+            const result = document.getElementById('stats-result');
+            result.textContent = 'Loading...';
+
+            try {
+                const url = `${baseUrl}/api/users/stats?userId=${userId}`;
+                console.log('Fetching:', url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                result.textContent = JSON.stringify(data, null, 2);
+
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📈 STATS API TEST RESULTS:');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('Success:', data.success);
+                console.log('Post count:', data?.data?.posts_count);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+                if (data?.data?.posts_count === 0) {
+                    alert('❌ Stats API shows 0 posts!');
+                } else {
+                    alert(`✅ Stats API shows ${data?.data?.posts_count} posts!`);
+                }
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+                console.error('Error testing stats API:', error);
+            }
+        }
+
+        async function testDirectQuery() {
+            const result = document.getElementById('direct-result');
+            result.textContent = `
+Expected Database State:
+- User ID: 8f493b96-1894-44bd-a760-9f59931bebeb
+- Username: usermjbo4dcni8fe
+- Wallet: 4VZuyEyC9TQKcuMutK3VtF325vEtfQ8yT5MzhK2sR1xz
+- Expected posts: 2 (BULLMA, MFLEX)
+
+If the APIs return 0 posts but database has 2,
+then there's a bug in the API query logic!
+            `;
+        }
+
+        // Auto-run tests on load
+        console.log('🔬 Profile API Debugger Loaded');
+        console.log('User ID being tested:', userId);
+    </script>
+</body>
+</html>

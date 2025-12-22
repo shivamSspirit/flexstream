@@ -5,6 +5,7 @@ import { UniversalHeader } from './UniversalHeader';
 import { MinimalSidebar } from './MinimalSidebar';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
+import { useEnsureUser } from '@/hooks/useEnsureUser';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -14,6 +15,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, showWallet = true, showSearch = true }: AppLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Automatically ensure user exists when wallet connects
+  useEnsureUser();
 
   return (
     <div className="min-h-screen bg-app-bg">

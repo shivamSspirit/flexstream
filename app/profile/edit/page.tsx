@@ -56,19 +56,35 @@ export default function EditProfilePage() {
 
     try {
       setLoading(true);
+      const walletAddress = publicKey.toBase58();
+      console.log('🔍 Loading profile for wallet:', walletAddress);
+
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
-        .eq('wallet_address', publicKey.toBase58())
+        .eq('wallet_address', walletAddress)
         .single();
 
       if (error) {
-        console.error('Error loading profile:', error);
-        toast.error('Failed to load profile');
+        console.error('❌ Error loading profile:', error);
+
+        // If user not found (PGRST116), they might be a new user
+        if (error.code === 'PGRST116') {
+          console.log('⚠️ User not found in database - might be new user');
+          toast.error('Profile not found. Please wait a moment and refresh.', { duration: 5000 });
+
+          // Give them a moment to be created by useEnsureUser
+          setTimeout(() => {
+            loadUserProfile();
+          }, 2000);
+        } else {
+          toast.error('Failed to load profile');
+        }
         return;
       }
 
       if (user) {
+        console.log('✅ Profile loaded:', user.username);
         setDisplayName(user.display_name || '');
         setUsername(user.username || '');
         setBio(user.bio || '');
@@ -79,7 +95,7 @@ export default function EditProfilePage() {
         setCoverUrl(user.cover_url || '');
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('❌ Error loading profile:', error);
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
@@ -219,17 +235,24 @@ export default function EditProfilePage() {
         }
 
         console.log('📤 Uploading avatar...');
+        console.log('   File name:', avatarFile.name);
+        console.log('   File size:', (avatarFile.size / 1024).toFixed(2), 'KB');
+        console.log('   File type:', avatarFile.type);
         toast.loading('Uploading avatar...', { id: 'save-profile' });
         const uploadedUrl = await uploadImage(avatarFile, 'avatar');
         if (uploadedUrl) {
           newAvatarUrl = uploadedUrl;
-          console.log('✅ Avatar uploaded:', uploadedUrl);
+          console.log('✅ Avatar uploaded successfully!');
+          console.log('   NEW AVATAR URL:', uploadedUrl);
+          console.log('   This URL will be saved to database');
         } else {
           console.error('❌ Failed to upload avatar');
           toast.error('Failed to upload avatar', { id: 'save-profile' });
           setSaving(false);
           return;
         }
+      } else {
+        console.log('ℹ️  No new avatar selected, keeping existing:', newAvatarUrl);
       }
 
       // Upload cover if changed
@@ -304,23 +327,43 @@ export default function EditProfilePage() {
         throw new Error(errorMsg);
       }
 
-      console.log('✅ Profile updated successfully:', result.data);
-
       console.log('✅ Profile updated successfully!');
+      console.log('   User ID:', result.data.id);
+      console.log('   Username:', result.data.username);
+      console.log('   Display Name:', result.data.display_name);
+      console.log('   Avatar URL in DB:', result.data.avatar_url);
+
+      if (newAvatarUrl && result.data.avatar_url === newAvatarUrl) {
+        console.log('   ✅ AVATAR SAVED SUCCESSFULLY TO DATABASE!');
+      } else if (newAvatarUrl && result.data.avatar_url !== newAvatarUrl) {
+        console.error('   ❌ WARNING: Avatar URL mismatch!');
+        console.error('      Expected:', newAvatarUrl);
+        console.error('      Got:', result.data.avatar_url);
+      }
+
       toast.success('Profile updated successfully!', { id: 'save-profile', duration: 2000 });
 
       // Clean up preview URLs
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
       if (coverPreview) URL.revokeObjectURL(coverPreview);
 
-      // Invalidate all user-related caches to show fresh data
-      console.log('🔄 Invalidating user caches...');
-      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      // Invalidate all user-related caches to show fresh data everywhere
+      console.log('🔄 Invalidating all user caches...');
+      await queryClient.invalidateQueries({ queryKey: ['currentUser', publicKey.toBase58()] });
       await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['posts'] }); // Invalidate feed posts to update avatar in posts
+      await queryClient.invalidateQueries({ queryKey: ['userPosts'] }); // Invalidate user's own posts
+
+      // Force refetch all queries to ensure avatar updates everywhere
+      await queryClient.refetchQueries({ queryKey: ['currentUser', publicKey.toBase58()] });
+
+      // Wait a moment for database to propagate changes
+      console.log('⏳ Waiting for database to update...');
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Redirect to profile page with username - using window.location for hard refresh to show updated data
-      console.log('🔄 Redirecting to profile page...');
-      window.location.href = `/profile/${username}`;
+      console.log('🔄 Redirecting to profile page:', username);
+      window.location.href = `/profile/${result.data.username}`; // Use the username from API response to be sure
     } catch (error) {
       console.error('Error saving profile:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save profile';

@@ -1,31 +1,22 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { usePosts, Post } from '@/hooks/usePosts';
+import { useUploadingPosts } from '@/hooks/useUploadingPosts';
 import { PostCard } from '@/components/posts/PostCard';
+import { UploadingPostCard } from '@/components/feed/UploadingPostCard';
 import { FlexPost } from '@/types';
 
 export function SimpleFeed() {
-  console.log('🔄 [FEED] Component rendering...');
-
   const { data, isLoading, error } = usePosts();
+  const { uploadingPosts } = useUploadingPosts();
 
-  console.log('📊 [FEED] Raw query data:', {
-    hasData: !!data,
-    isLoading,
-    hasError: !!error,
-    postCount: data?.data?.posts?.length || 0
-  });
-
-  const posts = useMemo(() => {
-    const result = data?.data?.posts || [];
-    console.log('🧮 [FEED] Memoized posts:', result.length);
-    return result;
-  }, [data?.data?.posts]);
+  const posts = data?.data?.posts || [];
 
   // Debug logging
   useEffect(() => {
-    console.log('📰 [FEED] Effect triggered - All posts (newest first):', {
+    console.log('📰 [FEED] All posts (newest first):', {
+      uploadingPosts: uploadingPosts.length,
       totalPosts: posts.length,
       isLoading,
       hasError: !!error,
@@ -40,6 +31,16 @@ export function SimpleFeed() {
       }))
     });
 
+    // Log uploading posts
+    if (uploadingPosts.length > 0) {
+      console.log('⏳ [FEED] Uploading posts:', uploadingPosts.map(p => ({
+        tempId: p.tempId,
+        title: p.title,
+        progress: p.uploadProgress,
+        stage: p.uploadStage
+      })));
+    }
+
     // Show detailed info for first 3 posts to understand user_id mismatch
     if (posts.length > 0 && !isLoading) {
       console.log('🔍 [FEED] Detailed first 3 posts:', posts.slice(0, 3).map(p => ({
@@ -53,7 +54,7 @@ export function SimpleFeed() {
         }
       })));
     }
-  }, [posts, isLoading, error]);
+  }, [posts, uploadingPosts, isLoading, error]);
 
   // Convert Post to FlexPost
   const convertToFlexPost = (post: Post): FlexPost => {
@@ -67,6 +68,9 @@ export function SimpleFeed() {
       social_link: undefined,
       earnings_amount: undefined,
       token_address: post.token_mint || undefined,
+      token_symbol: post.token_symbol || undefined,
+      token_display_name: post.token_display_name || undefined,
+      token_is_verified: post.token_is_verified || false,
       verified: post.verified,
       likes_count: 0,
       comments_count: 0,
@@ -156,6 +160,12 @@ export function SimpleFeed() {
 
   return (
     <div className="space-y-6">
+      {/* Show uploading posts at the top */}
+      {uploadingPosts.map((uploadingPost) => (
+        <UploadingPostCard key={uploadingPost.tempId} post={uploadingPost} />
+      ))}
+
+      {/* Show regular posts */}
       {posts.map((post) => (
         <PostCard key={post.id} post={convertToFlexPost(post)} />
       ))}

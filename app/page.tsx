@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SimpleFeed } from '@/components/feed/SimpleFeed';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,28 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { FloatingWalletCTA } from '@/components/layout/FloatingWalletCTA';
 import { useTopCreators } from '@/hooks/useTopCreators';
 import { useWallet } from '@jup-ag/wallet-adapter';
+import { useEffect, Suspense } from 'react';
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { connected } = useWallet();
+
+  // Get newPost ID from URL if present
+  const newPostId = searchParams.get('newPost');
 
   // Fetch real top creators from Supabase
   const { data: creatorsData, isLoading: creatorsLoading } = useTopCreators(5);
+
+  // Clear the newPost query param after a delay (so animation can complete)
+  useEffect(() => {
+    if (newPostId) {
+      const timer = setTimeout(() => {
+        router.replace('/', { scroll: false });
+      }, 5000); // Clear after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [newPostId, router]);
 
   return (
     <AppLayout showWallet={true} showSearch={true}>
@@ -148,5 +163,13 @@ export default function HomePage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background-dark flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
+      <HomePageContent />
+    </Suspense>
   );
 }

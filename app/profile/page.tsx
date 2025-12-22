@@ -1,103 +1,123 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@jup-ag/wallet-adapter';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { WalletIcon } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabase';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { LoadingSpinner } from '@/components/ui/loading';
 
-function ProfilePageContent() {
+/**
+ * Profile redirect page
+ * Redirects to the user's profile based on their wallet address
+ * This handles the case where users click "My Profile" without a username
+ */
+export default function MyProfilePage() {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
 
-  // Redirect to username-based profile
   useEffect(() => {
-    if (!connected || !publicKey) {
-      return;
-    }
-
-    async function redirectToUserProfile() {
-      if (!supabase || !publicKey) return;
+    async function redirectToProfile() {
+      // If not connected, redirect to home
+      if (!connected || !publicKey) {
+        console.log('❌ Not connected, redirecting to home');
+        router.push('/');
+        return;
+      }
 
       try {
-        // Get user's username from wallet address
-        const { data: user, error } = await supabase
-          .from('users')
-          .select('username')
-          .eq('wallet_address', publicKey.toBase58())
-          .single();
+        const walletAddress = publicKey.toBase58();
+        console.log('🔍 [PROFILE REDIRECT] Looking up user for wallet:', walletAddress);
 
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // User doesn't exist yet, create one
-            const { data: newUser, error: createError } = await supabase
-              .from('users')
-              .insert({
-                wallet_address: publicKey.toBase58(),
-                username: `user_${publicKey.toBase58().substring(0, 8)}`,
-                display_name: `User ${publicKey.toBase58().substring(0, 8)}`,
-              })
-              .select('username')
-              .single();
-
-            if (createError) {
-              console.error('❌ Error creating user:', createError);
-              return;
-            }
-
-            // Redirect to new user's profile
-            router.replace(`/profile/${newUser.username}`);
-          } else {
-            console.error('❌ Error loading profile:', error);
-          }
+        if (!supabase) {
+          console.error('❌ [PROFILE REDIRECT] Supabase not configured');
+          router.push('/explore');
           return;
         }
 
-        // Redirect to user's profile
-        router.replace(`/profile/${user.username}`);
+        // AUTO-FIX: Try multiple times with delays to account for user creation
+        let user = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (!user && attempts < maxAttempts) {
+          attempts++;
+
+          // Wait before each attempt (longer for first attempt to let auto-creation finish)
+          await new Promise(resolve => setTimeout(resolve, attempts === 1 ? 1500 : 500));
+
+          console.log(`🔍 [PROFILE REDIRECT] Attempt ${attempts}/${maxAttempts}...`);
+
+          const { data, error } = await supabase
+            .from('users')
+            .select('username, id, created_at')
+            .eq('wallet_address', walletAddress)
+            .single();
+
+          if (data) {
+            user = data;
+            console.log('✅ [PROFILE REDIRECT] Found user on attempt', attempts);
+            break;
+          }
+
+          if (error && error.code !== 'PGRST116') {
+            // Real error, not just "not found"
+            console.error('❌ [PROFILE REDIRECT] Database error:', error);
+            break;
+          }
+        }
+
+        if (!user) {
+          console.error('❌ [PROFILE REDIRECT] User not found after', maxAttempts, 'attempts');
+          console.log('🔄 [PROFILE REDIRECT] Creating user now...');
+
+          // AUTO-CREATE: Try to create the user if they don't exist
+          try {
+            const createResponse = await fetch('/api/users/ensure', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ walletAddress })
+            });
+
+            const createData = await createResponse.json();
+
+            if (createData.success && createData.user) {
+              console.log('✅ [PROFILE REDIRECT] User created:', createData.user.username);
+              router.push(`/profile/${createData.user.username}`);
+              return;
+            }
+          } catch (createError) {
+            console.error('❌ [PROFILE REDIRECT] Failed to create user:', createError);
+          }
+
+          router.push('/explore');
+          return;
+        }
+
+        console.log('✅ [PROFILE REDIRECT] Found user:', {
+          username: user.username,
+          id: user.id,
+          created_at: user.created_at
+        });
+        console.log('🔄 [PROFILE REDIRECT] Redirecting to:', `/profile/${user.username}`);
+
+        // Store username for future use
+        sessionStorage.setItem('current_username', user.username);
+
+        // Redirect to their profile page
+        router.push(`/profile/${user.username}`);
       } catch (error) {
-        console.error('❌ Error redirecting to profile:', error);
+        console.error('❌ [PROFILE REDIRECT] Unexpected error:', error);
+        router.push('/explore');
       }
     }
 
-    redirectToUserProfile();
+    redirectToProfile();
   }, [connected, publicKey, router]);
 
-  if (!connected || !publicKey) {
-    return (
-      <AppLayout showWallet={true} showSearch={true}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <WalletIcon className="w-16 h-16 text-white/40 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Connect Your Wallet</h2>
-            <p className="text-white/70 mb-6">Please connect your wallet to view your profile</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Show loading while redirecting
   return (
-    <AppLayout showWallet={true} showSearch={true}>
-      <LoadingSpinner message="Loading your profile" submessage="Redirecting to your profile page..." />
+    <AppLayout showWallet={true} showSearch={false}>
+      <LoadingSpinner message="Loading your profile" submessage="Just a moment..." />
     </AppLayout>
-  );
-}
-
-// Wrapper component with Suspense boundary
-export default function ProfilePage() {
-  return (
-    <Suspense fallback={
-      <AppLayout showWallet={true} showSearch={true}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <LoadingSpinner message="Loading" submessage="Getting ready..." />
-        </div>
-      </AppLayout>
-    }>
-      <ProfilePageContent />
-    </Suspense>
   );
 }

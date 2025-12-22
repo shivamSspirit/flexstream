@@ -111,10 +111,18 @@ export async function POST(request: NextRequest) {
       console.log('Found existing user:', userId);
     } else {
       // Create new user with wallet address
-      // Generate unique username with timestamp to avoid collisions
-      const timestamp = Date.now().toString(36);
-      const walletPrefix = walletAddress.substring(0, 8).toLowerCase();
-      const generatedUsername = username || `${walletPrefix}_${timestamp}`;
+      // Generate clean, URL-friendly username (no underscores, no spaces)
+      const timestamp = Date.now().toString(36).toLowerCase();
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toLowerCase();
+      const generatedUsername = `user${timestamp}${randomSuffix}`;
+
+      const walletPrefix = walletAddress.substring(0, 4);
+
+      console.log('Creating new user with clean username:', {
+        wallet: walletAddress,
+        generatedUsername,
+        displayName: username || displayName || `User ${walletPrefix}`
+      });
 
       // Generate UUID for the user
       const { v4: uuidv4 } = await import('uuid');
@@ -125,8 +133,8 @@ export async function POST(request: NextRequest) {
         .insert({
           id: newUserId,
           wallet_address: walletAddress,
-          username: generatedUsername,
-          display_name: username || `User ${walletPrefix}`,
+          username: generatedUsername, // Clean, URL-friendly username
+          display_name: username || displayName || `User ${walletPrefix}`, // User's choice for display
         })
         .select('id')
         .single();
@@ -150,7 +158,12 @@ export async function POST(request: NextRequest) {
       }
 
       userId = newUser.id;
-      console.log('Created new user:', userId, 'username:', generatedUsername);
+      console.log('✅ Created new user:', {
+        userId,
+        username: generatedUsername,
+        displayName: username || displayName || `User ${walletPrefix}`,
+        wallet: walletAddress.substring(0, 8) + '...'
+      });
     }
 
     // 2. Upload media files to Supabase Storage
@@ -163,21 +176,51 @@ export async function POST(request: NextRequest) {
         const fileExt = fileName.includes('.') ? fileName.split('.').pop() : 'bin';
         const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-        console.log(`Processing: ${fileName}`);
+        console.log(`📤 Processing file: ${fileName} (${file.size} bytes, type: ${file.type})`);
 
-        // Next.js 14 FormData File handling - direct upload without conversion
-        // Supabase accepts File objects directly
-        const { error: uploadError } = await supabase.storage
-          .from('post-media')
-          .upload(`${uniqueFileName}`, file, {
-            contentType: file.type || 'application/octet-stream',
-            cacheControl: '3600',
-            upsert: false
-          });
+        // Convert File to ArrayBuffer for better compatibility
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        console.log(`✅ File converted to buffer, uploading to Supabase storage...`);
+
+        // Upload to Supabase Storage with retry logic
+        let uploadError: any = null;
+        let retries = 3;
+
+        while (retries > 0) {
+          const { error } = await supabase.storage
+            .from('post-media')
+            .upload(uniqueFileName, buffer, {
+              contentType: file.type || 'image/png',
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          uploadError = error;
+
+          if (!error) {
+            console.log(`✅ Successfully uploaded: ${uniqueFileName}`);
+            break;
+          }
+
+          retries--;
+          if (retries > 0) {
+            console.log(`⚠️ Upload failed, retrying... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error(`Failed to upload ${fileName}: ${uploadError.message}`);
+          console.error('❌ Upload error after retries:', {
+            message: uploadError.message,
+            name: uploadError.name,
+            cause: uploadError.cause,
+            fileName,
+            fileSize: file.size,
+            fileType: file.type
+          });
+          throw new Error(`Failed to upload ${fileName}: ${uploadError.message || 'Unknown error'}`);
         }
 
         // Get public URL
@@ -263,7 +306,7 @@ export async function POST(request: NextRequest) {
       // Continue anyway - token is already created
     }
 
-    // 6. Save post to database
+    // 6. Save post to database WITH user data (for cache)
     console.log('Saving post to database...');
 
     const { data: post, error: postError } = await supabase
@@ -290,7 +333,16 @@ export async function POST(request: NextRequest) {
         verified: false,
         created_at: new Date().toISOString(),
       })
-      .select()
+      .select(`
+        *,
+        users!inner (
+          id,
+          username,
+          display_name,
+          avatar_url,
+          wallet_address
+        )
+      `)
       .single();
 
     if (postError) {
@@ -369,36 +421,12 @@ export async function POST(request: NextRequest) {
       isVerified: isFirstWithDisplayName
     });
 
-    // 8. Return success response
+    // 8. Return success response with FULL post data (including users)
     return NextResponse.json({
       success: true,
       data: {
         signature: tokenResult.signature,
-        post: {
-          id: post.id,
-          user_id: post.user_id,
-          type: post.type,
-          title: post.title,
-          content: post.content,
-          media_urls: post.media_urls,
-          token_mint: post.token_mint,
-          token_symbol: post.token_symbol,
-          token_name: post.token_name,
-          pool_address: post.pool_address,
-          bonding_curve_address: post.bonding_curve_address,
-          token_metadata_uri: post.token_metadata_uri,
-          token_signature: post.token_signature,
-          is_token_tradable: post.is_token_tradable,
-          verified: post.verified,
-          created_at: post.created_at,
-          users: userData ? {
-            id: userData.id,
-            username: userData.username,
-            display_name: userData.display_name,
-            avatar_url: userData.avatar_url,
-            wallet_address: userData.wallet_address,
-          } : undefined,
-        },
+        post: post, // Return the complete post object with users field included from the join
         token: {
           mint: tokenResult.mint.toBase58(),
           symbol: uniqueSymbol, // Unique auto-generated symbol

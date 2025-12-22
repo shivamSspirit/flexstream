@@ -44,15 +44,6 @@ export default function NavigationPage() {
         { name: "Edit Profile", path: "/profile/edit", description: "Update your profile info", icon: CogIcon, color: "text-cyan-400" },
       ]
     },
-          {
-            category: "Pump.fun Integration",
-            routes: [
-              { name: "Live Streams", path: "/streams", description: "Watch live Pump.fun trading streams", icon: SignalIcon, color: "text-green-400" },
-              { name: "Debug API", path: "/debug-pump-fun", description: "Debug Pump.fun API with console logs", icon: SignalIcon, color: "text-yellow-400" },
-              { name: "API Test", path: "/api/pump-fun/test", description: "Test Pump.fun API connection", icon: SignalIcon, color: "text-blue-400" },
-              { name: "Generate Token", path: "/api/auth/pump-fun-token", description: "Generate JWT token for API access", icon: SignalIcon, color: "text-purple-400" },
-            ]
-          }
   ];
 
   return (

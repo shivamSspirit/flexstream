@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useInvalidatePosts, useAddPostToCache, Post } from '@/hooks/usePosts';
+import { useUploadingPosts, UploadingPost } from '@/hooks/useUploadingPosts';
 import {
   PhotoIcon,
   SparklesIcon,
@@ -33,6 +34,7 @@ export default function CreatePage() {
   const { connected, publicKey } = useWallet();
   const invalidatePosts = useInvalidatePosts();
   const addPostToCache = useAddPostToCache();
+  const { addUploadingPost, updateUploadingPost, removeUploadingPost } = useUploadingPosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Simplified form state - ONLY essentials
@@ -44,8 +46,7 @@ export default function CreatePage() {
 
   // Creation state
   const [isCreating, setIsCreating] = useState(false);
-  const [progress, setProgress] = useState('');
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [currentTempId, setCurrentTempId] = useState<string | null>(null);
 
   // Real-time stats for FOMO - initialized after mount to avoid hydration errors
   const [stats, setStats] = useState({
@@ -92,7 +93,7 @@ export default function CreatePage() {
     toast.success('Image uploaded! 🎉');
   };
 
-  // Handle token creation
+  // Handle token creation with optimistic UI
   const handleCreate = async () => {
     if (!connected || !publicKey) {
       toast.error('Please connect your wallet first');
@@ -110,9 +111,59 @@ export default function CreatePage() {
     }
 
     setIsCreating(true);
-    setProgress('Uploading image...');
+
+    // Generate temp ID for this upload
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setCurrentTempId(tempId);
+
+    // Create optimistic post object
+    const optimisticPost: UploadingPost = {
+      tempId,
+      user_id: 'temp-user',
+      type: 'earnings_flex',
+      title: title || ticker,
+      content: description || `Launch of $${ticker}`,
+      media_urls: [],
+      preview_url: imagePreview, // Use the preview URL
+      token_mint: null,
+      token_symbol: ticker.toUpperCase(),
+      token_name: title || ticker,
+      token_display_name: title || ticker,
+      token_is_verified: false,
+      pool_address: null,
+      bonding_curve_address: null,
+      token_metadata_uri: null,
+      token_signature: null,
+      is_token_tradable: false,
+      verified: false,
+      users: {
+        id: 'temp-user',
+        username: 'user',
+        display_name: 'You',
+        avatar_url: null,
+        wallet_address: publicKey.toBase58(),
+      },
+      uploadProgress: 0,
+      uploadStage: 'uploading',
+    };
+
+    // Add to feed immediately!
+    console.log('🚀 [CREATE] Adding optimistic post to feed:', tempId);
+    addUploadingPost(optimisticPost);
+
+    // Navigate to feed immediately so user sees their post at the top
+    router.push('/');
 
     try {
+      // Stage 1: Uploading (0-33%)
+      updateUploadingPost(tempId, { uploadProgress: 5, uploadStage: 'uploading' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      updateUploadingPost(tempId, { uploadProgress: 15 });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      updateUploadingPost(tempId, { uploadProgress: 25 });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      updateUploadingPost(tempId, { uploadProgress: 33 });
+
       // Create FormData
       const formData = new FormData();
       formData.append('title', title || ticker);
@@ -122,12 +173,15 @@ export default function CreatePage() {
       formData.append('username', 'user');
       formData.append('media', imageFile);
 
-      setProgress('Creating token on Solana...');
+      // Stage 2: Creating Post (33-66%)
+      updateUploadingPost(tempId, { uploadProgress: 40, uploadStage: 'creating_post' });
 
       const response = await fetch('/api/posts/create', {
         method: 'POST',
         body: formData,
       });
+
+      updateUploadingPost(tempId, { uploadProgress: 55 });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -140,30 +194,45 @@ export default function CreatePage() {
         throw new Error(result.error || 'Failed to create token');
       }
 
-      // Backend-only flow: Token already created and saved!
-      // No user signature required - platform keypair handles everything
-      setProgress('Token created on Solana! ✓');
+      updateUploadingPost(tempId, { uploadProgress: 66 });
 
-      // SUCCESS! Show confetti
-      setShowConfetti(true);
-      setProgress(`🎉 $${ticker} launched successfully!`);
+      // Stage 3: Creating Token (66-100%)
+      updateUploadingPost(tempId, {
+        uploadProgress: 75,
+        uploadStage: 'creating_token',
+      });
 
+      await new Promise(resolve => setTimeout(resolve, 500));
+      updateUploadingPost(tempId, { uploadProgress: 85 });
+      await new Promise(resolve => setTimeout(resolve, 500));
+      updateUploadingPost(tempId, { uploadProgress: 95 });
+
+      // Complete!
       const postData = result.data.post;
       const tokenMint = result.data.token.mint;
       const explorerUrl = result.data.tokenExplorerUrl;
 
-      // INSTANT VISIBILITY: Add post to cache immediately (optimistic update)
-      console.log('✨ Adding post to cache optimistically...', { postId: postData.id, title: postData.title });
-      addPostToCache(postData as Post);
+      updateUploadingPost(tempId, {
+        uploadProgress: 100,
+        uploadStage: 'complete',
+      });
 
-      // Also invalidate to fetch fresh data in background
-      console.log('🔄 Invalidating posts cache for fresh data...');
-      invalidatePosts();
+      console.log('✨ [CREATE] Post creation complete!', { postId: postData.id, title: postData.title });
 
-      // Show success message with explorer link
+      // Add the new post to the feed cache immediately
+      console.log('📝 [CREATE] Adding post to feed cache:', postData);
+      addPostToCache(postData);
+
+      // Remove the uploading post now that the real post is in the cache
+      console.log('🗑️ [CREATE] Removing uploading post:', tempId);
+      setTimeout(() => {
+        removeUploadingPost(tempId);
+      }, 1000); // Small delay so user sees the completion state
+
+      // Show success toast with explorer link
       toast.success(
         <div className="flex flex-col gap-2">
-          <div className="font-bold">🎉 Token Created Successfully!</div>
+          <div className="font-bold">🎉 Token Launched!</div>
           <div className="text-sm">
             <div className="mb-2">Token: ${ticker}</div>
             <div className="mb-2 font-mono text-xs truncate">{tokenMint}</div>
@@ -174,53 +243,50 @@ export default function CreatePage() {
               className="text-blue-400 hover:text-blue-300 underline"
               onClick={(e) => e.stopPropagation()}
             >
-              View on Solana Explorer →
+              View on Explorer →
             </a>
           </div>
         </div>,
         { duration: 10000 }
       );
 
-      // Also show in console for easy access
-      console.log('🎉 Token Created!');
-      console.log('Token Mint:', tokenMint);
-      console.log('Explorer URL:', explorerUrl);
+      console.log('✅ [CREATE] Post successfully added to feed!');
 
-      // Navigate to home immediately - post is already in cache!
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-    } catch (error) {
-      console.error('Error creating token:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create token');
+      // Step 5: Reset form state
       setIsCreating(false);
-      setProgress('');
+      setCurrentTempId(null);
+
+      // Reset form
+      setImageFile(null);
+      setImagePreview('');
+      setTicker('');
+      setTitle('');
+      setDescription('');
+
+    } catch (error) {
+      console.error('❌ [CREATE] Error creating token:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create token';
+
+      updateUploadingPost(tempId, {
+        uploadProgress: 0,
+        uploadStage: 'error',
+        error: errorMessage,
+      });
+
+      toast.error(errorMessage);
+
+      // Auto-remove failed post after delay
+      setTimeout(() => {
+        removeUploadingPost(tempId);
+        setIsCreating(false);
+        setCurrentTempId(null);
+      }, 5000);
     }
   };
 
   return (
     <AppLayout showWallet={true} showSearch={false}>
       <div className="min-h-screen pb-20 md:pb-10 relative">
-        {/* Confetti effect */}
-        {showConfetti && (
-          <div className="fixed inset-0 pointer-events-none z-50">
-            {[...Array(50)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute animate-confetti"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: '-10%',
-                  animationDelay: `${Math.random() * 0.5}s`,
-                  animationDuration: `${2 + Math.random() * 1}s`,
-                }}
-              >
-                {['🎉', '🚀', '💰', '⭐', '🔥'][Math.floor(Math.random() * 5)]}
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="max-w-7xl mx-auto pt-2 sm:pt-4 md:pt-6">
           {/* Hero Section */}
           <div className="text-center mb-8">
@@ -363,17 +429,10 @@ export default function CreatePage() {
                   disabled={!imageFile || !ticker || ticker.length < 3 || !connected || isCreating}
                   className="relative w-full bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black text-xl py-8 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {isCreating ? (
-                    <span className="flex items-center gap-3">
-                      <div className="w-6 h-6 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                      {progress}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-3">
-                      <RocketLaunchIcon className="w-6 h-6" />
-                      Post & Earn
-                    </span>
-                  )}
+                  <span className="flex items-center gap-3 justify-center">
+                    <RocketLaunchIcon className={`w-6 h-6 ${isCreating ? 'animate-bounce' : ''}`} />
+                    {isCreating ? 'Creating...' : 'Post & Earn'}
+                  </span>
                 </Button>
               </div>
 
@@ -472,23 +531,6 @@ export default function CreatePage() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes confetti {
-          0% {
-            transform: translateY(-10vh) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(110vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        .animate-confetti {
-          animation: confetti linear infinite;
-          font-size: 2rem;
-        }
-      `}</style>
     </AppLayout>
   );
 }

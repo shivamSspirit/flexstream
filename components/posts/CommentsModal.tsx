@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageCircle, Lock } from 'lucide-react';
+import { MessageCircle, Lock, Send } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { PostComments } from './PostComments';
+import { useComments } from '@/hooks/useComments';
+import { useWallet } from '@jup-ag/wallet-adapter';
 
 interface CommentsModalProps {
   isOpen: boolean;
@@ -14,7 +16,19 @@ interface CommentsModalProps {
 }
 
 export function CommentsModal({ isOpen, onClose, postId, commentsCount }: CommentsModalProps) {
-  const [hasComments, setHasComments] = useState(commentsCount > 0);
+  const { publicKey } = useWallet();
+  const userId = publicKey?.toBase58();
+  const [commentText, setCommentText] = useState('');
+
+  const { comments, addComment, isAddingComment } = useComments(postId);
+  const hasComments = comments.length > 0;
+
+  const handleSubmitComment = () => {
+    if (!userId || !commentText.trim()) return;
+
+    addComment({ userId, content: commentText });
+    setCommentText(''); // Clear input after submit
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,17 +76,34 @@ export function CommentsModal({ isOpen, onClose, postId, commentsCount }: Commen
           <div className="relative">
             <input
               type="text"
-              placeholder="Add a comment..."
-              disabled
-              className="w-full px-4 py-3 sm:py-3.5 bg-white/5 border-2 border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-purple/50 focus:ring-2 focus:ring-accent-purple/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              placeholder={userId ? "Add a comment..." : "Connect wallet to comment"}
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmitComment();
+                }
+              }}
+              disabled={!userId || isAddingComment}
+              className="w-full px-4 py-3 sm:py-3.5 pr-12 bg-white/5 border-2 border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 focus:ring-2 focus:ring-accent-cyan/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 sm:gap-2">
-              <div className="p-1.5 sm:p-2 bg-accent-purple/20 rounded-lg">
-                <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-accent-purple" />
+            {userId && (
+              <Button
+                onClick={handleSubmitComment}
+                disabled={!commentText.trim() || isAddingComment}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 bg-accent-cyan hover:bg-accent-cyan/90 text-black rounded-lg disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
+            {!userId && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 sm:gap-2">
+                <div className="p-1.5 sm:p-2 bg-accent-purple/20 rounded-lg">
+                  <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-accent-purple" />
+                </div>
               </div>
-              <span className="text-xs font-bold text-accent-purple hidden sm:inline">Become a holder</span>
-              <span className="text-xs font-bold text-accent-purple sm:hidden">🔒 Holder only</span>
-            </div>
+            )}
           </div>
         </div>
       </DialogContent>

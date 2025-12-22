@@ -63,28 +63,88 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if user exists
-    console.log('Finding user by wallet...');
-    const { data: user, error: userError } = await supabase
+    // Find or create user by wallet address (same logic as post creation)
+    console.log('Finding or creating user...');
+    let userId: string;
+    let existingUser: any = null;
+
+    const { data: foundUser } = await supabase
       .from('users')
       .select('id, username, display_name, avatar_url, creator_coin_enabled')
       .eq('wallet_address', walletAddress)
       .single();
 
-    if (userError || !user) {
-      return NextResponse.json({
-        success: false,
-        error: 'User not found',
-      }, { status: 404 });
+    if (foundUser) {
+      // User exists - check if coin already activated
+      if (foundUser.creator_coin_enabled) {
+        return NextResponse.json({
+          success: false,
+          error: 'Creator coin already activated',
+        }, { status: 400 });
+      }
+
+      userId = foundUser.id;
+      existingUser = foundUser;
+      console.log('Found existing user:', userId);
+    } else {
+      // User doesn't exist - create new user with wallet address
+      console.log('User not found, creating new user...');
+
+      // Generate unique username based on wallet to avoid collisions
+      const timestamp = Date.now().toString(36);
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const walletPrefix = walletAddress.substring(0, 6).toLowerCase();
+
+      // Use provided username or generate one
+      const generatedUsername = username || `${walletPrefix}_${timestamp}_${randomSuffix}`;
+
+      console.log('Creating new user with username:', {
+        wallet: walletAddress,
+        generatedUsername,
+        displayName: displayName || `User ${walletPrefix}`
+      });
+
+      // Generate UUID for the user
+      const { v4: uuidv4 } = await import('uuid');
+      const newUserId = uuidv4();
+
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({
+          id: newUserId,
+          wallet_address: walletAddress,
+          username: generatedUsername,
+          display_name: displayName || `User ${walletPrefix}`,
+          bio: bio || '',
+          avatar_url: avatarUrl || null,
+          verified_earnings: 0,
+          success_tier: 'bronze',
+          total_followers: 0,
+          total_following: 0,
+        })
+        .select('id, username, display_name, avatar_url, creator_coin_enabled')
+        .single();
+
+      if (createError || !newUser) {
+        console.error('Failed to create user:', createError);
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to create user account',
+          details: createError?.message || 'Unknown error',
+        }, { status: 500 });
+      }
+
+      userId = newUser.id;
+      existingUser = newUser;
+      console.log('✅ Created new user:', {
+        userId,
+        username: generatedUsername,
+        displayName: displayName || `User ${walletPrefix}`,
+        wallet: walletAddress.substring(0, 8) + '...'
+      });
     }
 
-    // Check if creator coin already activated
-    if (user.creator_coin_enabled) {
-      return NextResponse.json({
-        success: false,
-        error: 'Creator coin already activated',
-      }, { status: 400 });
-    }
+    const user = existingUser;
 
     // Initialize DBC client
     const dbcClient = new MeteoraDBCClient(connection);

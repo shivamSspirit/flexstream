@@ -213,19 +213,21 @@ export class UserService {
   // ============================================================================
 
   /**
-   * Generates a username from wallet address
-   * Keeps it simple and readable
+   * Generates a clean, URL-friendly username
+   * Format: user{timestamp}{random} - example: user1a2b3c4d5e
+   * No underscores, no spaces, all lowercase
    */
   private generateUsername(walletAddress: string): string {
-    const shortAddress = walletAddress.slice(0, 8);
-    return `user_${shortAddress}`;
+    const timestamp = Date.now().toString(36).toLowerCase();
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toLowerCase();
+    return `user${timestamp}${randomSuffix}`;
   }
 
   /**
    * Generates a display name from wallet address
    */
   private generateDisplayName(walletAddress: string): string {
-    const shortAddress = walletAddress.slice(0, 6);
+    const shortAddress = walletAddress.slice(0, 4);
     return `User ${shortAddress}`;
   }
 

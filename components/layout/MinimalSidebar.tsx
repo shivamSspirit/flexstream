@@ -31,7 +31,7 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
   const { publicKey, connected } = useWallet();
   const [unreadNotifications] = useState(1);
 
-  // Fetch current user data
+  // Fetch current user data with real-time updates
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser', publicKey?.toBase58()],
     queryFn: async () => {
@@ -42,6 +42,8 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
       return result.success ? result.data : null;
     },
     enabled: !!publicKey && connected,
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    staleTime: 1000, // Consider data stale after 1 second for faster updates
   });
 
   const isActive = (path: string) => pathname === path;

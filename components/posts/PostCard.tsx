@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Share, MoreHorizontal } from 'lucide-react';
+import { MessageCircle, Share, MoreHorizontal, Heart } from 'lucide-react';
+import { useLike } from '@/hooks/useLike';
+import { useWallet } from '@jup-ag/wallet-adapter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,8 +26,14 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const router = useRouter();
+  const { publicKey } = useWallet();
+  const userId = publicKey?.toBase58();
+
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  // Like functionality with real-time updates
+  const { liked, toggleLike, isLoading: isLiking } = useLike(post.id, userId);
 
   const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${post.id}`;
 
@@ -223,6 +231,19 @@ export function PostCard({ post }: PostCardProps) {
                 <span className="font-bold text-sm sm:text-base">$--</span>
               </div>
             )}
+
+            {/* Like Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleLike()}
+              disabled={isLiking || !userId}
+              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0 transition-all ${
+                liked ? 'text-red-500' : 'text-text-secondary'
+              }`}
+            >
+              <Heart className={`h-4 w-4 sm:h-5 sm:w-5 transition-all ${liked ? 'fill-current' : ''}`} />
+            </Button>
 
             {/* Comment Button */}
             <Button

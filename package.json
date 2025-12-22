@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:generate": "supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/database.types.ts"
+    "db:generate": "supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/database.types.ts",
+    "migrate:usernames": "node scripts/migrate-usernames.js",
+    "debug:profile": "node scripts/debug-profile-route.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

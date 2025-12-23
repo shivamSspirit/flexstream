@@ -60,34 +60,27 @@ export default function VerificationPage() {
   }, [connected, loading]);
 
   const fetchVerificationRequests = async () => {
-    if (!connected) return;
+    if (!connected || !publicKey || !supabase) return;
 
     try {
       setLoading(true);
-      // Mock data - in real app, fetch from verification_requests table
-      const mockRequests: VerificationRequest[] = [
-        {
-          id: '1',
-          type: 'pump_fun',
-          status: 'approved',
-          amount: 2500,
-          token_address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-          screenshot_url: '/api/placeholder/400/300',
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          reviewed_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-          notes: 'Verified token trade on Solana'
-        },
-        {
-          id: '2',
-          type: 'earnings',
-          status: 'pending',
-          amount: 1200,
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        }
-      ];
-      setRequests(mockRequests);
+
+      // Fetch real verification requests from database
+      const { data, error } = await supabase
+        .from('verification_requests')
+        .select('*')
+        .eq('wallet_address', publicKey.toString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching verification requests:', error);
+        setRequests([]);
+      } else {
+        setRequests(data || []);
+      }
     } catch (error) {
       console.error('Error fetching verification requests:', error);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -102,35 +95,55 @@ export default function VerificationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!connected) return;
+    if (!connected || !publicKey || !supabase) return;
 
     try {
       setSubmitting(true);
-      
+
       // Upload screenshot if provided
       let screenshotUrl = '';
       if (screenshot) {
-        const formData = new FormData();
-        formData.append('file', screenshot);
-        // In real app, upload to Supabase Storage
-        screenshotUrl = '/api/placeholder/400/300';
+        // Upload to Supabase Storage
+        const fileExt = screenshot.name.split('.').pop();
+        const fileName = `${publicKey.toString()}-${Date.now()}.${fileExt}`;
+        const filePath = `verification-screenshots/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('verification-screenshots')
+          .upload(filePath, screenshot);
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('verification-screenshots')
+            .getPublicUrl(filePath);
+          screenshotUrl = publicUrl;
+        }
       }
 
-      // Create verification request
-      const newRequest: VerificationRequest = {
-        id: Date.now().toString(),
-        type: verificationType,
-        status: 'pending',
-        amount: amount ? parseFloat(amount) : undefined,
-        token_address: tokenAddress || undefined,
-        wallet_address: walletAddress || undefined,
-        screenshot_url: screenshotUrl || undefined,
-        created_at: new Date().toISOString(),
-        notes: notes || undefined,
-      };
+      // Create verification request in database
+      const { data, error } = await supabase
+        .from('verification_requests')
+        .insert({
+          type: verificationType,
+          status: 'pending',
+          amount: amount ? parseFloat(amount) : null,
+          token_address: tokenAddress || null,
+          wallet_address: publicKey.toString(),
+          screenshot_url: screenshotUrl || null,
+          notes: notes || null,
+        })
+        .select()
+        .single();
 
-      setRequests(prev => [newRequest, ...prev]);
-      
+      if (error) {
+        console.error('Error creating verification request:', error);
+        alert('Failed to submit verification request');
+        return;
+      }
+
+      // Refresh the list
+      await fetchVerificationRequests();
+
       // Reset form
       setAmount('');
       setTokenAddress('');
@@ -138,9 +151,10 @@ export default function VerificationPage() {
       setNotes('');
       setScreenshot(null);
       setActiveTab('status');
-      
+
     } catch (error) {
       console.error('Error submitting verification:', error);
+      alert('An error occurred while submitting');
     } finally {
       setSubmitting(false);
     }

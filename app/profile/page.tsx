@@ -31,7 +31,7 @@ export default function MyProfilePage() {
 
         if (!supabase) {
           console.error('❌ [PROFILE REDIRECT] Supabase not configured');
-          router.push('/explore');
+          router.push('/profile/edit');
           return;
         }
 
@@ -90,7 +90,7 @@ export default function MyProfilePage() {
             console.error('❌ [PROFILE REDIRECT] Failed to create user:', createError);
           }
 
-          router.push('/explore');
+          router.push('/profile/edit');
           return;
         }
 
@@ -108,7 +108,7 @@ export default function MyProfilePage() {
         router.push(`/profile/${user.username}`);
       } catch (error) {
         console.error('❌ [PROFILE REDIRECT] Unexpected error:', error);
-        router.push('/explore');
+        router.push('/profile/edit');
       }
     }
 

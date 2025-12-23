@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useWallet } from '@jup-ag/wallet-adapter';
+import { useQuery } from '@tanstack/react-query';
 import { Home, Search, Plus, User, TrendingUp, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,14 +10,30 @@ import { Badge } from '@/components/ui/badge';
 export function DesktopSidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { publicKey, connected } = useWallet();
+
+  // Fetch current user data
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser', publicKey?.toBase58()],
+    queryFn: async () => {
+      if (!publicKey) return null;
+      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
+      if (!response.ok) return null;
+      const result = await response.json();
+      return result.success ? result.data : null;
+    },
+    enabled: !!publicKey && connected,
+    refetchOnWindowFocus: true,
+    staleTime: 1000,
+  });
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/', active: pathname === '/' },
-    { icon: Search, label: 'Search', path: '/search', active: pathname === '/search' },
+    { icon: Search, label: 'Explore', path: '/explore', active: pathname === '/explore' },
     { icon: Plus, label: 'Create', path: '/create', active: pathname === '/create' },
     { icon: TrendingUp, label: 'Leaderboard', path: '/leaderboard', active: pathname === '/leaderboard' },
     { icon: Users, label: 'Discover', path: '/discover', active: pathname === '/discover' },
-    { icon: User, label: 'Profile', path: '/profile', active: pathname.startsWith('/profile') },
+    { icon: User, label: 'Profile', path: currentUser?.username ? `/profile/${currentUser.username}` : '/profile/edit', active: pathname.startsWith('/profile') },
     { icon: Settings, label: 'Settings', path: '/settings', active: pathname === '/settings' },
   ];
 

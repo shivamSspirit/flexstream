@@ -22,13 +22,10 @@ export function TradingInterface({ walletAddress }: TradingInterfaceProps) {
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState('SOL');
   const [isBuying, setIsBuying] = useState(true);
+  const [tokens, setTokens] = useState<Array<{ symbol: string; name: string; price: number; change: number }>>([]);
 
-  const mockTokens = [
-    { symbol: 'SOL', name: 'Solana', price: 98.45, change: 2.34 },
-    { symbol: 'BONK', name: 'Bonk', price: 0.000012, change: -5.67 },
-    { symbol: 'WIF', name: 'Dogwifhat', price: 2.34, change: 8.91 },
-    { symbol: 'PEPE', name: 'Pepe', price: 0.0000012, change: 12.45 },
-  ];
+  // TODO: Fetch real token prices from Jupiter API or similar
+  // Example: useEffect(() => { fetchTokenPrices(); }, []);
 
   const handleTrade = () => {
     if (!amount || !walletAddress) {
@@ -89,7 +86,7 @@ export function TradingInterface({ walletAddress }: TradingInterfaceProps) {
           <div>
             <label className="text-white font-medium block mb-2">Select Token</label>
             <div className="grid grid-cols-2 gap-2">
-              {mockTokens.map((token) => (
+              {tokens.map((token) => (
                 <button
                   key={token.symbol}
                   onClick={() => setSelectedToken(token.symbol)}
@@ -175,7 +172,7 @@ export function TradingInterface({ walletAddress }: TradingInterfaceProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {mockTokens.map((token) => (
+            {tokens.map((token) => (
               <div key={token.symbol} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">

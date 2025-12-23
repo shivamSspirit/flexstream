@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import {
@@ -19,10 +19,23 @@ import { cn } from '@/lib/utils';
 
 type ViewMode = 'grid' | 'list';
 
+interface Post {
+  id: string;
+  image: string;
+  title: string;
+  username: string;
+  currentPrice: string;
+  floorPrice: string;
+  holders: number;
+  time: string;
+}
+
 export default function DiscoverPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('featured');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Zora-style filter tabs
   const tabs = [
@@ -37,99 +50,67 @@ export default function DiscoverPage() {
     { id: 'new', label: 'New', icon: SparklesIcon },
   ];
 
-  // Mock data matching Zora's explore page
-  const posts = [
-    {
-      id: '1',
-      image: 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
-      title: 'frame',
-      username: 'galeano',
-      currentPrice: '$26.24',
-      floorPrice: '$1.35',
-      holders: 4,
-      time: '52s'
-    },
-    {
-      id: '2',
-      image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop',
-      title: 'work',
-      username: 'ohde',
-      currentPrice: '$96.47',
-      floorPrice: '$1.20',
-      holders: 4,
-      time: '3m'
-    },
-    {
-      id: '3',
-      image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=400&fit=crop',
-      title: 'Wickedly Juicy',
-      username: 'cryptochef79',
-      currentPrice: '$147.59',
-      floorPrice: '$1.44',
-      holders: 3,
-      time: '6m'
-    },
-    {
-      id: '4',
-      image: 'https://images.unsplash.com/photo-1579762715118-a6f1d4b934f1?w=400&h=400&fit=crop',
-      title: 'shitpost 48',
-      username: 'china666cabj',
-      currentPrice: '$7.75',
-      floorPrice: '$1.43',
-      holders: 3,
-      time: '8m'
-    },
-    {
-      id: '5',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop',
-      title: 'Sadprt x EQ',
-      username: 'sadprt',
-      currentPrice: '$2k',
-      floorPrice: '$143.47',
-      holders: 11,
-      time: '10m'
-    },
-    {
-      id: '6',
-      image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=400&fit=crop',
-      title: 'Sugar Cookies',
-      username: 'baranbakery',
-      currentPrice: '$271.75',
-      floorPrice: '$5.06',
-      holders: 4,
-      time: '12m'
-    },
-    {
-      id: '7',
-      image: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&h=400&fit=crop',
-      title: 'Padel Tournament',
-      username: 'lemongab',
-      currentPrice: '$144.95',
-      floorPrice: '$3.37',
-      holders: 3,
-      time: '15m'
-    },
-    {
-      id: '8',
-      image: 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
-      title: 'A Midsummer Night',
-      username: 'dreameincarnate',
-      currentPrice: '$89.75',
-      floorPrice: '$1.89',
-      holders: 3,
-      time: '32m'
-    },
-    {
-      id: '9',
-      image: 'https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?w=400&h=400&fit=crop',
-      title: 'lexluther',
-      username: 'pissingonplaid',
-      currentPrice: '$174.94',
-      floorPrice: '$3.59',
-      holders: 3,
-      time: '35m'
-    },
-  ];
+  // Fetch real posts from API
+  useEffect(() => {
+    async function fetchPosts() {
+      setLoading(true);
+
+      try {
+        const response = await fetch(`/api/posts?tab=${activeTab}&limit=50`);
+        const data = await response.json();
+
+        if (data.success && data.data.posts) {
+          const realPosts: Post[] = data.data.posts.map((post: any) => ({
+            id: post.id,
+            image: post.media_urls?.[0] || 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
+            title: post.title || post.content?.substring(0, 30) || 'Untitled',
+            username: post.users?.username || 'anonymous',
+            // TODO: Fetch real token prices from API
+            currentPrice: post.token_price ? `$${post.token_price.toFixed(2)}` : '$0.00',
+            floorPrice: post.token_floor_price ? `$${post.token_floor_price.toFixed(2)}` : '$0.00',
+            holders: post.token_holders || 0,
+            time: formatTimeAgo(post.created_at),
+          }));
+
+          setPosts(realPosts);
+        } else {
+          setPosts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setPosts([]);
+      }
+
+      setLoading(false);
+    }
+
+    fetchPosts();
+  }, [activeTab]);
+
+  function formatTimeAgo(date: string) {
+    const now = new Date();
+    const postDate = new Date(date);
+    const seconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+  }
+
+  if (loading) {
+    return (
+      <AppLayout showWallet={true} showSearch={true}>
+        <div className="max-w-[1600px] mx-auto px-6 pb-20 md:pb-0">
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <p className="text-white/50 text-sm">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout showWallet={true} showSearch={true}>

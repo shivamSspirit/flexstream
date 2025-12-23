@@ -816,3 +816,19 @@
     overflow: hidden;
   }
 }
+
+/* Shine animation for BUY button - Nikita Bier viral effect */
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .animate-shine {
+    animation: shine 0.6s;
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@/hooks/useWalletCompat';
 
 export function useWalletLink() {
   const { publicKey, connected } = useWallet();

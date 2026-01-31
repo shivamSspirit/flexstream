@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@jup-ag/wallet-adapter';
-// Solana imports no longer needed - backend handles everything
+import { useWallet } from '@/hooks/useWalletCompat';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useInvalidatePosts, useAddPostToCache, Post } from '@/hooks/usePosts';
+import { useAddPostToCache } from '@/hooks/usePosts';
+import { useInvalidateUserStats } from '@/hooks/useUserStats';
 import { useUploadingPosts, UploadingPost } from '@/hooks/useUploadingPosts';
 import {
   PhotoIcon,
@@ -17,59 +17,33 @@ import {
   FireIcon,
   TrophyIcon,
   UserGroupIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
-
-/**
- * NIKITA BIER STRATEGY:
- * 1. Simplicity - Only 2 required fields: Image + Ticker
- * 2. Instant feedback - Real-time preview as you type
- * 3. Social proof - Show success stories and stats
- * 4. FOMO - Show recent launches and potential earnings
- * 5. Instant gratification - Celebrate every action
- */
+import { usePlatformStats } from '@/hooks/usePlatformStats';
 
 export default function CreatePage() {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
-  const invalidatePosts = useInvalidatePosts();
+  const invalidateUserStats = useInvalidateUserStats();
   const addPostToCache = useAddPostToCache();
   const { addUploadingPost, updateUploadingPost, removeUploadingPost } = useUploadingPosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Simplified form state - ONLY essentials
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [ticker, setTicker] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-
-  // Creation state
   const [isCreating, setIsCreating] = useState(false);
   const [currentTempId, setCurrentTempId] = useState<string | null>(null);
 
-  // Real-time stats for FOMO - initialized after mount to avoid hydration errors
-  const [stats, setStats] = useState({
-    recentLaunches: 0,
-    activeTraders: 0,
-    avgFirstDay: '$0',
-  });
+  const { data: platformStats } = usePlatformStats();
 
-  // Generate stats on client side only
-  useEffect(() => {
-    setStats({
-      recentLaunches: Math.floor(Math.random() * 50) + 20,
-      activeTraders: Math.floor(Math.random() * 500) + 200,
-      avgFirstDay: `$${(Math.random() * 500 + 100).toFixed(0)}`,
-    });
-  }, []);
-
-  // Handle image selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
@@ -83,17 +57,14 @@ export default function CreatePage() {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
 
-    // Auto-suggest ticker from filename (simplified UX)
     if (!ticker) {
       const name = file.name.split('.')[0].toUpperCase().slice(0, 6);
       setTicker(name);
     }
 
-    // Instant gratification!
-    toast.success('Image uploaded! 🎉');
+    toast.success('Image uploaded!');
   };
 
-  // Handle token creation with optimistic UI
   const handleCreate = async () => {
     if (!connected || !publicKey) {
       toast.error('Please connect your wallet first');
@@ -112,11 +83,9 @@ export default function CreatePage() {
 
     setIsCreating(true);
 
-    // Generate temp ID for this upload
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setCurrentTempId(tempId);
 
-    // Create optimistic post object
     const optimisticPost: UploadingPost = {
       tempId,
       user_id: 'temp-user',
@@ -124,7 +93,7 @@ export default function CreatePage() {
       title: title || ticker,
       content: description || `Launch of $${ticker}`,
       media_urls: [],
-      preview_url: imagePreview, // Use the preview URL
+      preview_url: imagePreview,
       token_mint: null,
       token_symbol: ticker.toUpperCase(),
       token_name: title || ticker,
@@ -136,6 +105,7 @@ export default function CreatePage() {
       token_signature: null,
       is_token_tradable: false,
       verified: false,
+      creator_is_verified: false,
       users: {
         id: 'temp-user',
         username: 'user',
@@ -147,15 +117,10 @@ export default function CreatePage() {
       uploadStage: 'uploading',
     };
 
-    // Add to feed immediately!
-    console.log('🚀 [CREATE] Adding optimistic post to feed:', tempId);
     addUploadingPost(optimisticPost);
-
-    // Navigate to feed immediately so user sees their post at the top
     router.push('/');
 
     try {
-      // Stage 1: Uploading (0-33%)
       updateUploadingPost(tempId, { uploadProgress: 5, uploadStage: 'uploading' });
       await new Promise(resolve => setTimeout(resolve, 100));
       updateUploadingPost(tempId, { uploadProgress: 15 });
@@ -164,7 +129,6 @@ export default function CreatePage() {
       await new Promise(resolve => setTimeout(resolve, 100));
       updateUploadingPost(tempId, { uploadProgress: 33 });
 
-      // Create FormData
       const formData = new FormData();
       formData.append('title', title || ticker);
       formData.append('ticker', ticker.toUpperCase());
@@ -173,7 +137,6 @@ export default function CreatePage() {
       formData.append('username', 'user');
       formData.append('media', imageFile);
 
-      // Stage 2: Creating Post (33-66%)
       updateUploadingPost(tempId, { uploadProgress: 40, uploadStage: 'creating_post' });
 
       const response = await fetch('/api/posts/create', {
@@ -196,7 +159,6 @@ export default function CreatePage() {
 
       updateUploadingPost(tempId, { uploadProgress: 66 });
 
-      // Stage 3: Creating Token (66-100%)
       updateUploadingPost(tempId, {
         uploadProgress: 75,
         uploadStage: 'creating_token',
@@ -207,7 +169,6 @@ export default function CreatePage() {
       await new Promise(resolve => setTimeout(resolve, 500));
       updateUploadingPost(tempId, { uploadProgress: 95 });
 
-      // Complete!
       const postData = result.data.post;
       const tokenMint = result.data.token.mint;
       const explorerUrl = result.data.tokenExplorerUrl;
@@ -217,30 +178,32 @@ export default function CreatePage() {
         uploadStage: 'complete',
       });
 
-      console.log('✨ [CREATE] Post creation complete!', { postId: postData.id, title: postData.title });
-
-      // Add the new post to the feed cache immediately
-      console.log('📝 [CREATE] Adding post to feed cache:', postData);
+      // Add post to cache immediately for instant display
+      // This makes the post appear instantly in the feed
       addPostToCache(postData);
 
-      // Remove the uploading post now that the real post is in the cache
-      console.log('🗑️ [CREATE] Removing uploading post:', tempId);
+      // Invalidate user stats to update post count
+      await invalidateUserStats(postData.user_id);
+
+      // Note: We no longer call invalidatePosts() here
+      // Realtime subscriptions handle post updates automatically
+      // The aggressive invalidation was causing posts to disappear due to race conditions
+
       setTimeout(() => {
         removeUploadingPost(tempId);
-      }, 1000); // Small delay so user sees the completion state
+      }, 1000);
 
-      // Show success toast with explorer link
       toast.success(
         <div className="flex flex-col gap-2">
-          <div className="font-bold">🎉 Token Launched!</div>
+          <div className="font-bold font-display uppercase">Token Launched!</div>
           <div className="text-sm">
-            <div className="mb-2">Token: ${ticker}</div>
-            <div className="mb-2 font-mono text-xs truncate">{tokenMint}</div>
+            <div className="mb-2 font-mono">${ticker}</div>
+            <div className="mb-2 font-mono text-xs truncate text-white/60">{tokenMint}</div>
             <a
               href={explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 underline"
+              className="text-neon-lime hover:text-[#E5FF4D] underline"
               onClick={(e) => e.stopPropagation()}
             >
               View on Explorer →
@@ -250,13 +213,8 @@ export default function CreatePage() {
         { duration: 10000 }
       );
 
-      console.log('✅ [CREATE] Post successfully added to feed!');
-
-      // Step 5: Reset form state
       setIsCreating(false);
       setCurrentTempId(null);
-
-      // Reset form
       setImageFile(null);
       setImagePreview('');
       setTicker('');
@@ -264,7 +222,7 @@ export default function CreatePage() {
       setDescription('');
 
     } catch (error) {
-      console.error('❌ [CREATE] Error creating token:', error);
+      console.error('Error creating token:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create token';
 
       updateUploadingPost(tempId, {
@@ -275,7 +233,6 @@ export default function CreatePage() {
 
       toast.error(errorMessage);
 
-      // Auto-remove failed post after delay
       setTimeout(() => {
         removeUploadingPost(tempId);
         setIsCreating(false);
@@ -286,28 +243,36 @@ export default function CreatePage() {
 
   return (
     <AppLayout showWallet={true} showSearch={false}>
-      <div className="min-h-screen pb-20 md:pb-10 relative">
-        <div className="max-w-7xl mx-auto pt-2 sm:pt-4 md:pt-6">
-          {/* Hero Section */}
-          <div className="text-center mb-8">
-            {stats.recentLaunches > 0 && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-green/10 to-accent-cyan/10 border border-accent-green/20 rounded-full mb-4">
-                <FireIcon className="w-4 h-4 text-accent-green" />
-                <span className="text-sm text-accent-green font-bold">
-                  {stats.recentLaunches} people flexing right now
+      {/* Background effects */}
+      <div className="fixed inset-0 bg-gradient-mesh pointer-events-none opacity-30" />
+      <div className="fixed inset-0 bg-grid-pattern pointer-events-none opacity-20" />
+
+      <div className="relative min-h-screen pb-20 md:pb-10">
+        <div className="max-w-7xl mx-auto pt-4 sm:pt-6 md:pt-8 px-4">
+          {/* Hero Section - Cyber Brutalist */}
+          <div className="text-center mb-10">
+            {(platformStats?.postsToday || 0) > 0 && (
+              <div className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 mb-6',
+                'bg-neon-coral/10 border-2 border-neon-coral/30 rounded-full',
+                'animate-pulse-slow'
+              )}>
+                <FireIcon className="w-4 h-4 text-neon-coral" />
+                <span className="font-mono text-sm text-neon-coral font-bold uppercase tracking-wider">
+                  {platformStats?.postsToday} FLEXING NOW
                 </span>
               </div>
             )}
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white mb-4">
-              Share Your Flex
-              <span className="block bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue bg-clip-text text-transparent">
-                Get Paid
+            <h1 className="heading-1 mb-4">
+              <span className="text-white">SHARE YOUR</span>
+              <span className="block gradient-text-lime-cyan">
+                FLEX
               </span>
             </h1>
 
-            <p className="text-text-muted text-lg max-w-2xl mx-auto">
-              Post your wins, lifestyle, or journey. Every post automatically becomes a tradable token. 💰
+            <p className="text-white/60 text-lg max-w-xl mx-auto">
+              Every post becomes a tradable token. Share your wins and earn.
             </p>
           </div>
 
@@ -315,12 +280,24 @@ export default function CreatePage() {
             {/* Left: Create Form */}
             <div className="space-y-6">
               {/* Step 1: Upload Image */}
-              <div className="card-base p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-purple to-accent-pink flex items-center justify-center text-white font-bold">
+              <div className={cn(
+                'bg-[#0D0D0D] rounded-xl border-2 p-6',
+                imagePreview ? 'border-neon-lime/30' : 'border-white/10',
+                'transition-all duration-150'
+              )}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={cn(
+                    'w-10 h-10 rounded-lg flex items-center justify-center',
+                    'font-display font-black text-lg',
+                    imagePreview
+                      ? 'bg-neon-lime text-black'
+                      : 'bg-white/10 text-white/60'
+                  )}>
                     1
                   </div>
-                  <h2 className="text-xl font-bold text-white">Share Your Moment</h2>
+                  <h2 className="text-white text-xl font-bold font-display uppercase tracking-wide">
+                    Upload Your Moment
+                  </h2>
                 </div>
 
                 {imagePreview ? (
@@ -328,7 +305,7 @@ export default function CreatePage() {
                     <img
                       src={imagePreview}
                       alt="Token preview"
-                      className="w-full h-64 object-cover rounded-xl border-2 border-accent-green/30"
+                      className="w-full h-64 object-cover rounded-lg border-2 border-neon-lime/30"
                     />
                     <button
                       onClick={() => {
@@ -336,23 +313,36 @@ export default function CreatePage() {
                         setImagePreview('');
                       }}
                       disabled={isCreating}
-                      className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      className={cn(
+                        'absolute top-3 right-3 px-4 py-2 rounded-lg',
+                        'bg-neon-coral text-white font-bold text-sm uppercase',
+                        'opacity-0 group-hover:opacity-100 transition-opacity',
+                        'hover:bg-[#FF4D7A] disabled:opacity-50'
+                      )}
                     >
                       Change
                     </button>
-                    <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-lg">
-                      <CheckCircleIcon className="w-5 h-5 text-accent-green inline mr-1" />
-                      <span className="text-white text-sm font-semibold">Image uploaded!</span>
+                    <div className="absolute bottom-3 left-3 bg-black/90 backdrop-blur px-4 py-2 rounded-lg border border-neon-lime/30">
+                      <CheckCircleIcon className="w-5 h-5 text-neon-lime inline mr-2" />
+                      <span className="text-neon-lime text-sm font-bold">UPLOADED</span>
                     </div>
                   </div>
                 ) : (
                   <label
                     htmlFor="image-upload"
-                    className="block border-2 border-dashed border-white/20 hover:border-accent-green/50 rounded-2xl p-12 text-center cursor-pointer transition-all hover:bg-accent-green/5"
+                    className={cn(
+                      'block border-2 border-dashed border-white/20 rounded-xl p-12',
+                      'text-center cursor-pointer transition-all duration-150',
+                      'hover:border-neon-lime/50 hover:bg-neon-lime/5'
+                    )}
                   >
-                    <PhotoIcon className="w-16 h-16 text-text-muted mx-auto mb-4" />
-                    <p className="text-white font-semibold mb-2">Upload your flex 📸</p>
-                    <p className="text-text-muted text-sm">Share your wins, lifestyle, or journey</p>
+                    <PhotoIcon className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                    <p className="text-white text-xl font-bold mb-2 font-display uppercase">
+                      Drop your flex here
+                    </p>
+                    <p className="text-white/40 text-sm">
+                      Share your wins, lifestyle, or journey
+                    </p>
                     <input
                       id="image-upload"
                       ref={fileInputRef}
@@ -367,78 +357,130 @@ export default function CreatePage() {
               </div>
 
               {/* Step 2: Choose Ticker */}
-              <div className="card-base p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-green to-accent-cyan flex items-center justify-center text-black font-bold">
+              <div className={cn(
+                'bg-[#0D0D0D] rounded-xl border-2 p-6',
+                ticker.length >= 3 ? 'border-neon-cyan/30' : 'border-white/10',
+                'transition-all duration-150'
+              )}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={cn(
+                    'w-10 h-10 rounded-lg flex items-center justify-center',
+                    'font-display font-black text-lg',
+                    ticker.length >= 3
+                      ? 'bg-neon-cyan text-black'
+                      : 'bg-white/10 text-white/60'
+                  )}>
                     2
                   </div>
-                  <h2 className="text-xl font-bold text-white">Name Your Coin</h2>
+                  <h2 className="text-white text-xl font-bold font-display uppercase tracking-wide">
+                    Name Your Token
+                  </h2>
                 </div>
 
-                <input
-                  type="text"
-                  value={ticker}
-                  onChange={(e) =>
-                    setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))
-                  }
-                  placeholder="e.g., WAGMI"
-                  maxLength={10}
-                  disabled={isCreating}
-                  className="w-full px-6 py-4 bg-card-bg border-2 border-accent-green/20 rounded-xl text-white text-2xl font-bold placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 transition-all disabled:opacity-50 text-center uppercase"
-                />
-                <p className="text-text-muted text-sm mt-2 text-center">
-                  Your post gets a tradable coin • Others can buy into your journey 📈
+                <div className="relative">
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-neon-lime text-3xl font-bold font-mono">
+                    $
+                  </span>
+                  <input
+                    type="text"
+                    value={ticker}
+                    onChange={(e) =>
+                      setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))
+                    }
+                    placeholder="WAGMI"
+                    maxLength={10}
+                    disabled={isCreating}
+                    className={cn(
+                      'w-full pl-14 pr-6 py-5 rounded-xl',
+                      'bg-black border-2 border-white/10',
+                      'text-white text-3xl font-bold font-mono text-center uppercase',
+                      'placeholder:text-white/20',
+                      'focus:outline-none focus:border-neon-lime/50',
+                      'transition-all duration-150 disabled:opacity-50'
+                    )}
+                  />
+                </div>
+                <p className="text-white/40 text-sm mt-3 text-center font-mono">
+                  3-10 characters • Others can trade your token
                 </p>
               </div>
 
               {/* Optional: Title & Description */}
-              <details className="card-base p-6">
-                <summary className="cursor-pointer text-white font-semibold text-sm flex items-center gap-2">
-                  <SparklesIcon className="w-4 h-4" />
-                  Optional: Add caption & story (skip for quick post!)
+              <details className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6 group">
+                <summary className="cursor-pointer text-white font-bold text-sm flex items-center gap-2 uppercase tracking-wider">
+                  <SparklesIcon className="w-4 h-4 text-neon-purple" />
+                  Optional Details
+                  <span className="text-white/40 font-normal normal-case ml-2">(skip for quick post)</span>
                 </summary>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-5 space-y-4">
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Give your post a title (optional)"
+                    placeholder="Give your post a title"
                     maxLength={50}
                     disabled={isCreating}
-                    className="w-full px-4 py-3 bg-card-bg border border-white/10 rounded-lg text-white placeholder:text-text-muted focus:outline-none focus:border-accent-purple/50 disabled:opacity-50"
+                    className={cn(
+                      'w-full px-4 py-3 rounded-lg',
+                      'bg-black border-2 border-white/10',
+                      'text-white placeholder:text-white/30',
+                      'focus:outline-none focus:border-neon-purple/50',
+                      'transition-all duration-150 disabled:opacity-50'
+                    )}
                   />
 
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Tell your story... (optional)"
+                    placeholder="Tell your story..."
                     maxLength={200}
                     rows={3}
                     disabled={isCreating}
-                    className="w-full px-4 py-3 bg-card-bg border border-white/10 rounded-lg text-white placeholder:text-text-muted focus:outline-none focus:border-accent-purple/50 resize-none disabled:opacity-50"
+                    className={cn(
+                      'w-full px-4 py-3 rounded-lg resize-none',
+                      'bg-black border-2 border-white/10',
+                      'text-white placeholder:text-white/30',
+                      'focus:outline-none focus:border-neon-purple/50',
+                      'transition-all duration-150 disabled:opacity-50'
+                    )}
                   />
                 </div>
               </details>
 
-              {/* Post Button */}
+              {/* Post Button - Cyber Brutalist */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue rounded-2xl blur-xl opacity-50"></div>
+                {/* Glow effect */}
+                <div className={cn(
+                  'absolute inset-0 rounded-xl blur-xl transition-opacity',
+                  imageFile && ticker.length >= 3 && connected
+                    ? 'bg-neon-lime/30 opacity-100'
+                    : 'opacity-0'
+                )} />
+
                 <Button
                   onClick={handleCreate}
                   disabled={!imageFile || !ticker || ticker.length < 3 || !connected || isCreating}
-                  className="relative w-full bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-black text-xl py-8 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl hover:scale-[1.02] active:scale-[0.98]"
+                  className={cn(
+                    'relative w-full py-8 rounded-xl',
+                    'text-xl font-black font-display uppercase tracking-wider',
+                    'transition-all duration-150',
+                    'disabled:opacity-40 disabled:cursor-not-allowed',
+                    imageFile && ticker.length >= 3 && connected
+                      ? 'btn-primary hover:scale-[1.02] active:scale-[0.98]'
+                      : 'bg-white/10 text-white/40 border-2 border-white/10'
+                  )}
                 >
                   <span className="flex items-center gap-3 justify-center">
-                    <RocketLaunchIcon className={`w-6 h-6 ${isCreating ? 'animate-bounce' : ''}`} />
-                    {isCreating ? 'Creating...' : 'Post & Earn'}
+                    <RocketLaunchIcon className={cn('w-7 h-7', isCreating && 'animate-bounce')} />
+                    {isCreating ? 'CREATING...' : 'LAUNCH TOKEN'}
                   </span>
                 </Button>
               </div>
 
               {!connected && (
-                <div className="text-center text-text-muted text-sm">
-                  Connect your wallet above to start sharing & earning
+                <div className="text-center text-white/40 text-sm font-mono">
+                  CONNECT WALLET TO START EARNING
                 </div>
               )}
             </div>
@@ -446,85 +488,100 @@ export default function CreatePage() {
             {/* Right: Live Preview + Social Proof */}
             <div className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
               {/* Live Preview */}
-              <div className="card-base p-6">
-                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                  <SparklesIcon className="w-5 h-5 text-accent-purple" />
+              <div className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6">
+                <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2 font-display uppercase tracking-wide">
+                  <BoltIcon className="w-5 h-5 text-neon-cyan" />
                   Live Preview
                 </h3>
 
-                <div className="space-y-4">
-                  {/* Token Card Preview */}
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-xl p-4 border border-white/10">
-                    {imagePreview ? (
-                      <img
-                        src={imagePreview}
-                        alt="Token"
-                        className="w-full h-48 object-cover rounded-lg mb-3"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-white/5 rounded-lg mb-3 flex items-center justify-center">
-                        <PhotoIcon className="w-12 h-12 text-text-muted" />
-                      </div>
-                    )}
+                <div className="bg-black rounded-lg p-4 border-2 border-white/10">
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Token"
+                      className="w-full h-48 object-cover rounded-lg mb-4"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed border-white/10">
+                      <PhotoIcon className="w-12 h-12 text-white/20" />
+                    </div>
+                  )}
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-bold text-lg">
-                          ${ticker || 'YOUR'}
-                        </p>
-                        <p className="text-text-muted text-sm">
-                          {title || 'Your token name'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-accent-green font-bold">$0.01</p>
-                        <p className="text-xs text-text-muted">Starting price</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={cn(
+                        'text-xl font-bold font-mono',
+                        ticker ? 'text-neon-lime' : 'text-white/30'
+                      )}>
+                        ${ticker || 'TICKER'}
+                      </p>
+                      <p className="text-white/40 text-sm">
+                        {title || 'Your token name'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-neon-cyan font-bold font-mono">$0.01</p>
+                      <p className="text-xs text-white/40">Starting price</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Social Proof */}
-              <div className="card-base p-6">
-                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                  <TrophyIcon className="w-5 h-5 text-accent-gold" />
-                  Community Stats
+              <div className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6">
+                <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2 font-display uppercase tracking-wide">
+                  <TrophyIcon className="w-5 h-5 text-warning" />
+                  Platform Stats
                 </h3>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">Creators active today</span>
-                    <span className="text-white font-bold">{stats.activeTraders}+</span>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/40 text-sm">Active creators</span>
+                    <span className="text-neon-lime font-bold font-mono">{platformStats?.activeTraders || 0}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">Avg. post earnings (Day 1)</span>
-                    <span className="text-accent-green font-bold">{stats.avgFirstDay}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/40 text-sm">Total creators</span>
+                    <span className="text-neon-cyan font-bold font-mono">{platformStats?.totalCreators || 0}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-muted">Posts shared today</span>
-                    <span className="text-white font-bold">{stats.recentLaunches}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/40 text-sm">Posts today</span>
+                    <span className="text-white font-bold font-mono">{platformStats?.postsToday || 0}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-xs text-text-muted text-center">
-                    🔥 Join {stats.activeTraders}+ creators earning on FlexIt
+                <div className="mt-5 pt-5 border-t border-white/10">
+                  <p className="text-xs text-white/40 text-center font-mono uppercase tracking-wider">
+                    Join {platformStats?.totalCreators || 0}+ creators earning
                   </p>
                 </div>
               </div>
 
-              {/* Quick Tips */}
-              <div className="bg-gradient-to-br from-accent-blue/10 to-accent-purple/10 border border-accent-blue/20 rounded-xl p-6">
-                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                  <UserGroupIcon className="w-4 h-4 text-accent-blue" />
-                  Tips to Maximize Earnings
+              {/* Tips Card */}
+              <div className={cn(
+                'rounded-xl p-6',
+                'bg-neon-purple/5 border-2 border-neon-purple/20'
+              )}>
+                <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
+                  <UserGroupIcon className="w-4 h-4 text-neon-purple" />
+                  Pro Tips
                 </h3>
-                <ul className="space-y-2 text-xs text-text-muted">
-                  <li>✓ Post your biggest wins & lifestyle moments</li>
-                  <li>✓ Catchy coin names get more attention</li>
-                  <li>✓ Share on Twitter right after posting</li>
-                  <li>✓ Reply to people who buy your coins</li>
+                <ul className="space-y-2 text-xs text-white/50">
+                  <li className="flex items-start gap-2">
+                    <span className="text-neon-lime">+</span>
+                    Post your biggest wins & lifestyle
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-neon-lime">+</span>
+                    Catchy names get more attention
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-neon-lime">+</span>
+                    Share on Twitter after posting
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-neon-lime">+</span>
+                    Engage with your token holders
+                  </li>
                 </ul>
               </div>
             </div>

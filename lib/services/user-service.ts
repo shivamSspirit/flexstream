@@ -89,13 +89,9 @@ export class UserService {
         .from('users')
         .select('*')
         .eq('wallet_address', walletAddress)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // If error is "not found", return null (not an error condition)
-        if (error.code === 'PGRST116') {
-          return null;
-        }
         throw error;
       }
 
@@ -115,12 +111,9 @@ export class UserService {
         .from('users')
         .select('*')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
         throw error;
       }
 

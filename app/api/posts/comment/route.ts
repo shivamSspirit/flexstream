@@ -40,8 +40,7 @@ export const POST = createHandler(async (request: NextRequest) => {
         id,
         username,
         display_name,
-        avatar_url,
-        verified
+        avatar_url
       )
     `)
     .single();
@@ -120,8 +119,7 @@ export const GET = createHandler(async (request: NextRequest) => {
         id,
         username,
         display_name,
-        avatar_url,
-        verified
+        avatar_url
       )
     `)
     .eq('post_id', postId)

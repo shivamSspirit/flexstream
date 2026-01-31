@@ -37,14 +37,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user by wallet address
+    // Use maybeSingle() to handle the case where no user exists gracefully
     const { data: user, error } = await supabase
       .from('users')
       .select('id, username, display_name, avatar_url, wallet_address')
       .eq('wallet_address', wallet)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('❌ Error fetching user:', error);
+      return NextResponse.json({
+        success: false,
+        error: 'Database error',
+      }, { status: 500 });
+    }
+
+    // User not found - return 404 without logging an error (this is expected for new wallets)
+    if (!user) {
       return NextResponse.json({
         success: false,
         error: 'User not found',

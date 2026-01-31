@@ -1,31 +1,13 @@
 /**
- * Birdeye API Service
- * Fetches token prices from Birdeye with DexScreener fallback
+ * Token Price Service
+ * Fetches token prices from DexScreener
  * Uses rate limiting and caching for optimal performance
  */
 
-import { birdeyeRateLimiter, dexscreenerRateLimiter } from './RateLimiter';
+import { dexscreenerRateLimiter } from './RateLimiter';
 import { priceCache, CachedPrice } from './PriceCache';
 
-const BIRDEYE_API_URL = 'https://public-api.birdeye.so/defi';
 const DEXSCREENER_API_URL = 'https://api.dexscreener.com/latest/dex';
-
-interface BirdeyePriceData {
-  value: number;
-  updateUnixTime: number;
-  updateHumanTime: string;
-  priceChange24h: number;
-  liquidity: number;
-  isScaledUiToken?: boolean;
-  priceInNative?: number;
-}
-
-interface BirdeyeMultiPriceResponse {
-  success: boolean;
-  data: {
-    [mint: string]: BirdeyePriceData;
-  };
-}
 
 interface DexScreenerPair {
   priceUsd: string;
@@ -41,12 +23,8 @@ interface DexScreenerPair {
 }
 
 export class BirdeyeService {
-  private apiKey: string | null = null;
-
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.apiKey = process.env.NEXT_PUBLIC_BIRDEYE_API_KEY || null;
-    }
+    // No API key needed for DexScreener
   }
 
   /**
@@ -110,84 +88,23 @@ export class BirdeyeService {
   }
 
   /**
-   * Fetch prices from Birdeye API (rate-limited)
+   * Fetch prices from DexScreener API (rate-limited)
    */
   private async fetchPrices(mints: string[]): Promise<Map<string, Omit<CachedPrice, 'timestamp'>>> {
     const prices = new Map<string, Omit<CachedPrice, 'timestamp'>>();
 
-    // Birdeye supports up to 100 tokens per request
-    // For free tier (1 RPS), batch carefully
-    const batchSize = 50;
+    // DexScreener supports batching
+    const batchSize = 30;
     const batches = this.chunkArray(mints, batchSize);
 
     for (const batch of batches) {
       try {
-        // Try Birdeye first
-        const birdeyePrices = await this.fetchFromBirdeye(batch);
-
-        if (birdeyePrices.size > 0) {
-          birdeyePrices.forEach((price, mint) => prices.set(mint, price));
-        } else {
-          // Fallback to DexScreener
-          const dexPrices = await this.fetchFromDexScreener(batch);
-          dexPrices.forEach((price, mint) => prices.set(mint, price));
-        }
+        const dexPrices = await this.fetchFromDexScreener(batch);
+        dexPrices.forEach((price, mint) => prices.set(mint, price));
       } catch (error) {
-        console.warn(`Failed to fetch batch:`, error);
-
-        // Try DexScreener as fallback
-        try {
-          const dexPrices = await this.fetchFromDexScreener(batch);
-          dexPrices.forEach((price, mint) => prices.set(mint, price));
-        } catch (fallbackError) {
-          console.error('All price sources failed for batch:', fallbackError);
-        }
+        console.warn(`Failed to fetch batch from DexScreener:`, error);
       }
     }
-
-    return prices;
-  }
-
-  /**
-   * Fetch from Birdeye API
-   */
-  private async fetchFromBirdeye(mints: string[]): Promise<Map<string, Omit<CachedPrice, 'timestamp'>>> {
-    if (!this.apiKey) {
-      throw new Error('Birdeye API key not configured');
-    }
-
-    const prices = new Map<string, Omit<CachedPrice, 'timestamp'>>();
-
-    await birdeyeRateLimiter.schedule(async () => {
-      const url = `${BIRDEYE_API_URL}/multi_price?list_address=${mints.join(',')}`;
-
-      const response = await fetch(url, {
-        headers: {
-          'X-API-KEY': this.apiKey!,
-          'x-chain': 'solana',
-          'accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Birdeye API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data: BirdeyeMultiPriceResponse = await response.json();
-
-      if (data.success && data.data) {
-        Object.entries(data.data).forEach(([mint, priceData]) => {
-          prices.set(mint, {
-            mint,
-            value: priceData.value,
-            priceChange24h: priceData.priceChange24h,
-            liquidity: priceData.liquidity,
-            updateUnixTime: priceData.updateUnixTime,
-            source: 'birdeye'
-          });
-        });
-      }
-    });
 
     return prices;
   }
@@ -279,27 +196,16 @@ export class BirdeyeService {
    * Get health status
    */
   async getHealthStatus(): Promise<{
-    birdeye: 'ok' | 'error';
     dexscreener: 'ok' | 'error';
     cache: 'ok' | 'error';
   }> {
     const status: {
-      birdeye: 'ok' | 'error';
       dexscreener: 'ok' | 'error';
       cache: 'ok' | 'error';
     } = {
-      birdeye: 'error',
       dexscreener: 'error',
       cache: 'ok'
     };
-
-    // Test Birdeye
-    try {
-      await this.fetchFromBirdeye(['So11111111111111111111111111111111111111112']);
-      status.birdeye = 'ok';
-    } catch {
-      status.birdeye = 'error';
-    }
 
     // Test DexScreener
     try {

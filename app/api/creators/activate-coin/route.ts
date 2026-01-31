@@ -10,11 +10,12 @@ export const runtime = 'nodejs';
 /**
  * POST /api/creators/activate-coin
  *
- * Activates a creator's coin using Meteora DBC
- * Reuses the same token creation logic as posts but with CREATOR config
+ * Creates an unsigned transaction for creator coin activation.
+ * Creator-level coins ALWAYS require the creator to sign the transaction.
+ * Returns a partially-signed transaction that the user must sign with their wallet.
  */
 export async function POST(request: NextRequest) {
-  console.log('[CREATOR COIN] Starting creator coin activation');
+  console.log('[CREATOR COIN] Starting creator coin activation (signed flow)');
 
   try {
     // Initialize Supabase client
@@ -54,19 +55,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate wallet address
+    let creatorWallet: PublicKey;
     try {
-      new PublicKey(walletAddress);
-    } catch (error) {
+      creatorWallet = new PublicKey(walletAddress);
+    } catch {
       return NextResponse.json({
         success: false,
         error: 'Invalid wallet address format',
       }, { status: 400 });
     }
 
-    // Find or create user by wallet address (same logic as post creation)
-    console.log('Finding or creating user...');
+    // Find or create user by wallet address
+    console.log('[CREATOR COIN] Finding or creating user...');
     let userId: string;
-    let existingUser: any = null;
+    let existingUser: {
+      id: string;
+      username: string;
+      display_name: string;
+      avatar_url: string | null;
+      creator_coin_enabled: boolean;
+    } | null = null;
 
     const { data: foundUser } = await supabase
       .from('users')
@@ -85,26 +93,16 @@ export async function POST(request: NextRequest) {
 
       userId = foundUser.id;
       existingUser = foundUser;
-      console.log('Found existing user:', userId);
+      console.log('[CREATOR COIN] Found existing user:', userId);
     } else {
       // User doesn't exist - create new user with wallet address
-      console.log('User not found, creating new user...');
+      console.log('[CREATOR COIN] User not found, creating new user...');
 
-      // Generate unique username based on wallet to avoid collisions
       const timestamp = Date.now().toString(36);
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const walletPrefix = walletAddress.substring(0, 6).toLowerCase();
-
-      // Use provided username or generate one
       const generatedUsername = username || `${walletPrefix}_${timestamp}_${randomSuffix}`;
 
-      console.log('Creating new user with username:', {
-        wallet: walletAddress,
-        generatedUsername,
-        displayName: displayName || `User ${walletPrefix}`
-      });
-
-      // Generate UUID for the user
       const { v4: uuidv4 } = await import('uuid');
       const newUserId = uuidv4();
 
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createError || !newUser) {
-        console.error('Failed to create user:', createError);
+        console.error('[CREATOR COIN] Failed to create user:', createError);
         return NextResponse.json({
           success: false,
           error: 'Failed to create user account',
@@ -136,15 +134,8 @@ export async function POST(request: NextRequest) {
 
       userId = newUser.id;
       existingUser = newUser;
-      console.log('✅ Created new user:', {
-        userId,
-        username: generatedUsername,
-        displayName: displayName || `User ${walletPrefix}`,
-        wallet: walletAddress.substring(0, 8) + '...'
-      });
+      console.log('[CREATOR COIN] Created new user:', userId);
     }
-
-    const user = existingUser;
 
     // Initialize DBC client
     const dbcClient = new MeteoraDBCClient(connection);
@@ -152,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Generate unique symbol for the creator token
     const uniqueSymbol = dbcClient.generateUniqueSymbol();
 
-    console.log('Creator coin details:', {
+    console.log('[CREATOR COIN] Creator coin details:', {
       username,
       displayName,
       uniqueSymbol,
@@ -160,83 +151,60 @@ export async function POST(request: NextRequest) {
     });
 
     // 1. Upload token metadata (use avatar as token image)
-    console.log('Uploading token metadata...');
+    console.log('[CREATOR COIN] Uploading token metadata...');
 
     const tokenImage = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
     const tokenDescription = bio || `${displayName}'s creator token. Support ${displayName} by holding $${username.toUpperCase()}!`;
 
     const metadataUri = await dbcClient.uploadMetadata({
       name: `${displayName} Token`,
-      symbol: uniqueSymbol, // Use unique symbol for metadata
+      symbol: uniqueSymbol,
       description: tokenDescription,
       image: tokenImage,
       external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://flexstream.app'}/profile/${username}`
     }, supabase);
 
-    console.log('Metadata uploaded:', metadataUri);
+    console.log('[CREATOR COIN] Metadata uploaded:', metadataUri);
 
-    // 2. Create DBC token and pool with CREATOR config
-    console.log('Creating creator token and pool...');
+    // 2. Create unsigned transaction for creator to sign
+    console.log('[CREATOR COIN] Creating unsigned transaction for signing...');
 
-    const tokenResult = await dbcClient.createToken({
+    const { unsignedTransaction, baseMintSecretKey } = await dbcClient.createTokenTransactionForSigning({
       name: `${displayName} Token`,
-      symbol: uniqueSymbol, // Auto-generated unique symbol
-      displayName: username.toUpperCase(), // Username as display name
+      symbol: uniqueSymbol,
+      displayName: username.toUpperCase(),
       description: tokenDescription,
       imageUri: metadataUri,
       tokenType: 'creator', // Use CREATOR config (10B supply, 1% fee)
+      creatorWallet,
     });
 
-    console.log('Creator token created successfully:', {
-      mint: tokenResult.mint.toBase58(),
-      pool: tokenResult.pool.toBase58(),
-      signature: tokenResult.signature
+    console.log('[CREATOR COIN] Unsigned transaction created:', {
+      mint: unsignedTransaction.baseMintPublicKey,
+      blockhash: unsignedTransaction.blockhash.substring(0, 20) + '...'
     });
 
-    // 3. Update user record with creator coin info
-    console.log('Updating user with creator coin data...');
-
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({
-        creator_coin_enabled: true,
-        creator_coin_mint: tokenResult.mint.toBase58(),
-        creator_coin_pool: tokenResult.pool.toBase58(),
-        creator_coin_metadata_uri: metadataUri,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error('Error updating user:', updateError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to update user with creator coin data',
-      }, { status: 500 });
-    }
-
-    console.log('✅ Creator coin activated successfully!');
-
+    // 3. Return the unsigned transaction for frontend to sign
     return NextResponse.json({
       success: true,
+      requiresSignature: true,
       data: {
-        user: updatedUser,
-        token: {
-          mint: tokenResult.mint.toBase58(),
-          pool: tokenResult.pool.toBase58(),
-          symbol: uniqueSymbol,
-          displayName: username.toUpperCase(),
+        unsignedTransaction,
+        pendingActivation: {
+          userId,
+          username: existingUser?.username || username,
+          displayName,
+          uniqueSymbol,
           metadataUri,
-          signature: tokenResult.signature,
-        }
-      },
-      message: 'Creator coin activated successfully!'
+          walletAddress,
+          baseMintSecretKey, // For recovery if needed
+        },
+        message: 'Transaction created. Please sign with your wallet to activate your creator coin.',
+      }
     });
 
   } catch (error) {
-    console.error('❌ [CREATOR COIN] Error:', error);
+    console.error('[CREATOR COIN] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
     return NextResponse.json({

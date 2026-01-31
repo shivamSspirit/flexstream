@@ -12,6 +12,7 @@ export interface NotificationItemProps {
   sender: {
     name: string;
     username: string;
+    wallet_address: string;
     avatar: string;
   };
   action: string;
@@ -137,7 +138,7 @@ export function NotificationItem({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/profile/${sender.username}`);
+              router.push(`/profile/${sender.wallet_address}`);
             }}
             className="font-semibold text-white hover:text-white/80 transition-colors text-sm"
           >

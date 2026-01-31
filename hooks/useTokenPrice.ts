@@ -17,7 +17,7 @@ interface UseTokenPriceOptions {
 
 /**
  * React hook for fetching and auto-updating token prices
- * Uses Birdeye API with caching and automatic refresh
+ * Uses DexScreener API with caching and automatic refresh
  */
 export function useTokenPrice(
   mint: string | null | undefined,

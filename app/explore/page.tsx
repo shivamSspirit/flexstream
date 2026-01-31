@@ -15,22 +15,23 @@ import {
   TrophyIcon,
   VideoCameraIcon,
   StarIcon,
-  BoltIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  EyeIcon,
   PlayIcon,
   XMarkIcon,
   ArrowTrendingUpIcon,
   CurrencyDollarIcon,
   UsersIcon,
-  ClockIcon,
+  PuzzlePieceIcon,
+  ScaleIcon,
+  UserGroupIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
+import { TrendingUp, TrendingDown, Zap, Activity, Users } from 'lucide-react';
+import { GamesTab } from '@/components/explore/GamesTab';
+import { PredictionsTab } from '@/components/explore/PredictionsTab';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
 
 type ViewMode = 'grid' | 'list' | 'table';
-type TabId = 'featured' | 'mayhem' | 'trending' | 'top' | 'new' | 'live' | 'videos' | 'creators';
+type TabId = 'featured' | 'predictions' | 'trending' | 'top' | 'new' | 'live' | 'videos' | 'creators' | 'games';
 
 interface TokenData {
   id: string;
@@ -38,6 +39,7 @@ interface TokenData {
   title: string;
   ticker: string;
   creator: string;
+  creatorWallet: string;
   creatorAvatar: string;
   description?: string;
   price: number;
@@ -78,7 +80,7 @@ function formatTimeAgo(date: string) {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
-// Filter Modal Component
+// Filter Modal Component - Trading Terminal Style
 function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [sortBy, setSortBy] = useState('trending');
   const [timeRange, setTimeRange] = useState('24h');
@@ -90,8 +92,8 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const sortOptions = [
     { id: 'trending', label: 'Trending', icon: FireIcon },
     { id: 'newest', label: 'Newest', icon: SparklesIcon },
-    { id: 'mcap_high', label: 'Market Cap ↓', icon: ChartBarIcon },
-    { id: 'mcap_low', label: 'Market Cap ↑', icon: ChartBarIcon },
+    { id: 'mcap_high', label: 'MCap High', icon: ChartBarIcon },
+    { id: 'mcap_low', label: 'MCap Low', icon: ChartBarIcon },
     { id: 'volume', label: 'Volume', icon: ArrowTrendingUpIcon },
     { id: 'holders', label: 'Holders', icon: UsersIcon },
   ];
@@ -102,7 +104,7 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
     { id: '24h', label: '24H' },
     { id: '7d', label: '7D' },
     { id: '30d', label: '30D' },
-    { id: 'all', label: 'All' },
+    { id: 'all', label: 'ALL' },
   ];
 
   return (
@@ -117,7 +119,7 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -131,23 +133,28 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-gradient-to-b from-[#1a1b23] to-[#12131a] border border-white/10 p-6 shadow-2xl shadow-black/50 transition-all">
+              <Dialog.Panel className="w-full max-w-md trading-card border-white/20 p-5 shadow-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <Dialog.Title className="text-xl font-bold text-white">
-                    Filters
-                  </Dialog.Title>
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-400/10 rounded-lg border border-cyan-400/30">
+                      <AdjustmentsHorizontalIcon className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <Dialog.Title className="text-lg font-bold text-white font-display uppercase tracking-wide">
+                      Filters
+                    </Dialog.Title>
+                  </div>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                   >
-                    <XMarkIcon className="w-5 h-5 text-white/60" />
+                    <XMarkIcon className="w-4 h-4 text-white/40" />
                   </button>
                 </div>
 
                 {/* Sort By */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium text-white/60 mb-3 block">Sort By</label>
+                <div className="mb-5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Sort By</label>
                   <div className="grid grid-cols-2 gap-2">
                     {sortOptions.map((option) => {
                       const Icon = option.icon;
@@ -156,13 +163,13 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                           key={option.id}
                           onClick={() => setSortBy(option.id)}
                           className={cn(
-                            'flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                            'flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold font-mono transition-all',
                             sortBy === option.id
-                              ? 'bg-gradient-to-r from-[#9945FF]/20 to-[#14F195]/20 border border-[#9945FF]/40 text-white'
-                              : 'bg-white/5 border border-transparent text-white/60 hover:bg-white/10 hover:text-white'
+                              ? 'bg-neon-lime/10 border border-neon-lime/30 text-neon-lime'
+                              : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
                           )}
                         >
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-3.5 h-3.5" />
                           {option.label}
                         </button>
                       );
@@ -171,18 +178,18 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                 </div>
 
                 {/* Time Range */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium text-white/60 mb-3 block">Time Range</label>
-                  <div className="flex gap-2">
+                <div className="mb-5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Time Range</label>
+                  <div className="flex gap-1.5">
                     {timeOptions.map((option) => (
                       <button
                         key={option.id}
                         onClick={() => setTimeRange(option.id)}
                         className={cn(
-                          'flex-1 py-2.5 rounded-xl text-sm font-medium transition-all',
+                          'flex-1 py-2 rounded-lg text-[10px] font-bold font-mono transition-all',
                           timeRange === option.id
-                            ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-lg shadow-[#9945FF]/20'
-                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                            ? 'bg-gain/10 text-gain border border-gain/30'
+                            : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 hover:text-white'
                         )}
                       >
                         {option.label}
@@ -192,63 +199,63 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                 </div>
 
                 {/* Market Cap Range */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium text-white/60 mb-3 block">Market Cap Range</label>
-                  <div className="flex items-center gap-3">
+                <div className="mb-5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Market Cap Range</label>
+                  <div className="flex items-center gap-2">
                     <div className="relative flex-1">
-                      <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                      <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
                       <input
                         type="text"
                         value={minMcap}
                         onChange={(e) => setMinMcap(e.target.value)}
                         placeholder="Min"
-                        className="w-full pl-9 pr-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#9945FF]/50 transition-colors"
+                        className="w-full pl-8 pr-3 py-2.5 bg-black/50 border border-white/10 rounded-lg text-white text-xs font-mono placeholder:text-white/20 focus:outline-none focus:border-neon-lime/30 transition-colors"
                       />
                     </div>
-                    <span className="text-white/30">—</span>
+                    <span className="text-white/20 text-xs">—</span>
                     <div className="relative flex-1">
-                      <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                      <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
                       <input
                         type="text"
                         value={maxMcap}
                         onChange={(e) => setMaxMcap(e.target.value)}
                         placeholder="Max"
-                        className="w-full pl-9 pr-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#9945FF]/50 transition-colors"
+                        className="w-full pl-8 pr-3 py-2.5 bg-black/50 border border-white/10 rounded-lg text-white text-xs font-mono placeholder:text-white/20 focus:outline-none focus:border-neon-lime/30 transition-colors"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Min Holders */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium text-white/60 mb-3 block">Minimum Holders</label>
+                <div className="mb-5">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Minimum Holders</label>
                   <div className="relative">
-                    <UsersIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                    <UsersIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
                     <input
                       type="text"
                       value={minHolders}
                       onChange={(e) => setMinHolders(e.target.value)}
                       placeholder="e.g. 100"
-                      className="w-full pl-9 pr-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#9945FF]/50 transition-colors"
+                      className="w-full pl-8 pr-3 py-2.5 bg-black/50 border border-white/10 rounded-lg text-white text-xs font-mono placeholder:text-white/20 focus:outline-none focus:border-neon-lime/30 transition-colors"
                     />
                   </div>
                 </div>
 
                 {/* Toggle */}
-                <div className="mb-8">
-                  <label className="flex items-center justify-between cursor-pointer group">
-                    <span className="text-sm text-white/60 group-hover:text-white transition-colors">Hide NSFW Content</span>
+                <div className="mb-6 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-xs text-white/60">Hide NSFW Content</span>
                     <button
                       onClick={() => setHideNsfw(!hideNsfw)}
                       className={cn(
-                        'relative w-12 h-6 rounded-full transition-all',
-                        hideNsfw ? 'bg-[#14F195]' : 'bg-white/20'
+                        'relative w-10 h-5 rounded-full transition-all',
+                        hideNsfw ? 'bg-gain' : 'bg-white/20'
                       )}
                     >
                       <div
                         className={cn(
-                          'absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-lg',
-                          hideNsfw ? 'left-7' : 'left-1'
+                          'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-lg',
+                          hideNsfw ? 'left-5' : 'left-0.5'
                         )}
                       />
                     </button>
@@ -256,7 +263,7 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={() => {
                       setSortBy('trending');
@@ -266,15 +273,16 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                       setMinHolders('');
                       setHideNsfw(true);
                     }}
-                    className="flex-1 py-3.5 rounded-xl text-sm font-semibold text-white/60 bg-white/5 hover:bg-white/10 transition-all"
+                    className="flex-1 py-2.5 rounded-lg text-xs font-bold font-mono text-white/40 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
                   >
-                    Reset
+                    RESET
                   </button>
                   <button
                     onClick={onClose}
-                    className="flex-1 py-3.5 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-[#14F195] to-[#00D787] hover:opacity-90 transition-all shadow-lg shadow-[#14F195]/20"
+                    className="flex-1 btn-trade-buy py-2.5 text-xs"
                   >
-                    Apply Filters
+                    <Zap size={12} />
+                    APPLY
                   </button>
                 </div>
               </Dialog.Panel>
@@ -286,43 +294,17 @@ function FilterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   );
 }
 
-// Premium Grid Card - Rich Colors & Vibrant - Mobile Responsive
+// Trading Grid Card - Terminal Style
 function GridCard({ token }: { token: TokenData }) {
   const router = useRouter();
-
-  // Dynamic gradient based on badge type
-  const cardGradient = token.badge === 'featured'
-    ? 'from-amber-900/40 via-amber-950/20 to-transparent'
-    : token.badge === 'mayhem'
-    ? 'from-orange-900/40 via-red-950/20 to-transparent'
-    : token.badge === 'trending'
-    ? 'from-purple-900/40 via-violet-950/20 to-transparent'
-    : token.badge === 'live'
-    ? 'from-red-900/40 via-red-950/20 to-transparent'
-    : token.badge === 'new'
-    ? 'from-blue-900/40 via-blue-950/20 to-transparent'
-    : 'from-slate-800/40 via-slate-900/20 to-transparent';
-
-  const borderGlow = token.badge === 'featured'
-    ? 'hover:border-amber-500/50 hover:shadow-amber-500/20'
-    : token.badge === 'mayhem'
-    ? 'hover:border-orange-500/50 hover:shadow-orange-500/20'
-    : token.badge === 'trending'
-    ? 'hover:border-purple-500/50 hover:shadow-purple-500/20'
-    : token.badge === 'live'
-    ? 'hover:border-red-500/50 hover:shadow-red-500/20'
-    : 'hover:border-[#14F195]/50 hover:shadow-[#14F195]/20';
+  const isGain = token.priceChange >= 0;
 
   return (
     <article
       onClick={() => router.push(token.href)}
       className={cn(
-        'group relative rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer',
-        'bg-gradient-to-b',
-        cardGradient,
-        'border border-white/10',
-        borderGlow,
-        'hover:shadow-xl transition-all duration-300'
+        'group trading-card overflow-hidden cursor-pointer',
+        'hover:border-neon-lime/30 hover:shadow-trading-card-hover'
       )}
     >
       {/* Image Container */}
@@ -330,95 +312,95 @@ function GridCard({ token }: { token: TokenData }) {
         <img
           src={token.image}
           alt={token.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
 
-        {/* Rich gradient overlay */}
+        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-        {/* Badge - More vibrant - Smaller on mobile */}
+        {/* Badge */}
         {token.badge && (
-          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2">
+          <div className="absolute top-2 left-2">
             <span className={cn(
-              'px-1.5 sm:px-2 py-0.5 rounded-md text-[7px] sm:text-[9px] font-black uppercase tracking-wide',
-              token.badge === 'live' && 'bg-red-500 text-white animate-pulse',
-              token.badge === 'new' && 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white',
-              token.badge === 'trending' && 'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-              token.badge === 'mayhem' && 'bg-gradient-to-r from-orange-500 to-red-500 text-white',
-              token.badge === 'featured' && 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black',
+              'px-1.5 py-0.5 rounded text-[8px] font-bold font-mono uppercase',
+              token.badge === 'live' && 'bg-loss text-white animate-pulse',
+              token.badge === 'new' && 'bg-cyan-400 text-black',
+              token.badge === 'trending' && 'bg-gold text-black',
+              token.badge === 'mayhem' && 'bg-coral-400 text-black',
+              token.badge === 'featured' && 'bg-neon-lime text-black',
             )}>
-              {token.badge === 'live' && '● LIVE'}
-              {token.badge === 'new' && '✦ NEW'}
-              {token.badge === 'trending' && '🔥 HOT'}
-              {token.badge === 'mayhem' && '⚡ MAYHEM'}
-              {token.badge === 'featured' && '★ FEATURED'}
+              {token.badge === 'live' && 'LIVE'}
+              {token.badge === 'new' && 'NEW'}
+              {token.badge === 'trending' && 'HOT'}
+              {token.badge === 'mayhem' && 'MAYHEM'}
+              {token.badge === 'featured' && 'FEATURED'}
             </span>
           </div>
         )}
 
-        {/* Time - top right */}
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
-          <span className="px-1 sm:px-1.5 py-0.5 rounded bg-black/60 text-[8px] sm:text-[9px] text-white/70 font-medium">
+        {/* Time */}
+        <div className="absolute top-2 right-2">
+          <span className="px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-white/60 font-mono">
             {token.timeAgo}
           </span>
         </div>
 
-        {/* Bottom overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
+        {/* Bottom overlay - Creator */}
+        <div className="absolute bottom-0 left-0 right-0 p-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/profile/${token.creator}`);
+              router.push(`/profile/${token.creatorWallet}`);
             }}
-            className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
           >
             <img
               src={token.creatorAvatar}
               alt={token.creator}
-              className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-white/30"
+              className="w-4 h-4 rounded-full border border-white/30"
             />
-            <span className="text-white/90 text-[9px] sm:text-[11px] font-medium truncate max-w-[80px] sm:max-w-none">@{token.creator}</span>
+            <span className="text-white/80 text-[10px] font-medium truncate">@{token.creator}</span>
             {token.isVerified && (
-              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#14F195] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
+              <div className="w-3 h-3 bg-gain rounded-full flex items-center justify-center">
+                <svg className="w-2 h-2 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                </svg>
+              </div>
             )}
           </button>
-          <h3 className="text-white font-bold text-xs sm:text-sm truncate">{token.title}</h3>
+          <h3 className="text-white font-bold text-xs truncate mt-1">{token.title}</h3>
         </div>
       </div>
 
-      {/* Content - Fixed height layout - Compact on mobile */}
-      <div className="p-2 sm:p-3 flex flex-col gap-1.5 sm:gap-2.5">
+      {/* Content - Trading Style */}
+      <div className="p-2.5 bg-terminal/50 border-t border-white/5">
         {/* Price Row */}
-        <div className="flex items-center justify-between gap-1">
-          <div className="min-w-0">
-            <p className="text-[7px] sm:text-[9px] text-white/50 uppercase tracking-wider">Price</p>
-            <p className="text-white font-bold text-xs sm:text-sm truncate">{formatPrice(token.price)}</p>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div>
+            <p className="text-[8px] text-white/30 uppercase font-mono tracking-wider">Price</p>
+            <p className="text-white font-bold text-sm font-mono">{formatPrice(token.price)}</p>
           </div>
           <div className={cn(
-            'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-bold text-[9px] sm:text-[11px] shrink-0',
-            token.priceChange >= 0
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-red-500/20 text-red-400'
+            'px-2 py-1 rounded text-[10px] font-bold font-mono',
+            isGain ? 'bg-gain/10 text-gain' : 'bg-loss/10 text-loss'
           )}>
-            {token.priceChange >= 0 ? '+' : ''}{token.priceChange.toFixed(1)}%
+            {isGain ? '+' : ''}{token.priceChange.toFixed(1)}%
           </div>
         </div>
 
-        {/* Stats - Fixed 3 column grid - Ultra compact on mobile */}
-        <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
-          <div className="text-center px-1 sm:px-1.5 py-1 sm:py-1.5 bg-purple-500/10 rounded-lg">
-            <p className="text-[6px] sm:text-[8px] text-purple-300 uppercase">MC</p>
-            <p className="text-[8px] sm:text-[10px] text-white font-semibold truncate">{formatNumber(token.marketCap)}</p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-1 mb-2">
+          <div className="text-center p-1.5 bg-white/[0.02] rounded border border-white/5">
+            <p className="text-[7px] text-purple-400 uppercase font-mono">MC</p>
+            <p className="text-[9px] text-white font-bold font-mono">{formatNumber(token.marketCap)}</p>
           </div>
-          <div className="text-center px-1 sm:px-1.5 py-1 sm:py-1.5 bg-blue-500/10 rounded-lg">
-            <p className="text-[6px] sm:text-[8px] text-blue-300 uppercase">Hold</p>
-            <p className="text-[8px] sm:text-[10px] text-white font-semibold truncate">{formatNumber(token.holders)}</p>
+          <div className="text-center p-1.5 bg-white/[0.02] rounded border border-white/5">
+            <p className="text-[7px] text-cyan-400 uppercase font-mono">Liq</p>
+            <p className="text-[9px] text-white font-bold font-mono">{formatNumber(token.liquidity)}</p>
           </div>
-          <div className="text-center px-1 sm:px-1.5 py-1 sm:py-1.5 bg-cyan-500/10 rounded-lg">
-            <p className="text-[6px] sm:text-[8px] text-cyan-300 uppercase">Liq</p>
-            <p className="text-[8px] sm:text-[10px] text-white font-semibold truncate">{formatNumber(token.liquidity)}</p>
+          <div className="text-center p-1.5 bg-white/[0.02] rounded border border-white/5">
+            <p className="text-[7px] text-gold uppercase font-mono">Hold</p>
+            <p className="text-[9px] text-white font-bold font-mono">{formatNumber(token.holders)}</p>
           </div>
         </div>
 
@@ -427,432 +409,298 @@ function GridCard({ token }: { token: TokenData }) {
           onClick={(e) => {
             e.stopPropagation();
           }}
-          className="w-full py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs text-white bg-gradient-to-r from-[#9945FF] via-[#7B3FE4] to-[#14F195] hover:opacity-90 hover:shadow-lg hover:shadow-purple-500/25 transition-all active:scale-[0.98]"
+          className="w-full btn-trade-buy py-1.5 text-[10px]"
         >
-          Buy ${token.ticker}
+          <Zap size={10} />
+          BUY ${token.ticker}
         </button>
       </div>
     </article>
   );
 }
 
-// List Card component - Nikita Bier Viral Style - Bold & Addictive
+// Trading List Card
 function ListCard({ token }: { token: TokenData }) {
   const router = useRouter();
-
-  // Dynamic colors based on performance
+  const isGain = token.priceChange >= 0;
   const isPumping = token.priceChange >= 10;
-  const isGaining = token.priceChange > 0 && token.priceChange < 10;
-  const isDumping = token.priceChange < -5;
-
-  // Card gradient based on performance
-  const cardBg = isPumping
-    ? 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent'
-    : isDumping
-    ? 'bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent'
-    : 'bg-gradient-to-r from-white/[0.08] to-transparent';
-
-  const borderColor = isPumping
-    ? 'border-emerald-500/30 hover:border-emerald-400/50 shadow-emerald-500/10'
-    : isDumping
-    ? 'border-red-500/30 hover:border-red-400/50 shadow-red-500/10'
-    : 'border-white/10 hover:border-[#14F195]/40 shadow-[#14F195]/5';
 
   return (
     <article
       onClick={() => router.push(token.href)}
       className={cn(
-        "group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl cursor-pointer border-2 transition-all duration-300",
-        cardBg,
-        borderColor,
-        "hover:scale-[1.02] hover:shadow-2xl backdrop-blur-sm",
-        isPumping && "animate-pulse-slow"
+        'group trading-card p-3 sm:p-4 cursor-pointer',
+        'hover:border-neon-lime/30 hover:shadow-trading-card-hover',
+        isPumping && 'border-gain/20'
       )}
     >
-      {/* Mobile: Stack layout, Desktop: Horizontal layout */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
-        {/* Top row on mobile: Image + Title + Price */}
-        <div className="flex items-start gap-4 w-full sm:w-auto sm:flex-1">
-          {/* Image - LARGER with glow */}
-          <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shrink-0 ring-2 ring-white/10 group-hover:ring-[#14F195]/50 transition-all">
-            <img
-              src={token.image}
-              alt={token.title}
-              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-2 transition-all duration-500"
-            />
-            {/* Glow effect */}
-            <div className={cn(
-              "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity blur-xl -z-10",
-              isPumping && "bg-emerald-400",
-              isDumping && "bg-red-400",
-              !isPumping && !isDumping && "bg-[#14F195]"
-            )} />
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Image */}
+        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shrink-0 border border-white/10">
+          <img
+            src={token.image}
+            alt={token.title}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          />
+          {token.badge && (
+            <div className="absolute top-0.5 right-0.5">
+              <span className={cn(
+                'w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold',
+                token.badge === 'live' && 'bg-loss animate-pulse',
+                token.badge === 'new' && 'bg-cyan-400 text-black',
+                token.badge === 'trending' && 'bg-gold text-black',
+              )}>
+                {token.badge === 'live' ? '●' : token.badge === 'new' ? '✦' : '▲'}
+              </span>
+            </div>
+          )}
+        </div>
 
-            {/* Animated badge */}
-            {token.badge && (
-              <div className="absolute -top-1 -right-1 animate-bounce-slow">
-                <span className={cn(
-                  'w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-black shadow-2xl border-2 border-black',
-                  token.badge === 'live' && 'bg-red-500 text-white animate-pulse',
-                  token.badge === 'new' && 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white',
-                  token.badge === 'trending' && 'bg-gradient-to-r from-orange-500 to-pink-500 text-white',
-                  token.badge === 'mayhem' && 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black',
-                  token.badge === 'featured' && 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black',
-                )}>
-                  {token.badge === 'live' ? '●' : token.badge === 'new' ? '✦' : '▲'}
-                </span>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-white font-bold text-sm truncate group-hover:text-neon-lime transition-colors">
+              {token.title}
+            </h3>
+            <span className="text-white/30 text-xs font-mono">${token.ticker}</span>
+            {token.isVerified && (
+              <div className="w-4 h-4 bg-gain rounded-full flex items-center justify-center shrink-0">
+                <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                </svg>
               </div>
             )}
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="text-white font-black text-base sm:text-xl truncate max-w-[140px] sm:max-w-none group-hover:text-[#14F195] transition-colors">
-                {token.title}
-              </h3>
-              <span className="text-white/50 text-sm sm:text-base font-bold">${token.ticker}</span>
-              {token.isVerified && (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#14F195] shrink-0 animate-pulse-slow" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/profile/${token.creator}`);
-                }}
-                className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity"
-              >
-                <img src={token.creatorAvatar} alt={token.creator} className="w-4 h-4 sm:w-5 sm:h-5 rounded-full" />
-                <span className="text-white/50 text-[11px] sm:text-xs hover:text-white/70">@{token.creator}</span>
-              </button>
-              <span className="text-white/30 text-[10px] sm:text-xs">•</span>
-              <span className="text-white/40 text-[10px] sm:text-xs">{token.timeAgo}</span>
-            </div>
-
-            {/* Stats Row with social proof - Hidden on mobile, shown on desktop */}
-            <div className="hidden sm:flex items-center gap-3">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/10 rounded-xl border border-purple-500/20">
-                <span className="text-[11px] text-purple-300 font-bold">MCAP</span>
-                <span className="text-sm text-white font-black">{formatNumber(token.marketCap)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
-                <span className="text-[11px] text-cyan-300 font-bold">LIQ</span>
-                <span className="text-sm text-white font-black">{formatNumber(token.liquidity)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                <span className="text-[11px] text-blue-300 font-bold">HOLDERS</span>
-                <span className="text-sm text-white font-black">{formatNumber(token.holders)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Price - BIG and BOLD */}
-          <div className="text-right shrink-0">
-            <p className="text-white font-black text-xl sm:text-3xl mb-1">{formatPrice(token.price)}</p>
-            <div className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm sm:text-base',
-              token.priceChange >= 0
-                ? 'bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/20'
-                : 'bg-red-500/20 text-red-400 shadow-lg shadow-red-500/20'
-            )}>
-              <span className="text-base">{token.priceChange >= 0 ? '↑' : '↓'}</span>
-              <span>{token.priceChange >= 0 ? '+' : ''}{token.priceChange.toFixed(1)}%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile-only: Stats Row + Buy Button */}
-        <div className="flex sm:hidden items-center justify-between gap-2 pt-3 border-t-2 border-white/5">
-          {/* Compact Stats with colors */}
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <div className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-500/10 rounded-lg shrink-0 border border-purple-500/20">
-              <span className="text-[10px] text-purple-300 font-bold">MC</span>
-              <span className="text-xs text-white font-black">{formatNumber(token.marketCap)}</span>
-            </div>
-            <div className="flex items-center gap-1 px-2.5 py-1.5 bg-cyan-500/10 rounded-lg shrink-0 border border-cyan-500/20">
-              <span className="text-[10px] text-cyan-300 font-bold">LIQ</span>
-              <span className="text-xs text-white font-black">{formatNumber(token.liquidity)}</span>
-            </div>
-            <div className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/10 rounded-lg shrink-0 border border-blue-500/20">
-              <span className="text-[10px] text-blue-300 font-bold">HOL</span>
-              <span className="text-xs text-white font-black">{formatNumber(token.holders)}</span>
-            </div>
-          </div>
-
-          {/* Buy Button - Mobile - VIRAL */}
           <button
             onClick={(e) => {
               e.stopPropagation();
+              router.push(`/profile/${token.creatorWallet}`);
             }}
-            className="px-5 py-2.5 rounded-xl font-black text-sm text-black bg-gradient-to-r from-[#14F195] via-[#00D787] to-[#14F195] bg-size-200 bg-pos-0 hover:bg-pos-100 transition-all duration-500 shrink-0 shadow-xl shadow-[#14F195]/30 hover:scale-110 active:scale-95 animate-pulse-slow"
+            className="flex items-center gap-1.5 mb-2 hover:opacity-80 transition-opacity"
           >
+            <img src={token.creatorAvatar} alt={token.creator} className="w-4 h-4 rounded-full" />
+            <span className="text-white/40 text-[10px] font-mono">@{token.creator}</span>
+            <span className="text-white/20 text-[10px]">·</span>
+            <span className="text-white/30 text-[10px] font-mono">{token.timeAgo}</span>
+          </button>
+
+          {/* Stats Row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 px-2 py-1 bg-purple-400/10 rounded border border-purple-400/20">
+              <span className="text-[8px] text-purple-400 font-bold">MC</span>
+              <span className="text-[10px] text-white font-bold font-mono">{formatNumber(token.marketCap)}</span>
+            </div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-cyan-400/10 rounded border border-cyan-400/20">
+              <span className="text-[8px] text-cyan-400 font-bold">LIQ</span>
+              <span className="text-[10px] text-white font-bold font-mono">{formatNumber(token.liquidity)}</span>
+            </div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-gold/10 rounded border border-gold/20">
+              <span className="text-[8px] text-gold font-bold">HOLD</span>
+              <span className="text-[10px] text-white font-bold font-mono">{formatNumber(token.holders)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Price + Action */}
+        <div className="text-right shrink-0">
+          <p className="text-white font-bold text-lg font-mono mb-0.5">{formatPrice(token.price)}</p>
+          <div className={cn(
+            'inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold font-mono mb-2',
+            isGain ? 'bg-gain/10 text-gain' : 'bg-loss/10 text-loss'
+          )}>
+            {isGain ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+            {isGain ? '+' : ''}{token.priceChange.toFixed(1)}%
+          </div>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="hidden sm:flex btn-trade-buy px-4 py-2 text-xs w-full justify-center"
+          >
+            <Zap size={12} />
             BUY
           </button>
         </div>
+      </div>
 
-        {/* Desktop-only: Buy Button - VIRAL */}
+      {/* Mobile Buy Button */}
+      <div className="sm:hidden mt-3 pt-3 border-t border-white/5">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="hidden sm:flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-base text-black bg-gradient-to-r from-[#14F195] via-[#00D787] to-[#14F195] bg-size-200 bg-pos-0 hover:bg-pos-100 transition-all duration-500 shrink-0 shadow-2xl shadow-[#14F195]/40 hover:scale-110 hover:rotate-2 active:scale-95 group-hover:animate-pulse"
+          onClick={(e) => e.stopPropagation()}
+          className="btn-trade-buy w-full py-2 text-xs"
         >
-          BUY NOW
+          <Zap size={12} />
+          BUY ${token.ticker}
         </button>
       </div>
     </article>
   );
 }
 
-// Live Stream Card - Nikita Bear Style (Ultra Compact)
+// Live Stream Card - Compact
 function LiveCard({ token }: { token: TokenData }) {
   const router = useRouter();
+  const isGain = token.priceChange >= 0;
 
   return (
     <article
       onClick={() => router.push(token.href)}
-      className="group relative rounded-lg overflow-hidden cursor-pointer bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-red-500/30 transition-all duration-300"
+      className="group trading-card overflow-hidden cursor-pointer hover:border-loss/30"
     >
-      {/* Compact square image */}
       <div className="relative aspect-square overflow-hidden">
         <img
           src={token.image}
           alt={token.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
-
-        {/* Dark overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* LIVE pulse badge */}
+        {/* LIVE Badge */}
         <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-loss opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-loss"></span>
           </span>
-          <span className="text-[9px] font-bold text-white uppercase">Live</span>
+          <span className="text-[8px] font-bold text-white uppercase font-mono">LIVE</span>
         </div>
 
-        {/* Viewers count - top right */}
-        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[9px] text-white/80">
-          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-          </svg>
-          <span className="font-medium">{token.viewers || 0}</span>
+        {/* Viewers */}
+        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[8px] text-white/70 font-mono">
+          <Users size={8} />
+          <span>{token.viewers || 0}</span>
         </div>
 
-        {/* Bottom: Avatar + Name overlay */}
+        {/* Creator */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/profile/${token.creator}`);
+            router.push(`/profile/${token.creatorWallet}`);
           }}
-          className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+          className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center gap-1.5"
         >
           <img
             src={token.creatorAvatar}
             alt={token.creator}
             className="w-4 h-4 rounded-full border border-white/20"
           />
-          <span className="text-[10px] text-white font-medium truncate flex-1">{token.creator}</span>
+          <span className="text-[9px] text-white font-medium truncate">{token.creator}</span>
         </button>
       </div>
 
-      {/* Ultra compact info */}
-      <div className="p-1.5">
-        <div className="flex items-center justify-between gap-1">
-          <div className={cn(
-            'flex items-center gap-0.5 text-[10px] font-bold',
-            token.priceChange >= 0 ? 'text-[#14F195]' : 'text-red-400'
+      <div className="p-1.5 bg-terminal/50 border-t border-white/5">
+        <div className="flex items-center justify-between">
+          <span className={cn(
+            'text-[9px] font-bold font-mono',
+            isGain ? 'text-gain' : 'text-loss'
           )}>
-            <span>{token.priceChange >= 0 ? '↑' : '↓'}</span>
-            <span>{formatPrice(token.price)}</span>
-          </div>
-          <span className="text-[9px] text-white/40">{formatNumber(token.holders)} holders</span>
+            {formatPrice(token.price)}
+          </span>
+          <span className="text-[8px] text-white/30 font-mono">{formatNumber(token.holders)} hold</span>
         </div>
       </div>
     </article>
   );
 }
 
-// Mobile Table Card - Card layout for mobile table view
-function MobileTableCard({ token, rank }: { token: TokenData; rank: number }) {
-  const router = useRouter();
-
-  return (
-    <article
-      onClick={() => router.push(token.href)}
-      className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.06] cursor-pointer active:bg-white/[0.06]"
-    >
-      <div className="flex items-center gap-3">
-        {/* Rank */}
-        <span className={cn(
-          'font-bold text-base w-6 shrink-0',
-          rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-white/30'
-        )}>
-          {rank}
-        </span>
-
-        {/* Token Image */}
-        <div className="relative shrink-0">
-          <img src={token.image} alt={token.title} className="w-10 h-10 rounded-full object-cover" />
-          {token.badge && (
-            <span className={cn(
-              'absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[5px]',
-              token.badge === 'live' && 'bg-red-500',
-              token.badge === 'trending' && 'bg-[#9945FF]',
-              token.badge === 'featured' && 'bg-amber-500',
-            )}>
-              {token.badge === 'live' ? '●' : '★'}
-            </span>
-          )}
-        </div>
-
-        {/* Token Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-white font-semibold text-sm truncate">{token.title}</span>
-            {token.isVerified && (
-              <svg className="w-3 h-3 text-[#14F195] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            )}
-          </div>
-          <span className="text-white/40 text-xs">${token.ticker}</span>
-        </div>
-
-        {/* Price & Change */}
-        <div className="text-right shrink-0">
-          <p className="text-white font-bold text-sm">{formatPrice(token.price)}</p>
-          <p className={cn(
-            'text-xs font-semibold',
-            token.priceChange >= 0 ? 'text-[#14F195]' : 'text-red-400'
-          )}>
-            {token.priceChange >= 0 ? '+' : ''}{token.priceChange.toFixed(1)}%
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Row */}
-      <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-white/[0.06]">
-        <div className="flex items-center gap-3 text-[10px]">
-          <div>
-            <span className="text-white/40">MC </span>
-            <span className="text-white/70 font-medium">{formatNumber(token.marketCap)}</span>
-          </div>
-          <div>
-            <span className="text-white/40">Liq </span>
-            <span className="text-white/70 font-medium">{formatNumber(token.liquidity)}</span>
-          </div>
-          <div>
-            <span className="text-white/40">Hold </span>
-            <span className="text-white/70 font-medium">{formatNumber(token.holders)}</span>
-          </div>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="px-3 py-1.5 rounded-lg font-bold text-[10px] text-black bg-gradient-to-r from-[#14F195] to-[#00D787]"
-        >
-          Buy
-        </button>
-      </div>
-    </article>
-  );
-}
-
-// Table Row component - Mobile Responsive with rounded images
+// Table Row - Trading Terminal Style
 function TableRow({ token, rank }: { token: TokenData; rank: number }) {
   const router = useRouter();
+  const isGain = token.priceChange >= 0;
 
   return (
     <tr
       onClick={() => router.push(token.href)}
-      className="group border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition-all"
+      className="group border-b border-white/5 hover:bg-white/[0.02] cursor-pointer transition-all"
     >
       {/* Rank */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4">
+      <td className="py-3 px-3">
         <span className={cn(
-          'font-bold text-xs sm:text-sm lg:text-lg',
-          rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-white/30'
+          'font-bold text-sm font-mono',
+          rank === 1 ? 'text-gold' : rank === 2 ? 'text-slate-300' : rank === 3 ? 'text-amber-600' : 'text-white/30'
         )}>
           {rank}
         </span>
       </td>
-      {/* Token with rounded image */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4">
-        <div className="flex items-center gap-2 lg:gap-3">
+
+      {/* Token */}
+      <td className="py-3 px-3">
+        <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <img src={token.image} alt={token.title} className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full object-cover" />
+            <img src={token.image} alt={token.title} className="w-10 h-10 rounded-lg object-cover border border-white/10" />
             {token.badge && (
               <span className={cn(
-                'absolute -top-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 rounded-full flex items-center justify-center text-[4px] sm:text-[5px] lg:text-[6px]',
-                token.badge === 'live' && 'bg-red-500',
-                token.badge === 'trending' && 'bg-[#9945FF]',
-                token.badge === 'featured' && 'bg-amber-500',
+                'absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-bold',
+                token.badge === 'live' && 'bg-loss',
+                token.badge === 'trending' && 'bg-gold text-black',
+                token.badge === 'featured' && 'bg-neon-lime text-black',
               )}>
                 {token.badge === 'live' ? '●' : '★'}
               </span>
             )}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
-              <span className="text-white font-semibold text-[11px] sm:text-sm lg:text-base truncate max-w-[60px] sm:max-w-[100px] lg:max-w-none">{token.title}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-semibold text-sm truncate group-hover:text-neon-lime transition-colors">{token.title}</span>
               {token.isVerified && (
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5 text-[#14F195] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                <div className="w-3.5 h-3.5 bg-gain rounded-full flex items-center justify-center shrink-0">
+                  <svg className="w-2 h-2 text-black" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                  </svg>
+                </div>
               )}
             </div>
-            <span className="text-white/40 text-[10px] sm:text-xs lg:text-sm">${token.ticker}</span>
+            <span className="text-white/30 text-xs font-mono">${token.ticker}</span>
           </div>
         </div>
       </td>
+
       {/* Price */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4">
-        <span className="text-white font-bold text-[11px] sm:text-sm lg:text-base">{formatPrice(token.price)}</span>
+      <td className="py-3 px-3">
+        <span className="text-white font-bold text-sm font-mono">{formatPrice(token.price)}</span>
       </td>
-      {/* 24h Change - hidden on mobile */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 hidden sm:table-cell">
+
+      {/* 24h Change */}
+      <td className="py-3 px-3 hidden sm:table-cell">
         <span className={cn(
-          'font-semibold text-xs sm:text-sm lg:text-base',
-          token.priceChange >= 0 ? 'text-[#14F195]' : 'text-red-400'
+          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold font-mono',
+          isGain ? 'bg-gain/10 text-gain' : 'bg-loss/10 text-loss'
         )}>
-          {token.priceChange >= 0 ? '+' : ''}{token.priceChange.toFixed(1)}%
+          {isGain ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+          {isGain ? '+' : ''}{token.priceChange.toFixed(1)}%
         </span>
       </td>
-      {/* MCAP - hidden on mobile/tablet */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 hidden md:table-cell">
-        <span className="text-white/70 text-xs sm:text-sm">{formatNumber(token.marketCap)}</span>
+
+      {/* MCAP */}
+      <td className="py-3 px-3 hidden md:table-cell">
+        <span className="text-white/60 text-xs font-mono">{formatNumber(token.marketCap)}</span>
       </td>
-      {/* Liquidity - hidden until lg */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 hidden lg:table-cell">
-        <span className="text-white/70 text-sm">{formatNumber(token.liquidity)}</span>
+
+      {/* Liquidity */}
+      <td className="py-3 px-3 hidden lg:table-cell">
+        <span className="text-cyan-400 text-xs font-mono">{formatNumber(token.liquidity)}</span>
       </td>
-      {/* Holders - hidden until lg */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 hidden lg:table-cell">
-        <span className="text-white/70 text-sm">{formatNumber(token.holders)}</span>
+
+      {/* Holders */}
+      <td className="py-3 px-3 hidden lg:table-cell">
+        <span className="text-gold text-xs font-mono">{formatNumber(token.holders)}</span>
       </td>
-      {/* Age - hidden until xl */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 hidden xl:table-cell">
-        <span className="text-white/50 text-sm">{token.age}</span>
+
+      {/* Age */}
+      <td className="py-3 px-3 hidden xl:table-cell">
+        <span className="text-white/40 text-xs font-mono">{token.age}</span>
       </td>
+
       {/* Buy Button */}
-      <td className="py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4">
+      <td className="py-3 px-3">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          className="px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg font-bold text-[9px] sm:text-[10px] lg:text-xs text-black bg-gradient-to-r from-[#14F195] to-[#00D787] sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            'px-3 py-1.5 rounded text-[10px] font-bold font-mono',
+            'bg-gain/10 text-gain border border-gain/30',
+            'hover:bg-gain/20 hover:border-gain/50',
+            'opacity-0 group-hover:opacity-100 transition-all'
+          )}
         >
-          Buy
+          BUY
         </button>
       </td>
     </tr>
@@ -868,57 +716,59 @@ export default function ExplorePage() {
   const [tokens, setTokens] = useState<TokenData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter tabs
   const tabs = [
     { id: 'featured' as TabId, label: 'Featured', icon: StarIcon },
-    { id: 'mayhem' as TabId, label: 'Mayhem', icon: BoltIcon },
+    { id: 'predictions' as TabId, label: 'Predictions', icon: ScaleIcon },
     { id: 'trending' as TabId, label: 'Trending', icon: FireIcon },
     { id: 'top' as TabId, label: 'Top', icon: TrophyIcon },
     { id: 'new' as TabId, label: 'New', icon: SparklesIcon },
     { id: 'live' as TabId, label: 'Live', icon: PlayIcon },
+    { id: 'games' as TabId, label: 'Games', icon: PuzzlePieceIcon },
     { id: 'videos' as TabId, label: 'Videos', icon: VideoCameraIcon },
     { id: 'creators' as TabId, label: 'Creators', icon: UserGroupIcon },
   ];
 
-  // Fetch data
   useEffect(() => {
     async function fetchPosts() {
       setLoading(true);
 
       try {
-        // Fetch real posts from API
         const response = await fetch('/api/posts?limit=50');
         const data = await response.json();
 
         if (data.success && data.data.posts) {
-          // Map real posts to TokenData format
-          const realTokens: TokenData[] = data.data.posts.map((post: any, index: number) => ({
-            id: post.id,
-            image: post.media_urls?.[0] || 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
-            title: post.title || post.content?.substring(0, 50) || 'Untitled Post',
-            ticker: post.token_display_name || post.token_symbol || 'TOKEN',
-            creator: post.users?.username || 'anonymous',
-            creatorAvatar: post.users?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-            description: post.content,
-            // TODO: Fetch real token data from Jupiter/Meteora APIs
-            price: post.token_price || 0,
-            priceChange: post.token_price_change_24h || 0,
-            marketCap: post.token_market_cap || 0,
-            athProgress: post.token_ath_progress || 0,
-            liquidity: post.token_liquidity || 0,
-            holders: post.token_holders || 0,
-            volume24h: post.token_volume_24h || 0,
-            txns: post.token_txns_24h || 0,
-            age: formatTimeAgo(post.created_at),
-            timeAgo: formatTimeAgo(post.created_at),
-            badge: post.token_is_verified ? 'featured' : index < 5 ? 'new' : undefined,
-            isVerified: post.token_is_verified || false,
-            href: `/post/${post.id}`,
-          }));
+          const realTokens: TokenData[] = data.data.posts.map((post: unknown, index: number) => {
+            const p = post as Record<string, unknown>;
+            const users = p.users as Record<string, unknown> | undefined;
+            const mediaUrls = p.media_urls as string[] | undefined;
+
+            return {
+              id: p.id as string,
+              image: mediaUrls?.[0] || 'https://images.unsplash.com/photo-1579762715459-5a068c289fda?w=400&h=400&fit=crop',
+              title: (p.title as string) || (p.content as string)?.substring(0, 50) || 'Untitled Post',
+              ticker: (p.token_display_name as string) || (p.token_symbol as string) || 'TOKEN',
+              creator: (users?.username as string) || 'anonymous',
+              creatorWallet: (users?.wallet_address as string) || '',
+              creatorAvatar: (users?.avatar_url as string) || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+              description: p.content as string,
+              price: (p.token_price as number) || 0,
+              priceChange: (p.token_price_change_24h as number) || 0,
+              marketCap: (p.token_market_cap as number) || 0,
+              athProgress: (p.token_ath_progress as number) || 0,
+              liquidity: (p.token_liquidity as number) || 0,
+              holders: (p.token_holders as number) || 0,
+              volume24h: (p.token_volume_24h as number) || 0,
+              txns: (p.token_txns_24h as number) || 0,
+              age: formatTimeAgo(p.created_at as string),
+              timeAgo: formatTimeAgo(p.created_at as string),
+              badge: p.token_is_verified ? 'featured' : index < 5 ? 'new' : undefined,
+              isVerified: (p.token_is_verified as boolean) || false,
+              href: `/post/${p.id}`,
+            };
+          });
 
           setTokens(realTokens);
         } else {
-          console.error('Failed to fetch posts:', data.error);
           setTokens([]);
         }
       } catch (error) {
@@ -940,82 +790,81 @@ export default function ExplorePage() {
 
   return (
     <AppLayout showWallet={true} showSearch={false}>
-      <div className="max-w-[1600px] mx-auto pb-20 md:pb-8">
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-trading-screen" />
+        <div className="absolute inset-0 bg-grid-glow opacity-20" />
+      </div>
+
+      <div className="relative max-w-[1600px] mx-auto pb-20 md:pb-8">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Explore</h1>
-          <p className="text-white/50 text-sm">Discover trending tokens, creators, and content</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-neon-lime/10 rounded-lg border border-neon-lime/30">
+              <Activity size={18} className="text-neon-lime" />
+            </div>
+            <h1 className="text-2xl font-bold text-white font-display uppercase tracking-wide">Explore</h1>
+            <div className="live-indicator text-[10px]">LIVE</div>
+          </div>
+          <p className="text-white/40 text-sm font-mono">Discover trending tokens, creators, and content</p>
         </div>
 
-        {/* Search & Controls Bar */}
+        {/* Search & Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tokens, creators..."
-              className="w-full pl-12 pr-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:border-[#9945FF]/50 focus:bg-white/[0.06] transition-all"
+              className="w-full pl-11 pr-4 py-2.5 bg-black/50 border border-white/10 rounded-lg text-white text-sm font-mono placeholder:text-white/20 focus:outline-none focus:border-neon-lime/30 transition-all"
             />
           </div>
 
-          {/* Filter Button - Opens Modal */}
+          {/* Filter Button */}
           <button
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-white/[0.06] to-white/[0.02] border border-white/[0.08] text-white/80 hover:text-white hover:border-white/20 hover:from-white/[0.08] hover:to-white/[0.04] transition-all group"
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-lg',
+              'bg-white/5 border border-white/10',
+              'text-white/60 hover:text-white hover:border-white/20',
+              'transition-all'
+            )}
           >
-            <AdjustmentsHorizontalIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            <span className="text-sm font-semibold">Filters</span>
+            <AdjustmentsHorizontalIcon className="w-4 h-4" />
+            <span className="text-xs font-bold font-mono uppercase">Filters</span>
           </button>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2.5 rounded-xl transition-all',
-                viewMode === 'grid'
-                  ? 'bg-gradient-to-r from-[#9945FF]/20 to-[#14F195]/20 text-white shadow-inner'
-                  : 'text-white/40 hover:text-white/70'
-              )}
-              title="Grid view"
-            >
-              <Squares2X2Icon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'p-2.5 rounded-xl transition-all',
-                viewMode === 'list'
-                  ? 'bg-gradient-to-r from-[#9945FF]/20 to-[#14F195]/20 text-white shadow-inner'
-                  : 'text-white/40 hover:text-white/70'
-              )}
-              title="List view"
-            >
-              <ListBulletIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={cn(
-                'p-2.5 rounded-xl transition-all',
-                viewMode === 'table'
-                  ? 'bg-gradient-to-r from-[#9945FF]/20 to-[#14F195]/20 text-white shadow-inner'
-                  : 'text-white/40 hover:text-white/70'
-              )}
-              title="Table view"
-            >
-              <TableCellsIcon className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-lg">
+            {[
+              { mode: 'grid' as ViewMode, icon: Squares2X2Icon },
+              { mode: 'list' as ViewMode, icon: ListBulletIcon },
+              { mode: 'table' as ViewMode, icon: TableCellsIcon },
+            ].map(({ mode, icon: Icon }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  'p-2 rounded-lg transition-all',
+                  viewMode === mode
+                    ? 'bg-neon-lime/10 text-neon-lime border border-neon-lime/30'
+                    : 'text-white/30 hover:text-white/60'
+                )}
+                title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view`}
+              >
+                <Icon className="w-4 h-4" />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Filter Modal */}
         <FilterModal isOpen={showFilters} onClose={() => setShowFilters(false)} />
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-4 mb-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1024,30 +873,34 @@ export default function ExplorePage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold font-mono transition-all whitespace-nowrap shrink-0',
                   isActive
-                    ? 'bg-gradient-to-r from-[#9945FF] to-[#14F195] text-white shadow-lg shadow-[#9945FF]/25'
-                    : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.1]'
+                    ? 'bg-neon-lime/10 text-neon-lime border border-neon-lime/30'
+                    : 'bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10'
                 )}
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <Icon className="w-3.5 h-3.5" />
+                <span className="uppercase">{tab.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Content */}
-        {loading ? (
+        {activeTab === 'games' ? (
+          <GamesTab />
+        ) : activeTab === 'predictions' ? (
+          <PredictionsTab />
+        ) : loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-12 border-4 border-[#9945FF]/20 border-t-[#9945FF] rounded-full animate-spin" />
-              <p className="text-white/50 text-sm">Loading...</p>
+              <div className="w-10 h-10 border-2 border-neon-lime/20 border-t-neon-lime rounded-full animate-spin" />
+              <p className="text-white/30 text-xs font-mono uppercase">Loading...</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Grid View - Ultra compact grid for Live tab */}
+            {/* Grid View - Live Tab */}
             {viewMode === 'grid' && activeTab === 'live' && (
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                 {filteredTokens
@@ -1058,8 +911,9 @@ export default function ExplorePage() {
               </div>
             )}
 
+            {/* Grid View - Other Tabs */}
             {viewMode === 'grid' && activeTab !== 'live' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filteredTokens.map((token) => (
                   <GridCard key={token.id} token={token} />
                 ))}
@@ -1068,7 +922,7 @@ export default function ExplorePage() {
 
             {/* List View */}
             {viewMode === 'list' && (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-2">
                 {filteredTokens.map((token) => (
                   <ListCard key={token.id} token={token} />
                 ))}
@@ -1077,38 +931,40 @@ export default function ExplorePage() {
 
             {/* Table View */}
             {viewMode === 'table' && (
-              <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-                <table className="w-full min-w-[400px]">
-                  <thead>
-                    <tr className="border-b border-white/[0.08]">
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider">#</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider">Token</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider">Price</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider hidden sm:table-cell">24h</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider hidden md:table-cell">MCAP</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider hidden lg:table-cell">Liq</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider hidden lg:table-cell">Holders</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider hidden xl:table-cell">Age</th>
-                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-3 lg:py-4 lg:px-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold text-white/40 uppercase tracking-wider"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTokens.map((token, index) => (
-                      <TableRow key={token.id} token={token} rank={index + 1} />
-                    ))}
-                  </tbody>
-                </table>
+              <div className="trading-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-terminal/50">
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono">#</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono">Token</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono">Price</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono hidden sm:table-cell">24h</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono hidden md:table-cell">MCap</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono hidden lg:table-cell">Liq</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono hidden lg:table-cell">Holders</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono hidden xl:table-cell">Age</th>
+                        <th className="text-left py-3 px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider font-mono"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTokens.map((token, index) => (
+                        <TableRow key={token.id} token={token} rank={index + 1} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* Empty State */}
             {filteredTokens.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                  <MagnifyingGlassIcon className="w-8 h-8 text-white/20" />
+                <div className="w-14 h-14 mb-4 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                  <MagnifyingGlassIcon className="w-6 h-6 text-white/20" />
                 </div>
-                <h3 className="text-white font-semibold mb-2">No results found</h3>
-                <p className="text-white/50 text-sm">Try adjusting your search or filters</p>
+                <h3 className="text-white font-bold text-sm mb-1">No results found</h3>
+                <p className="text-white/40 text-xs font-mono">Try adjusting your search or filters</p>
               </div>
             )}
           </>

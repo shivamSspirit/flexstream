@@ -1,37 +1,24 @@
-import type { Metadata } from 'next';
-import { Inter, Space_Mono } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
-import { SolanaProvider } from '@/components/solana/SolanaProvider';
 
-// Inter font - Primary font family (optimized for UI/screens)
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-// Space Mono - Monospace font for numbers, addresses, code
-const spaceMono = Space_Mono({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-space-mono',
-  display: 'swap',
-});
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#050505',
+};
 
 export const metadata: Metadata = {
-  title: 'FlexIt - Social Platform for Crypto Traders',
+  title: 'FlexStream — Trade Social Content on Solana',
   description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
-  keywords: ['crypto', 'trading', 'solana', 'tokens', 'social media', 'DeFi', 'Meteora'],
-  authors: [{ name: 'FlexIt Team' }],
+  keywords: ['crypto', 'trading', 'solana', 'tokens', 'social media', 'DeFi', 'Meteora', 'web3'],
+  authors: [{ name: 'FlexStream' }],
   manifest: '/site.webmanifest',
   icons: {
     icon: [
-      { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
-      { url: '/favicon-16x16.png?v=2', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png?v=2', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon.ico?v=2' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
@@ -42,22 +29,23 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'FlexIt - Social Platform for Crypto Traders',
+    title: 'FlexStream — Trade Social Content on Solana',
     description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
     type: 'website',
     locale: 'en_US',
+    siteName: 'FlexStream',
     images: [
       {
         url: '/flexit-logo.png',
         width: 1200,
         height: 630,
-        alt: 'FlexIt Logo',
+        alt: 'FlexStream — Trade Social Content',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FlexIt - Social Platform for Crypto Traders',
+    title: 'FlexStream — Trade Social Content on Solana',
     description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
     images: ['/flexit-logo.png'],
   },
@@ -65,12 +53,40 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${spaceMono.variable} font-sans antialiased`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Preconnect to Google Fonts for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Cormorant Garamond — Luxury Editorial Serif */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+          rel="stylesheet"
+        />
+        {/* IBM Plex Mono — Data Display */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body
+        className="antialiased min-h-screen"
+        style={{
+          background: '#050505',
+          color: '#FAFAFA',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+        }}
+      >
+        {/* Subtle Grain Texture Overlay */}
+        <div
+          className="fixed inset-0 pointer-events-none z-[9999]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+            opacity: 0.025,
+          }}
+        />
         <Providers>
-          <SolanaProvider>
-            {children}
-          </SolanaProvider>
+          {children}
         </Providers>
       </body>
     </html>

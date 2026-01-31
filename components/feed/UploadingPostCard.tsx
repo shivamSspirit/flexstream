@@ -11,6 +11,9 @@ interface UploadingPostCardProps {
 }
 
 export function UploadingPostCard({ post }: UploadingPostCardProps) {
+  // Normalize user data (handle both array and object from Supabase join)
+  const user = Array.isArray(post.users) ? post.users[0] : post.users;
+
   const getStageText = () => {
     switch (post.uploadStage) {
       case 'uploading':
@@ -62,9 +65,9 @@ export function UploadingPostCard({ post }: UploadingPostCardProps) {
           <div className="flex items-start gap-3 flex-1 min-w-0">
             {/* Avatar */}
             <Avatar className="h-12 w-12 ring-2 ring-accent-cyan/50 transition-all duration-300 shrink-0 shadow-lg">
-              <AvatarImage src={post.users?.avatar_url || undefined} alt={post.users?.display_name} />
+              <AvatarImage src={user?.avatar_url || undefined} alt={user?.display_name} />
               <AvatarFallback className="bg-gradient-to-br from-accent-purple to-accent-pink text-white font-bold">
-                {post.users?.display_name?.charAt(0) || 'U'}
+                {user?.display_name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
 
@@ -72,10 +75,10 @@ export function UploadingPostCard({ post }: UploadingPostCardProps) {
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-text-primary text-sm sm:text-base">
-                  {post.users?.display_name || 'User'}
+                  {user?.display_name || 'User'}
                 </span>
                 <span className="text-text-muted text-xs sm:text-sm font-medium">
-                  @{post.users?.username || 'user'}
+                  @{user?.username || 'user'}
                 </span>
                 <Badge
                   variant={isError ? 'default' : isComplete ? 'gold' : 'default'}

@@ -22,6 +22,9 @@ function FlexzCard({ post }: FlexzCardProps) {
   const lastTapRef = useRef<number>(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Normalize user data (handle both array and object from Supabase join)
+  const user = Array.isArray(post.users) ? post.users[0] : post.users;
+
   // Intersection observer to auto-play/pause video when in view
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -123,13 +126,13 @@ function FlexzCard({ post }: FlexzCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/profile/${post.users?.username}`);
+              router.push(`/profile/${user?.wallet_address}`);
             }}
             className="block"
           >
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 sm:border-[2.5px] border-white overflow-hidden shadow-2xl">
               <img
-                src={post.users?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users?.username}`}
+                src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
                 alt=""
                 className="w-full h-full object-cover"
               />
@@ -225,12 +228,12 @@ function FlexzCard({ post }: FlexzCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/profile/${post.users?.username}`);
+              router.push(`/profile/${user?.wallet_address}`);
             }}
             className="flex items-center gap-1.5"
           >
             <span className="text-white font-bold text-[15px] drop-shadow-lg">
-              @{post.users?.username || 'anonymous'}
+              @{user?.username || 'anonymous'}
             </span>
             {post.verified && (
               <svg className="w-3.5 h-3.5 text-[#20D5EC]" viewBox="0 0 24 24" fill="currentColor">
@@ -280,7 +283,7 @@ function FlexzCard({ post }: FlexzCardProps) {
             <path d="M19.952 1.651a.75.75 0 01.298.599V16.303a3 3 0 01-2.176 2.884l-1.32.377a2.553 2.553 0 11-1.403-4.909l2.311-.66a1.5 1.5 0 001.088-1.442V6.994l-9 2.572v9.737a3 3 0 01-2.176 2.884l-1.32.377a2.553 2.553 0 11-1.402-4.909l2.31-.66a1.5 1.5 0 001.088-1.442V5.25a.75.75 0 01.544-.721l10.5-3a.75.75 0 01.658.122z" />
           </svg>
           <p className="text-white text-[12px] truncate drop-shadow-lg">
-            Original audio · @{post.users?.username || 'anonymous'}
+            Original audio · @{user?.username || 'anonymous'}
           </p>
         </div>
       </div>

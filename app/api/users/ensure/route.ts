@@ -4,8 +4,8 @@ import { PublicKey } from '@solana/web3.js';
 
 /**
  * API Route: Ensure User Exists
- * Auto-creates user record when wallet connects
- * Prevents redirect issues when accessing profile
+ * Creates user record when wallet connects (if not exists)
+ * New users get a temporary username and must complete profile setup
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Validate wallet address format
     try {
       new PublicKey(walletAddress);
-    } catch (error) {
+    } catch {
       return NextResponse.json({
         success: false,
         error: 'Invalid wallet address'
@@ -54,21 +54,27 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       console.log('✅ User already exists:', existingUser.username);
+
+      // Check if profile setup is needed (no username or profile not completed)
+      const needsProfileSetup = !existingUser.profile_completed ||
+        !existingUser.username ||
+        existingUser.username.match(/^user[a-z0-9]{10,}$/);
+
       return NextResponse.json({
         success: true,
         user: existingUser,
-        isNewUser: false
+        isNewUser: false,
+        needsProfileSetup
       });
     }
 
-    // User doesn't exist - create new user
+    // User doesn't exist - create new user with temporary username
     console.log('🆕 Creating new user for wallet:', walletAddress);
 
-    // Generate clean, URL-friendly username (no underscores, no spaces)
-    // Format: user{timestamp}{random} - example: user1a2b3c4d5e
-    const timestamp = Date.now().toString(36).toLowerCase(); // Convert to base36 for shorter string
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toLowerCase(); // 4 chars
-    const generatedUsername = `user${timestamp}${randomSuffix}`;
+    // Generate temporary username (will be changed during profile setup)
+    const timestamp = Date.now().toString(36).toLowerCase();
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toLowerCase();
+    const tempUsername = `user${timestamp}${randomSuffix}`;
 
     // Generate display name from wallet prefix
     const walletPrefix = walletAddress.substring(0, 4);
@@ -81,16 +87,17 @@ export async function POST(request: NextRequest) {
     // Generate default avatar
     const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`;
 
-    // Create user
+    // Create user with profile_completed = false
     const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert({
         id: newUserId,
         wallet_address: walletAddress,
-        username: generatedUsername,
+        username: tempUsername,
         display_name: displayName,
         bio: '',
         avatar_url: avatarUrl,
+        profile_completed: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -106,12 +113,13 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('✅ Successfully created new user:', newUser.username);
+    console.log('✅ Successfully created new user (needs profile setup):', newUser.username);
 
     return NextResponse.json({
       success: true,
       user: newUser,
-      isNewUser: true
+      isNewUser: true,
+      needsProfileSetup: true
     });
 
   } catch (error) {

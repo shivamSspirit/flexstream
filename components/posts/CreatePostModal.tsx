@@ -2,23 +2,22 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { useQueryClient } from '@tanstack/react-query';
-import { PublicKey } from '@solana/web3.js';
+import { useAddPostToCache } from '@/hooks/usePosts';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
-import { createTokenForPost } from '@/lib/dbc';
 import {
   XMarkIcon,
   CloudArrowUpIcon,
-  PhotoIcon,
   VideoCameraIcon,
   MusicalNoteIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
+import { Transaction, Connection } from '@solana/web3.js';
 
 interface FilePreview {
   id: string;
@@ -42,6 +41,8 @@ interface CreatePostModalProps {
   maxSizeGB?: number;
 }
 
+const FREE_LAUNCH_LIMIT = 10;
+
 export function CreatePostModal({
   isOpen,
   onClose,
@@ -51,22 +52,54 @@ export function CreatePostModal({
 }: CreatePostModalProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { publicKey, connected } = useWallet();
-  
+  const addPostToCache = useAddPostToCache();
+  const { publicKey, connected, signTransaction } = useWallet();
+
   // File upload state
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [errors, setErrors] = useState<FileError[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Post data state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [ticker, setTicker] = useState('');
-  
+
   // Creation state
   const [isCreating, setIsCreating] = useState(false);
   const [progress, setProgress] = useState('');
+
+  // Launch count tracking
+  const [launchCount, setLaunchCount] = useState<number>(0);
+  const [isLoadingLaunchCount, setIsLoadingLaunchCount] = useState(true);
+  const requiresSignature = launchCount >= FREE_LAUNCH_LIMIT;
+  const remainingFreeLaunches = Math.max(0, FREE_LAUNCH_LIMIT - launchCount);
+
+  // Fetch launch count when modal opens
+  useEffect(() => {
+    const fetchLaunchCount = async () => {
+      if (!isOpen || !publicKey || !connected) {
+        setIsLoadingLaunchCount(false);
+        return;
+      }
+
+      try {
+        setIsLoadingLaunchCount(true);
+        const response = await fetch(`/api/users/stats?wallet=${publicKey.toBase58()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setLaunchCount(data.post_launch_count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch launch count:', error);
+      } finally {
+        setIsLoadingLaunchCount(false);
+      }
+    };
+
+    fetchLaunchCount();
+  }, [isOpen, publicKey, connected]);
 
   // Cleanup function to prevent memory leaks
   useEffect(() => {
@@ -311,92 +344,176 @@ export function CreatePostModal({
 
     setIsCreating(true);
     setErrors([]);
-    setProgress('Uploading media...');
 
     try {
-      // 1. Upload media files to storage
-      let mediaUrls: string[] = [];
-      
-      // TODO: Implement actual upload to Supabase Storage or S3
-      // For now, using the object URLs (you'll need to replace this)
-      mediaUrls = files.map(f => f.url);
-      console.log('📸 Media URLs:', mediaUrls);
-      setProgress('Media uploaded ✓');
+      // Create FormData with all required fields
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('ticker', ticker.toUpperCase());
+      formData.append('content', description);
+      formData.append('wallet', publicKey.toBase58());
+      formData.append('username', 'user'); // Will be looked up by wallet
 
-      // 2. Create DBC token
-      setProgress('Creating token on Solana...');
-      
-      const tokenData = await createTokenForPost({
-        name: title,
-        symbol: ticker.toUpperCase(),
-        description: description,
-        imageUrl: mediaUrls[0],
-        creatorWallet: publicKey,
-      });
-
-      console.log('🪙 Token created:', tokenData);
-      setProgress(`Token created! ${tokenData.mint.substring(0, 8)}... ✓`);
-
-      // 3. Save post to Supabase
-      setProgress('Saving post to database...');
-
-      if (!supabase) {
-        throw new Error('Supabase client not initialized');
+      // Add all media files
+      for (const filePreview of files) {
+        formData.append('media', filePreview.file);
       }
 
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          user_id: publicKey.toBase58(), // TODO: Map to actual user ID from your users table
-          type: 'trading_journey', // Or let user select
-          title: title,
-          content: description,
-          media_urls: mediaUrls,
-          token_address: tokenData.mint,
-          token_mint: tokenData.mint,
-          token_symbol: tokenData.symbol,
-          token_name: tokenData.name,
-          pool_address: tokenData.poolAddress,
-          bonding_curve_address: tokenData.bondingCurveAddress,
-          token_signature: tokenData.signature,
-          is_token_tradable: true,
-          verified: false,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      // Choose endpoint based on whether signature is required
+      if (requiresSignature) {
+        // SIGNED FLOW: User has exceeded free launches
+        setProgress('Preparing transaction...');
+        console.log('🚀 Using signed flow (launches exceeded)...');
 
-      if (postError) {
-        console.error('❌ Supabase error:', postError);
-        throw new Error(postError.message);
-      }
-
-      console.log('📝 Post created:', postData);
-
-      // 4. Save to tokens table
-      setProgress('Saving token data...');
-      
-      await supabase
-        .from('tokens')
-        .insert({
-          mint_address: tokenData.mint,
-          symbol: tokenData.symbol,
-          name: tokenData.name,
-          description: description,
-          image_uri: mediaUrls[0],
-          creator_wallet: publicKey.toBase58(),
-          post_id: postData.id,
-          pool_address: tokenData.poolAddress,
-          bonding_curve_address: tokenData.bondingCurveAddress,
-          creation_signature: tokenData.signature,
-          is_tradable: true,
+        // Step 1: Get unsigned transaction
+        const response = await fetch('/api/posts/create-signed', {
+          method: 'POST',
+          body: formData,
         });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to prepare transaction');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to prepare transaction');
+        }
+
+        const { unsignedTransaction, pendingPost } = result.data;
+
+        // Step 2: Sign the transaction
+        setProgress('Please sign the transaction...');
+        console.log('✍️ Signing transaction...');
+
+        const transactionBuffer = Buffer.from(unsignedTransaction.transaction, 'base64');
+        const transaction = Transaction.from(transactionBuffer);
+
+        const signedTransaction = await signTransaction(transaction);
+
+        console.log('✅ Transaction signed');
+
+        // Step 3: Send to Solana
+        setProgress('Submitting to blockchain...');
+        console.log('📤 Submitting to Solana...');
+
+        const connection = new Connection(
+          process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+          'confirmed'
+        );
+
+        const signature = await connection.sendRawTransaction(
+          signedTransaction.serialize(),
+          {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+          }
+        );
+
+        console.log('📝 Transaction submitted:', signature);
+
+        // Step 4: Wait for confirmation
+        setProgress('Confirming transaction...');
+
+        const confirmation = await connection.confirmTransaction(
+          {
+            signature,
+            blockhash: unsignedTransaction.blockhash,
+            lastValidBlockHeight: unsignedTransaction.lastValidBlockHeight,
+          },
+          'confirmed'
+        );
+
+        if (confirmation.value.err) {
+          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+
+        console.log('✅ Transaction confirmed!');
+
+        // Step 5: Confirm with backend
+        setProgress('Saving post...');
+
+        const confirmResponse = await fetch('/api/posts/confirm-post', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            signature,
+            pendingPost: {
+              ...pendingPost,
+              unsignedTransaction,
+            },
+          }),
+        });
+
+        const confirmResult = await confirmResponse.json();
+
+        if (!confirmResponse.ok || !confirmResult.success) {
+          console.warn('⚠️ Post created but confirmation failed:', confirmResult);
+        } else {
+          // Add the post directly to cache using the confirmation response data
+          if (confirmResult.data?.post) {
+            console.log('📝 Adding post to cache with user data:', confirmResult.data.post);
+            addPostToCache(confirmResult.data.post);
+          }
+        }
+
+        console.log('✅ Post created successfully:', confirmResult.data);
+
+      } else {
+        // GASLESS FLOW: Free launches remaining
+        setProgress('Uploading media and creating token...');
+        console.log('🚀 Using gasless flow...');
+
+        const response = await fetch('/api/posts/create', {
+          method: 'POST',
+          body: formData,
+        });
+
+        setProgress('Processing response...');
+
+        if (!response.ok) {
+          const errorData = await response.json();
+
+          // Check if it's a free launches exhausted error
+          if (errorData.code === 'FREE_LAUNCHES_EXHAUSTED') {
+            setLaunchCount(errorData.details?.launchCount || FREE_LAUNCH_LIMIT);
+            throw new Error(errorData.details?.message || 'Free launches exhausted. Please sign to continue.');
+          }
+
+          throw new Error(errorData.error || 'Failed to create post');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create post');
+        }
+
+        console.log('✅ Post created successfully:', result.data);
+
+        // Update local launch count from response
+        if (result.data.launchInfo) {
+          setLaunchCount(result.data.launchInfo.currentCount);
+        }
+
+        // Add the post directly to cache using the API response data
+        // This ensures the post appears immediately with correct user data
+        if (result.data.post) {
+          console.log('📝 Adding post to cache with user data:', result.data.post);
+          addPostToCache(result.data.post);
+        }
+      }
 
       setProgress('Complete! ✅');
 
-      // Invalidate all posts queries to show new post immediately
-      console.log('🔄 Invalidating posts cache...');
-      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+      // Mark queries as stale for eventual consistency
+      // Don't force refetch - let the optimistic update show the post immediately
+      console.log('🔄 Marking posts queries as stale...');
+      await queryClient.invalidateQueries({ queryKey: ['posts'], refetchType: 'none' });
       await queryClient.invalidateQueries({ queryKey: ['userStats'] });
 
       // Success!
@@ -409,9 +526,9 @@ export function CreatePostModal({
 
     } catch (error) {
       console.error('❌ Error creating post:', error);
-      setErrors([{ 
-        fileName: 'Creation Error', 
-        error: error instanceof Error ? error.message : 'Failed to create post and token' 
+      setErrors([{
+        fileName: 'Creation Error',
+        error: error instanceof Error ? error.message : 'Failed to create post and token'
       }]);
       setProgress('');
     } finally {
@@ -676,18 +793,41 @@ export function CreatePostModal({
 
         {/* Footer */}
         <div className="p-6 border-t border-white/10 flex-shrink-0">
+          {/* Launch Count Warning */}
+          {!isLoadingLaunchCount && requiresSignature && (
+            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+              <div className="flex items-start gap-2">
+                <ExclamationCircleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-yellow-400 mb-1">
+                    Signature Required
+                  </p>
+                  <p className="text-xs text-secondary">
+                    You&apos;ve used all {FREE_LAUNCH_LIMIT} free gasless launches.
+                    You&apos;ll need to sign and pay for the token creation transaction (~0.01 SOL).
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Token Creation Info */}
           <div className="mb-4 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl">
             <div className="flex items-start gap-2">
               <SparklesIcon className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-purple-400 mb-1">
-                  Automatic Token Launch
+                  {requiresSignature ? 'Token Launch (Signed)' : 'Automatic Token Launch'}
                 </p>
                 <p className="text-xs text-secondary">
-                  A tradable token will be created on Solana (via Meteora DBC) and linked to your post. 
+                  A tradable token will be created on Solana (via Meteora DBC) and linked to your post.
                   Instantly tradable on Jupiter & Meteora!
                 </p>
+                {!isLoadingLaunchCount && !requiresSignature && (
+                  <p className="text-xs text-green-400 mt-1 font-medium">
+                    {remainingFreeLaunches} free gasless launch{remainingFreeLaunches !== 1 ? 'es' : ''} remaining
+                  </p>
+                )}
               </div>
             </div>
           </div>

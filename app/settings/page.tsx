@@ -1,186 +1,124 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Switch } from '@/components/ui/switch';
+import { useWallet } from '@/hooks/useWalletCompat';
 import {
   UserCircleIcon,
-  BellIcon,
-  ShieldCheckIcon,
   WalletIcon,
+  BellIcon,
   PaintBrushIcon,
-  GlobeAltIcon,
-  ArrowRightIcon,
-  CameraIcon
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
+
+const settingsSections = [
+  {
+    id: 'profile',
+    label: 'Profile Settings',
+    description: 'Edit your display name, bio, and social links',
+    icon: UserCircleIcon,
+    href: '/settings/profile',
+  },
+  {
+    id: 'wallet',
+    label: 'Wallet & Security',
+    description: 'Manage connected wallets and security settings',
+    icon: WalletIcon,
+    href: '/settings/wallet',
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    description: 'Configure push and email notifications',
+    icon: BellIcon,
+    href: '/settings/notifications',
+  },
+  {
+    id: 'appearance',
+    label: 'Appearance',
+    description: 'Theme, display preferences',
+    icon: PaintBrushIcon,
+    href: '/settings/appearance',
+  },
+  {
+    id: 'trading',
+    label: 'Trading Preferences',
+    description: 'Slippage, default amounts, fast mode',
+    icon: Cog6ToothIcon,
+    href: '/settings/trading',
+  },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const { disconnect, connected } = useWallet();
 
   const handleLogout = async () => {
-    alert('Logout functionality will be added later');
+    if (connected) {
+      await disconnect();
+    }
+    sessionStorage.removeItem('current_user');
+    sessionStorage.removeItem('current_username');
+    router.push('/');
   };
 
-  const settingSections = [
-    {
-      title: 'Profile',
-      icon: UserCircleIcon,
-      items: [
-        { label: 'Edit Profile', sublabel: 'Update your photo and details', action: () => router.push('/profile/edit') },
-        { label: 'Username', sublabel: '@alexmorrison' },
-        { label: 'Bio', sublabel: 'Tell people about yourself' },
-      ]
-    },
-    {
-      title: 'Notifications',
-      icon: BellIcon,
-      items: [
-        { label: 'Push Notifications', sublabel: 'Get notified about activity', toggle: true, value: notifications, onChange: setNotifications },
-        { label: 'Email Updates', sublabel: 'Receive updates via email', toggle: true, value: emailUpdates, onChange: setEmailUpdates },
-        { label: 'Notification Preferences', sublabel: 'Customize what you see' },
-      ]
-    },
-    {
-      title: 'Wallet & Security',
-      icon: WalletIcon,
-      items: [
-        { label: 'Connected Wallet', sublabel: '0x1234...5678' },
-        { label: 'Two-Factor Authentication', sublabel: 'Add extra security' },
-        { label: 'Privacy Settings', sublabel: 'Control your data' },
-      ]
-    },
-    {
-      title: 'Appearance',
-      icon: PaintBrushIcon,
-      items: [
-        { label: 'Dark Mode', sublabel: 'Use dark theme', toggle: true, value: darkMode, onChange: setDarkMode },
-        { label: 'Language', sublabel: 'English' },
-      ]
-    },
-    {
-      title: 'About',
-      icon: GlobeAltIcon,
-      items: [
-        { label: 'Terms of Service', action: () => {} },
-        { label: 'Privacy Policy', action: () => {} },
-        { label: 'Help Center', action: () => {} },
-        { label: 'Version', sublabel: 'v1.0.0' },
-      ]
-    },
-  ];
-
   return (
-    <AppLayout showWallet={true} showSearch={true}>
-      <div className="max-w-3xl mx-auto pb-20 md:pb-6">
-        {/* Header with Profile */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-4 sm:mb-6">Settings</h1>
-
-          {/* Profile Card */}
-          <div className="bg-gradient-to-br from-card-bg to-card-bg/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/5">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="relative shrink-0">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 ring-2 sm:ring-4 ring-white/10">
-                  <AvatarImage src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop" />
-                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold text-xl sm:text-2xl">
-                    A
-                  </AvatarFallback>
-                </Avatar>
-                <button className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center transition-colors">
-                  <CameraIcon className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                </button>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg sm:text-xl font-bold text-primary mb-0.5 sm:mb-1 truncate">Alex Morrison</h2>
-                <p className="text-secondary text-xs sm:text-sm mb-2 sm:mb-3 truncate">@alexmorrison</p>
-                <Button
-                  size="sm"
-                  className="flexstream-gradient text-white text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
-                  onClick={() => router.push('/profile/edit')}
-                >
-                  Edit Profile
-                </Button>
-              </div>
-            </div>
-          </div>
+    <AppLayout showWallet={true} showSearch={false}>
+      <div className="max-w-2xl mx-auto pb-20 md:pb-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="heading-2 mb-2">Settings</h1>
+          <p className="body-sm">Manage your account and preferences</p>
         </div>
 
-        {/* Settings Sections */}
-        <div className="space-y-4 sm:space-y-6">
-          {settingSections.map((section, idx) => (
-            <div key={idx}>
-              {/* Section Header */}
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                <section.icon className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
-                <h3 className="text-base sm:text-lg font-semibold text-primary">{section.title}</h3>
-              </div>
-
-              {/* Section Items */}
-              <div className="space-y-1.5 sm:space-y-2">
-                {section.items.map((item, itemIdx) => (
-                  <div
-                    key={itemIdx}
-                    onClick={'action' in item ? item.action : undefined}
-                    className={`bg-card-bg rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/5 ${
-                      'action' in item ? 'hover:border-white/10 cursor-pointer active:scale-[0.98]' : ''
-                    } transition-all`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-primary font-medium mb-0.5 text-sm sm:text-base">{item.label}</p>
-                        {item.sublabel && (
-                          <p className="text-secondary text-xs sm:text-sm truncate">{item.sublabel}</p>
-                        )}
-                      </div>
-                      {'toggle' in item && item.onChange ? (
-                        <Switch
-                          checked={item.value}
-                          onCheckedChange={item.onChange}
-                          className="shrink-0"
-                        />
-                      ) : 'action' in item ? (
-                        <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5 text-secondary shrink-0" />
-                      ) : null}
-                    </div>
+        {/* Settings List */}
+        <div className="space-y-3">
+          {settingsSections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <button
+                key={section.id}
+                onClick={() => router.push(section.href)}
+                className="w-full bg-card-bg hover:bg-card-hover border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-white/10 transition-colors">
+                    <Icon className="w-6 h-6 text-text-secondary group-hover:text-white transition-colors" />
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white mb-0.5">{section.label}</h3>
+                    <p className="text-sm text-text-muted truncate">{section.description}</p>
+                  </div>
+                  <ChevronRightIcon className="w-5 h-5 text-text-muted group-hover:text-white transition-colors shrink-0" />
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Danger Zone */}
-        <div className="mt-6 sm:mt-8">
-          <div className="bg-red-900/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-red-500/20">
-            <h3 className="text-base sm:text-lg font-semibold text-red-400 mb-3 sm:mb-4">Danger Zone</h3>
-            <div className="space-y-2 sm:space-y-3">
-              <Button
-                variant="outline"
-                className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 h-10 sm:h-11 text-sm sm:text-base"
-                onClick={handleLogout}
-              >
-                Log Out
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 h-10 sm:h-11 text-sm sm:text-base"
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                    console.log('Delete account confirmed');
-                  }
-                }}
-              >
-                Delete Account
-              </Button>
+        {/* Logout Button */}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-metric-red/10 hover:bg-metric-red/20 border border-metric-red/30 hover:border-metric-red/50 rounded-xl p-4 transition-all text-left group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-metric-red/10 flex items-center justify-center shrink-0">
+                <ArrowRightOnRectangleIcon className="w-6 h-6 text-metric-red" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-metric-red">Log Out</h3>
+                <p className="text-sm text-metric-red/70">Disconnect wallet and sign out</p>
+              </div>
             </div>
-          </div>
+          </button>
+        </div>
+
+        {/* Version Info */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-text-muted">FlexStream v0.1.0 (Beta)</p>
         </div>
       </div>
     </AppLayout>

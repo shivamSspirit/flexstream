@@ -1,4 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRealtimePosts } from '@/hooks/useRealtimePosts';
+
+interface UserData {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  wallet_address: string;
+}
 
 export interface Post {
   id: string;
@@ -11,6 +20,7 @@ export interface Post {
   token_symbol: string | null;
   token_display_name: string | null;
   token_is_verified: boolean | null;
+  creator_is_verified: boolean | null;
   token_name: string | null;
   pool_address: string | null;
   bonding_curve_address: string | null;
@@ -19,13 +29,8 @@ export interface Post {
   is_token_tradable: boolean;
   verified: boolean;
   created_at: string;
-  users: {
-    id: string;
-    username: string;
-    display_name: string;
-    avatar_url: string | null;
-    wallet_address: string;
-  };
+  // Supabase joins can return either an object or array depending on the relationship
+  users: UserData | UserData[];
 }
 
 interface PostsResponse {
@@ -46,10 +51,14 @@ interface UsePostsOptions {
 }
 
 /**
- * Hook to fetch posts from the API
+ * Hook to fetch posts from the API with real-time updates
+ * Uses Supabase Realtime for instant updates + React Query for data fetching
  */
 export function usePosts(options: UsePostsOptions = {}) {
   const { userId, limit = 20, offset = 0, enabled = true } = options;
+
+  // Set up real-time subscription (handles cache updates automatically)
+  useRealtimePosts({ userId, enabled });
 
   return useQuery<PostsResponse>({
     queryKey: ['posts', { userId, limit, offset }],
@@ -59,13 +68,11 @@ export function usePosts(options: UsePostsOptions = {}) {
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
 
-      // Add timestamp to prevent ANY caching
+      // Add timestamp to prevent caching
       params.append('_t', Date.now().toString());
 
-      console.log('🔄 [FETCH] Fetching posts from API:', `/api/posts?${params.toString()}`);
-
       const response = await fetch(`/api/posts?${params.toString()}`, {
-        cache: 'no-store', // Disable Next.js caching
+        cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -75,44 +82,47 @@ export function usePosts(options: UsePostsOptions = {}) {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('❌ [FETCH] Failed to fetch posts:', error);
+        console.error('[POSTS] Failed to fetch:', error);
         throw new Error(error.error || 'Failed to fetch posts');
       }
 
       const data = await response.json();
-      console.log('✅ [FETCH] Fetched posts from REAL DATABASE:', {
-        totalPosts: data.data?.posts?.length || 0,
-        posts: data.data?.posts?.map((p: any) => ({ id: p.id, title: p.title })) || [],
-        timestamp: new Date().toISOString()
-      });
+      console.log('[POSTS] Fetched:', data.data?.posts?.length || 0, 'posts');
 
       return data;
     },
     enabled,
-    staleTime: 0, // Always consider data stale (forces fresh fetch)
-    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    refetchOnReconnect: true, // Refetch on internet reconnect
+    staleTime: 30000, // Consider data fresh for 30 seconds (realtime handles updates)
+    gcTime: 60000, // Keep in cache for 1 minute
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    // Reduced polling as fallback - realtime handles most updates
+    refetchInterval: 30000, // Fallback poll every 30 seconds
   });
 }
 
 /**
  * Hook to invalidate posts cache (use after creating a new post)
- * Only marks queries as stale - they refetch naturally when needed
- * This prevents overwriting optimistic updates with stale data
+ * Marks queries as stale - realtime subscriptions handle actual updates
+ * IMPORTANT: We no longer force refetch or remove queries to prevent
+ * race conditions that cause posts to disappear
  */
 export function useInvalidatePosts() {
   const queryClient = useQueryClient();
 
-  return () => {
-    // Only mark as stale, don't force immediate refetch
-    // The query will refetch naturally when:
-    // - Component remounts
-    // - Window regains focus
-    // - Network reconnects
-    // This prevents race conditions where refetch returns stale data
-    queryClient.invalidateQueries({ queryKey: ['posts'] });
+  return async () => {
+    console.log('[INVALIDATE POSTS] Marking posts queries as stale (realtime handles updates)');
+
+    // Only invalidate to mark queries as stale
+    // Realtime subscriptions and background refetch will handle actual updates
+    // DO NOT use refetchQueries or removeQueries - they cause race conditions
+    // that overwrite optimistic/realtime updates and make posts disappear
+    await queryClient.invalidateQueries({
+      queryKey: ['posts'],
+      exact: false,
+    });
+    console.log('[INVALIDATE POSTS] All queries marked as stale');
   };
 }
 
@@ -129,62 +139,80 @@ export function useRefetchPosts() {
 
 /**
  * Hook to add a new post optimistically to the cache
- * This makes the new post appear instantly on the feed
- * Returns a promise that resolves when the cache is updated
+ * This makes the new post appear instantly on the feed AND the creator's profile
+ * IMPORTANT: Only updates EXISTING caches - does NOT create new caches
+ * (Creating new caches with single post would overwrite the full post list from API)
  */
 export function useAddPostToCache() {
   const queryClient = useQueryClient();
 
   return (newPost: Post) => {
-    console.log('[ADD POST TO CACHE] Starting...', { postId: newPost.id, postTitle: newPost.title });
+    console.log('[ADD POST TO CACHE] Starting...', { postId: newPost.id, postTitle: newPost.title, postUserId: newPost.user_id });
 
-    // Update all posts queries (both main feed and profile queries)
-    queryClient.setQueriesData<PostsResponse>(
-      { queryKey: ['posts'] },
-      (oldData) => {
-        console.log('[ADD POST TO CACHE] Current cache data:', {
-          hasOldData: !!oldData,
-          oldPostCount: oldData?.data?.posts?.length || 0
-        });
+    // Get all queries that match ['posts'] prefix
+    const queries = queryClient.getQueriesData<PostsResponse>({ queryKey: ['posts'] });
 
-        if (!oldData) {
-          console.warn('[ADD POST TO CACHE] No existing cache data, creating new cache');
-          // If no cache exists, create initial data structure
-          return {
-            success: true,
-            data: {
-              posts: [newPost],
-              count: 1,
-              limit: 20,
-              offset: 0,
-            },
-          };
-        }
-
-        // Check if post already exists in cache (prevent duplicates)
-        const postExists = oldData.data.posts.some(p => p.id === newPost.id);
-        if (postExists) {
-          console.log('[ADD POST TO CACHE] Post already exists in cache, skipping');
-          return oldData;
-        }
-
-        const updatedData = {
-          ...oldData,
-          data: {
-            ...oldData.data,
-            posts: [newPost, ...oldData.data.posts],
-            count: oldData.data.count + 1,
-          },
-        };
-
-        console.log('[ADD POST TO CACHE] Updated cache:', {
-          newPostCount: updatedData.data.posts.length,
-          addedPost: { id: newPost.id, title: newPost.title }
-        });
-
-        return updatedData;
+    for (const [queryKey, currentData] of queries) {
+      // Skip if no data exists - let API fetch the full list
+      if (!currentData) {
+        console.log('[ADD POST TO CACHE] No cache data, skipping (API will fetch)', { queryKey });
+        continue;
       }
-    );
+
+      // Extract userId from query key: ['posts', { userId, limit, offset }]
+      const queryParams = queryKey[1] as { userId?: string; limit?: number; offset?: number } | undefined;
+      const queryUserId = queryParams?.userId;
+
+      // Determine if this post should be added to this query:
+      // - Main feed (userId undefined): add all posts
+      // - Profile feed (userId set): only add if post belongs to that user
+      const shouldAdd = !queryUserId || queryUserId === newPost.user_id;
+
+      if (!shouldAdd) {
+        console.log('[ADD POST TO CACHE] Skipping query - userId mismatch', {
+          queryUserId,
+          postUserId: newPost.user_id
+        });
+        continue;
+      }
+
+      // Check if post already exists in cache (prevent duplicates)
+      const postExists = currentData.data.posts.some(p => p.id === newPost.id);
+      if (postExists) {
+        console.log('[ADD POST TO CACHE] Post already exists, skipping', { queryKey });
+        continue;
+      }
+
+      console.log('[ADD POST TO CACHE] Adding post to existing cache', {
+        queryKey,
+        oldCount: currentData.data.posts.length
+      });
+
+      // Prepend new post to existing cache
+      queryClient.setQueryData<PostsResponse>(queryKey, {
+        ...currentData,
+        data: {
+          ...currentData.data,
+          posts: [newPost, ...currentData.data.posts],
+          count: currentData.data.count + 1,
+        },
+      });
+    }
+
+    // Invalidate the profile query to ensure it refetches fresh data on next mount
+    // This handles the case where the profile cache doesn't exist yet
+    queryClient.invalidateQueries({
+      queryKey: ['posts', { userId: newPost.user_id }],
+      exact: false,
+      refetchType: 'none', // Don't refetch now, just mark as stale
+    });
+
+    // Also invalidate main feed to ensure consistency
+    queryClient.invalidateQueries({
+      queryKey: ['posts', { userId: undefined }],
+      exact: false,
+      refetchType: 'none',
+    });
 
     console.log('[ADD POST TO CACHE] Complete!');
   };

@@ -5,6 +5,7 @@ export interface User {
   display_name: string
   avatar_url?: string
   banner_url?: string
+  cover_url?: string
   bio?: string
   verified: boolean
   verified_earnings: number
@@ -14,12 +15,44 @@ export interface User {
   followers_count?: number
   following_count?: number
   website_url?: string
+  website?: string
   twitter_handle?: string
+  twitter?: string
   telegram_handle?: string
   discord_handle?: string
   youtube_channel?: string
+  instagram?: string
+  tiktok?: string
   created_at: string
   updated_at: string
+
+  // Social verification fields
+  twitter_verified?: boolean
+  twitter_followers?: number
+  twitter_verified_at?: string
+  youtube_verified?: boolean
+  youtube_subscribers?: number
+  youtube_channel_name?: string
+  youtube_channel_id?: string
+  youtube_verified_at?: string
+  tiktok_verified?: boolean
+  tiktok_followers?: number
+  tiktok_verified_at?: string
+
+  // Trust score
+  trust_score?: number
+  last_social_activity?: string
+
+  // Analytics fields
+  total_post_views?: number
+  total_token_volume?: number
+  total_trading_fees_earned?: number
+
+  // Creator coin fields
+  creator_coin_enabled?: boolean
+  creator_coin_mint?: string
+  creator_coin_pool?: string
+  creator_coin_metadata_uri?: string
 }
 
 export interface FlexPost {
@@ -31,10 +64,12 @@ export interface FlexPost {
   media_urls: string[]
   social_link?: string
   earnings_amount?: number
-  token_address?: string
+  token_mint?: string // Token mint address (Solana address)
   token_symbol?: string // Auto-generated unique symbol (e.g., T5K9P_A7M3X)
   token_display_name?: string // User's chosen display name (can be duplicate, e.g., PEPE)
   token_is_verified?: boolean // True if this is the first token with this display_name
+  creator_is_verified?: boolean // True if creator has custom avatar + X OAuth verification
+  pool_address?: string // DBC pool address for trading
   verified: boolean
   likes_count: number
   comments_count: number
@@ -338,4 +373,182 @@ export interface PumpFunStreamFilter {
   platform?: 'twitch' | 'youtube' | 'kick' | 'all'
   verified_streamers_only?: boolean
   price_change_direction?: 'up' | 'down' | 'all'
+}
+
+// Social Verification Types
+export interface SocialVerification {
+  platform: 'twitter' | 'youtube' | 'tiktok'
+  verified: boolean
+  username?: string
+  followers?: number
+  verifiedAt?: string
+}
+
+export interface UserAnalytics {
+  // Overview
+  trustScore: number
+  successTier: 'bronze' | 'silver' | 'gold' | 'diamond'
+
+  // Social verification
+  socialVerification: {
+    twitter: {
+      verified: boolean
+      username: string | null
+      followers: number
+      verifiedAt?: string
+    }
+    youtube: {
+      verified: boolean
+      channelName: string | null
+      subscribers: number
+      verifiedAt?: string
+    }
+    tiktok: {
+      verified: boolean
+      username: string | null
+      followers: number
+      verifiedAt?: string
+    }
+  }
+  totalSocialFollowers: number
+
+  // Followers
+  followers: {
+    total: number
+    following: number
+    newInPeriod: number
+  }
+
+  // Content
+  content: {
+    totalPosts: number
+    totalLikes: number
+    totalComments: number
+    totalShares: number
+    engagementRate: number
+    tokensCreated: number
+  }
+
+  // Trading
+  trading: {
+    totalTrades: number
+    totalVolumeSol: string
+    buyTrades: number
+    sellTrades: number
+    feesEarned: number
+  }
+
+  // Charts data
+  chartData: Array<{
+    date: string
+    posts?: number
+    likes?: number
+    followers?: number
+    volume?: number
+  }>
+
+  // Period info
+  period: '7d' | '30d' | 'all'
+  startDate: string
+  endDate: string
+}
+
+// FLEX Points Types
+export type FlexAction =
+  | 'login'
+  | 'post'
+  | 'like'
+  | 'comment'
+  | 'share'
+  | 'watch'
+  | 'trade'
+  | 'first_trade'
+  | 'streak_bonus'
+
+export interface FlexPoints {
+  id: string
+  user_id: string
+  total_flex: number
+  available_flex: number
+  current_streak: number
+  longest_streak: number
+  last_active_date: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FlexTransaction {
+  id: string
+  user_id: string
+  action: FlexAction
+  amount: number
+  multiplier: number
+  final_amount: number
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface FlexMultiplier {
+  id: string
+  name: string
+  multiplier: number
+  starts_at: string
+  ends_at: string
+  active: boolean
+  created_at: string
+}
+
+export interface FlexBalance {
+  total_flex: number
+  available_flex: number
+  period_flex: number
+  current_streak: number
+  longest_streak: number
+  today_earned: number
+  rank: number
+  active_multiplier: number
+}
+
+export interface FlexAirdrop {
+  id: string
+  period_start: string
+  period_end: string
+  total_points_distributed: number
+  total_tokens_minted: number
+  conversion_rate: number
+  participants_count: number
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  tx_signature?: string
+  created_at: string
+  completed_at?: string
+}
+
+export interface FlexAirdropClaim {
+  id: string
+  airdrop_id: string
+  user_id: string
+  points_snapshot: number
+  tokens_received: number
+  claimed: boolean
+  claimed_at?: string
+  tx_signature?: string
+  created_at: string
+}
+
+export interface FlexLeaderboardEntry {
+  user: User
+  total_flex: number
+  rank: number
+}
+
+export const FLEX_REWARDS: Record<FlexAction, { base: number; max_daily: number; description: string }> = {
+  login: { base: 10, max_daily: 10, description: 'Daily login bonus' },
+  post: { base: 50, max_daily: 250, description: 'Create a post' },
+  like: { base: 5, max_daily: 250, description: 'Like a post' },
+  comment: { base: 15, max_daily: 300, description: 'Comment on a post' },
+  share: { base: 20, max_daily: 200, description: 'Share a post' },
+  watch: { base: 10, max_daily: 200, description: 'Watch a video' },
+  trade: { base: 25, max_daily: 250, description: 'Make a trade' },
+  first_trade: { base: 100, max_daily: 100, description: 'First trade bonus' },
+  streak_bonus: { base: 0, max_daily: 0, description: 'Streak multiplier bonus' },
 }

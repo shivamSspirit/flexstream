@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Force dynamic rendering
+// Force dynamic rendering and disable all caching
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 /**
  * GET /api/posts
@@ -24,7 +26,23 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      db: {
+        schema: 'public',
+      },
+      global: {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'x-cache-bust': Date.now().toString(),
+        },
+      },
+    });
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -34,7 +52,8 @@ export async function GET(request: NextRequest) {
 
     console.log('[GET POSTS] Query params:', { userId, limit, offset });
 
-    // Build query - use LEFT JOIN to ensure we get all posts even if user info is missing
+    // Build query - use INNER JOIN since every post MUST have a valid user (FK constraint)
+    // This ensures we never return posts without user data, which SimpleFeed would filter out
     let query = supabase
       .from('posts')
       .select(`
@@ -48,6 +67,7 @@ export async function GET(request: NextRequest) {
         token_symbol,
         token_display_name,
         token_is_verified,
+        creator_is_verified,
         token_name,
         pool_address,
         bonding_curve_address,
@@ -56,7 +76,7 @@ export async function GET(request: NextRequest) {
         is_token_tradable,
         verified,
         created_at,
-        users!left (
+        users!inner (
           id,
           username,
           display_name,
@@ -199,7 +219,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         posts: posts || [],
@@ -208,6 +228,13 @@ export async function GET(request: NextRequest) {
         offset,
       },
     });
+
+    // Add explicit no-cache headers to the response
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
 
   } catch (error) {
     console.error('[GET POSTS] Error:', error);

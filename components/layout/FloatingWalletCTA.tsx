@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { usePrivy } from '@privy-io/react-auth';
 import { RocketLaunchIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePlatformStats } from '@/hooks/usePlatformStats';
 
 /**
  * Floating CTA to encourage anonymous users to connect wallet
@@ -12,13 +13,40 @@ import { cn } from '@/lib/utils';
  * Nikita Bier strategy: Make the path to value clear and enticing
  */
 export function FloatingWalletCTA() {
-  const { connected, publicKey } = useWallet();
+  const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
 
+  // Wait for client-side mount before accessing wallet context
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Return null during SSR to prevent hydration errors
+  if (!mounted) {
+    return null;
+  }
+
+  return <FloatingWalletCTAInner dismissed={dismissed} setDismissed={setDismissed} visible={visible} setVisible={setVisible} />;
+}
+
+function FloatingWalletCTAInner({
+  dismissed,
+  setDismissed,
+  visible,
+  setVisible
+}: {
+  dismissed: boolean;
+  setDismissed: (v: boolean) => void;
+  visible: boolean;
+  setVisible: (v: boolean) => void;
+}) {
+  const { ready, authenticated, login } = usePrivy();
+  const { data: stats } = usePlatformStats();
+
   // Show CTA after 3 seconds of browsing (let them see content first!)
   useEffect(() => {
-    if (!connected && !dismissed) {
+    if (ready && !authenticated && !dismissed) {
       const timer = setTimeout(() => {
         setVisible(true);
       }, 3000);
@@ -27,10 +55,10 @@ export function FloatingWalletCTA() {
     } else {
       setVisible(false);
     }
-  }, [connected, dismissed]);
+  }, [ready, authenticated, dismissed]);
 
   // Don't show if wallet is connected or user dismissed
-  if (connected || dismissed || !visible) {
+  if (!ready || authenticated || dismissed || !visible) {
     return null;
   }
 
@@ -71,30 +99,28 @@ export function FloatingWalletCTA() {
                 Connect to Start Trading
               </h3>
               <p className="text-text-muted text-sm mb-3">
-                Connect your wallet to buy tokens, create posts, and earn rewards
+                Sign in with email, social, or wallet to start trading
               </p>
 
               <Button
                 onClick={() => {
-                  // Trigger wallet connection
-                  // This will be handled by the UniversalHeader wallet button
-                  document.querySelector<HTMLButtonElement>('[data-wallet-button]')?.click();
+                  login();
                   setDismissed(true);
                 }}
                 className="bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue hover:from-accent-green/90 hover:via-accent-cyan/90 hover:to-accent-blue/90 text-black font-bold px-6 py-2 rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-105"
               >
-                Connect Wallet
+                Get Started
               </Button>
             </div>
           </div>
 
-          {/* Social proof */}
+          {/* Social proof - Real stats from API */}
           <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-text-muted">
             <span className="flex items-center gap-1">
               <span className="text-accent-green">🔥</span>
-              <span>247 traders active now</span>
+              <span>{stats?.activeTraders || 0} traders active</span>
             </span>
-            <span>💰 $12.3M volume today</span>
+            <span>📈 {stats?.postsToday || 0} posts today</span>
           </div>
         </div>
       </div>

@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
-import { useQuery } from '@tanstack/react-query';
+import { useWallet } from '@/hooks/useWalletCompat';
+import { useUser } from '@/contexts/UserContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import {
   HomeIcon,
   MagnifyingGlassIcon,
@@ -22,6 +21,11 @@ import {
 import { cn } from '@/lib/utils';
 import { LogoIcon } from './Logo';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MINIMAL SIDEBAR — NOUVEAU-NOIR EDITION
+// Clean, visible navigation with luxury aesthetic
+// ═══════════════════════════════════════════════════════════════════════════════
+
 interface MinimalSidebarProps {
   className?: string;
 }
@@ -31,22 +35,15 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
   const { publicKey, connected } = useWallet();
   const [unreadNotifications] = useState(1);
 
-  // Fetch current user data with real-time updates
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser', publicKey?.toBase58()],
-    queryFn: async () => {
-      if (!publicKey) return null;
-      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
-      if (!response.ok) return null;
-      const result = await response.json();
-      return result.success ? result.data : null;
-    },
-    enabled: !!publicKey && connected,
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    staleTime: 1000, // Consider data stale after 1 second for faster updates
-  });
+  // Use global user context instead of independent fetch
+  const { user: currentUser } = useUser();
 
   const isActive = (path: string) => pathname === path;
+
+  const getProfileUrl = () => {
+    if (!publicKey) return '/profile';
+    return `/profile/${publicKey.toBase58()}`;
+  };
 
   const navItems = [
     {
@@ -66,6 +63,7 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
       iconSolid: PlusIconSolid,
       path: '/create',
       label: 'Create',
+      isSpecial: true,
     },
     {
       icon: BellIcon,
@@ -79,70 +77,129 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 bottom-0 bg-app-bg border-r border-white/10',
-        // Responsive width: 16 on md, 20 on lg+
+        'fixed left-0 top-0 bottom-0',
         'w-16 md:w-20',
-        // Hidden on small mobile (< 640px), visible from sm onwards
         'hidden sm:flex flex-col items-center',
-        // Higher z-index to be above everything except modals
         'z-50',
-        // Responsive padding
         'py-4 md:py-6',
         className
       )}
-      style={{ zIndex: 50 }}
+      style={{
+        background: '#0A0A0B',
+        borderRight: '0.5px solid rgba(255, 255, 255, 0.06)',
+      }}
     >
-      {/* Brand Logo at Top */}
-      <div className="mb-6 md:mb-8">
+      {/* Brand Logo */}
+      <div className="relative mb-8 group">
         <LogoIcon size="sm" />
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl rounded-full"
+          style={{ background: 'rgba(224, 255, 98, 0.2)' }}
+        />
       </div>
 
-      {/* Navigation Items */}
-      <nav className="flex-1 flex flex-col items-center space-y-3 md:space-y-4">
+      {/* Navigation */}
+      <nav className="flex-1 flex flex-col items-center space-y-2">
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = active ? item.iconSolid : item.icon;
+
+          // Special Create button
+          if (item.isSpecial) {
+            return (
+              <Link
+                key={item.path}
+                href={item.path}
+                prefetch={true}
+                className="relative rounded-xl flex items-center justify-center transition-all duration-200 w-11 h-11 md:w-12 md:h-12 group cursor-pointer hover:scale-105 active:scale-95"
+                style={{
+                  background: '#E0FF62',
+                  boxShadow: '0 0 20px rgba(224, 255, 98, 0.3)',
+                }}
+                aria-label={item.label}
+              >
+                <Icon className="w-5 h-5 md:w-6 md:h-6 text-black stroke-[2.5]" />
+
+                {/* Tooltip */}
+                <div
+                  className="hidden lg:block absolute left-full ml-4 px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: '#0D0D0E',
+                    border: '0.5px solid rgba(224, 255, 98, 0.3)',
+                    color: '#E0FF62',
+                  }}
+                >
+                  {item.label}
+                </div>
+              </Link>
+            );
+          }
 
           return (
             <Link
               key={item.path}
               href={item.path}
               prefetch={true}
-              className={cn(
-                'relative rounded-xl flex items-center justify-center transition-all duration-200',
-                // Responsive button size
-                'w-10 h-10 md:w-12 md:h-12',
-                'group cursor-pointer',
-                active
-                  ? 'bg-gradient-to-br from-white/10 to-white/5 text-white shadow-lg shadow-white/5 backdrop-blur-sm'
-                  : 'text-white/60 hover:text-white hover:bg-gradient-to-br hover:from-white/5 hover:to-transparent'
-              )}
+              className="relative rounded-xl flex items-center justify-center transition-all duration-200 w-11 h-11 md:w-12 md:h-12 group cursor-pointer"
+              style={{
+                background: active ? 'rgba(224, 255, 98, 0.1)' : 'transparent',
+                border: active ? '0.5px solid rgba(224, 255, 98, 0.3)' : '0.5px solid transparent',
+              }}
               aria-label={item.label}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.border = '0.5px solid rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.border = '0.5px solid transparent';
+                }
+              }}
             >
-              <Icon className="w-5 h-5 md:w-6 md:h-6 relative z-10" />
-
-              {/* Gradient overlay on hover */}
-              {!active && (
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-600/0 to-pink-600/0 group-hover:from-purple-600/10 group-hover:to-pink-600/10 transition-all duration-300" />
-              )}
+              <Icon
+                className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200"
+                style={{
+                  color: active ? '#E0FF62' : '#A1A1AA',
+                }}
+              />
 
               {/* Notification Badge */}
               {item.badge && item.badge > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-4 h-4 md:w-5 md:h-5 p-0 flex items-center justify-center text-[10px] md:text-xs bg-red-500 border-2 border-app-bg z-10"
+                <span
+                  className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-full"
+                  style={{
+                    background: '#FF6B6B',
+                    color: '#FFFFFF',
+                    border: '2px solid #0A0A0B',
+                  }}
                 >
                   {item.badge}
-                </Badge>
+                </span>
               )}
 
               {/* Active Indicator */}
               {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 md:h-8 bg-gradient-to-b from-white to-white/50 rounded-r-full shadow-lg shadow-white/20" />
+                <div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
+                  style={{
+                    background: '#E0FF62',
+                    boxShadow: '0 0 8px rgba(224, 255, 98, 0.5)',
+                  }}
+                />
               )}
 
-              {/* Tooltip - Hidden on small screens */}
-              <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-lg text-xs md:text-sm text-white whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
+              {/* Tooltip */}
+              <div
+                className="hidden lg:block absolute left-full ml-4 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity"
+                style={{
+                  background: '#0D0D0E',
+                  border: '0.5px solid rgba(255, 255, 255, 0.1)',
+                  color: '#E5E5E5',
+                }}
+              >
                 {item.label}
               </div>
             </Link>
@@ -150,37 +207,74 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
         })}
       </nav>
 
-      {/* Profile Avatar at Bottom */}
-      <div className="mt-auto">
+      {/* Profile Avatar */}
+      <div className="relative mt-auto">
         {connected ? (
           <Link
-            href={currentUser?.username ? `/profile/${currentUser.username}` : `/profile/${publicKey?.toBase58()}`}
+            href={getProfileUrl()}
             prefetch={true}
             className="relative group cursor-pointer block"
             aria-label="Go to profile"
           >
-            <Avatar className="h-9 w-9 md:h-11 md:w-11 cursor-pointer border-2 border-white/10 hover:border-white/20 transition-all duration-200 hover:scale-105">
-              <AvatarImage
-                src={currentUser?.avatar_url || ''}
-                alt={currentUser?.display_name || 'Profile'}
+            <div className="relative">
+              <Avatar
+                key={currentUser?.avatar_url || 'default'}
+                className="h-10 w-10 md:h-11 md:w-11 cursor-pointer transition-all duration-200 group-hover:scale-105"
+                style={{
+                  border: '2px solid rgba(255, 255, 255, 0.15)',
+                }}
+              >
+                <AvatarImage
+                  src={currentUser?.avatar_url ? `${currentUser.avatar_url}?t=${currentUser.updated_at || Date.now()}` : ''}
+                  alt={currentUser?.display_name || 'Profile'}
+                />
+                <AvatarFallback
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(224, 255, 98, 0.2) 0%, #0D0D0E 100%)',
+                    color: '#A1A1AA',
+                    fontWeight: 600,
+                  }}
+                >
+                  {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (publicKey ? publicKey.toBase58().slice(0, 2).toUpperCase() : 'U')}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Online Indicator */}
+              <div
+                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full"
+                style={{
+                  background: '#E0FF62',
+                  border: '2px solid #0A0A0B',
+                  boxShadow: '0 0 6px rgba(224, 255, 98, 0.5)',
+                }}
               />
-              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold text-sm md:text-base">
-                {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (publicKey ? publicKey.toBase58().slice(0, 2).toUpperCase() : 'U')}
-              </AvatarFallback>
-            </Avatar>
+            </div>
 
-            {/* Online Status Indicator */}
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-metric-green rounded-full border-2 border-app-bg" />
-
-            {/* Tooltip - Hidden on small screens */}
-            <div className="hidden lg:block absolute left-full ml-3 md:ml-4 px-2 md:px-3 py-1 md:py-1.5 bg-card-bg border border-white/10 rounded-lg text-xs md:text-sm text-primary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-xl">
+            {/* Tooltip */}
+            <div
+              className="hidden lg:block absolute left-full ml-4 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity"
+              style={{
+                background: '#0D0D0E',
+                border: '0.5px solid rgba(255, 255, 255, 0.1)',
+                color: '#E5E5E5',
+              }}
+            >
               {currentUser?.display_name || 'Profile'}
             </div>
           </Link>
         ) : (
-          <div className="h-9 w-9 md:h-11 md:w-11 cursor-not-allowed opacity-50">
-            <Avatar className="h-full w-full border-2 border-white/10">
-              <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-800 text-white font-semibold text-sm md:text-base">
+          <div className="h-10 w-10 md:h-11 md:w-11 opacity-40">
+            <Avatar
+              className="h-full w-full"
+              style={{ border: '2px solid rgba(255, 255, 255, 0.1)' }}
+            >
+              <AvatarFallback
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  color: '#6B6B70',
+                  fontWeight: 600,
+                }}
+              >
                 U
               </AvatarFallback>
             </Avatar>
@@ -190,4 +284,3 @@ export function MinimalSidebar({ className }: MinimalSidebarProps) {
     </aside>
   );
 }
-

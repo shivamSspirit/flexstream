@@ -1,8 +1,8 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useState, useEffect, useMemo } from 'react';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
-  ArrowLeftIcon,
-  ShareIcon,
-  EllipsisHorizontalIcon,
   ChartBarIcon,
   DocumentDuplicateIcon,
   ClockIcon,
@@ -21,6 +18,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingSpinner } from '@/components/ui/loading';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { useDBCSwap } from '@/hooks/useDBCSwap';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { SwapModal } from '@/components/swap/SwapModal';
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -34,11 +35,20 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('comments');
   const [mediaView, setMediaView] = useState<'image' | 'chart'>('image');
+  const [showSwapModal, setShowSwapModal] = useState(false);
 
   // Trading state
   const [tradeAmount, setTradeAmount] = useState('0.000111');
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
-  const [selectedToken, setSelectedToken] = useState('SOL');
+  const [solBalance, setSolBalance] = useState<number>(0);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+
+  // Pool info state
+  const [poolInfo, setPoolInfo] = useState<any>(null);
+  const [loadingPoolInfo, setLoadingPoolInfo] = useState(false);
+
+  // DBC Swap hook
+  const { loading: swapLoading, executeSwap } = useDBCSwap();
 
   useEffect(() => {
     if (postId) {
@@ -47,6 +57,65 @@ export default function PostDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  // Fetch SOL balance when wallet connects
+  useEffect(() => {
+    if (!publicKey || !connected) return;
+
+    const fetchBalance = async () => {
+      setLoadingBalance(true);
+      try {
+        const { Connection } = await import('@solana/web3.js');
+        const connection = new Connection(
+          process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+          'confirmed'
+        );
+        const balance = await connection.getBalance(publicKey);
+        setSolBalance(balance / LAMPORTS_PER_SOL);
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+
+    fetchBalance();
+  }, [publicKey, connected]);
+
+  // Fetch pool info when post loads (via API to avoid client-side SDK issues)
+  useEffect(() => {
+    if (!post?.pool_address) {
+      setLoadingPoolInfo(false);
+      return;
+    }
+
+    const fetchPoolInfo = async () => {
+      setLoadingPoolInfo(true);
+      try {
+        const response = await fetch(`/api/tokens/pool-info?poolAddress=${post.pool_address}`);
+        const data = await response.json();
+
+        if (data.success && data.poolInfo) {
+          setPoolInfo(data.poolInfo);
+          console.log('[Pool Info]', data.poolInfo);
+        } else {
+          console.error('Failed to fetch pool info:', data.error);
+          setPoolInfo(null);
+          if (!data.notFound) {
+            toast.error('Failed to fetch pool info');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch pool info:', err);
+        setPoolInfo(null);
+        toast.error('Trading pool not found for this token');
+      } finally {
+        setLoadingPoolInfo(false);
+      }
+    };
+
+    fetchPoolInfo();
+  }, [post?.pool_address]);
 
   const fetchPost = async () => {
     try {
@@ -151,6 +220,80 @@ export default function PostDetailPage() {
     }
   };
 
+  // Calculate estimated tokens out based on pool info
+  const estimatedTokensOut = useMemo(() => {
+    if (!poolInfo || !tradeAmount) return 0;
+
+    const amount = parseFloat(tradeAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+
+    if (tradeType === 'buy') {
+      // Buying tokens with SOL
+      // tokens = (SOL / price) with slippage consideration
+      return (amount / poolInfo.buyPrice) * 0.95; // 5% slippage buffer
+    } else {
+      // Selling tokens for SOL (not implemented yet for input)
+      return 0;
+    }
+  }, [poolInfo, tradeAmount, tradeType]);
+
+  // Calculate estimated SOL value
+  const estimatedSolValue = useMemo(() => {
+    if (!poolInfo || !estimatedTokensOut) return 0;
+    return estimatedTokensOut * poolInfo.buyPrice;
+  }, [poolInfo, estimatedTokensOut]);
+
+  const handleMaxClick = () => {
+    if (solBalance > 0) {
+      // Leave some SOL for transaction fees (0.01 SOL)
+      const maxAmount = Math.max(0, solBalance - 0.01);
+      setTradeAmount(maxAmount.toFixed(6));
+    }
+  };
+
+  const handleTrade = async () => {
+    if (!connected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!post?.pool_address) {
+      toast.error('Pool address not found for this token');
+      return;
+    }
+
+    const amount = parseFloat(tradeAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (tradeType === 'buy' && amount > solBalance) {
+      toast.error(`Insufficient balance. You have ${solBalance.toFixed(4)} SOL`);
+      return;
+    }
+
+    const result = await executeSwap({
+      poolAddress: post.pool_address,
+      amount,
+      tradeType,
+      slippageBps: 500 // 5% slippage
+    });
+
+    if (result.success) {
+      // Refresh balance after successful trade
+      if (publicKey) {
+        const { Connection } = await import('@solana/web3.js');
+        const connection = new Connection(
+          process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+          'confirmed'
+        );
+        const balance = await connection.getBalance(publicKey);
+        setSolBalance(balance / LAMPORTS_PER_SOL);
+      }
+    }
+  };
+
   const getExplorerLinks = (tokenMint: string, poolAddress?: string) => {
     return {
       solscan: `https://solscan.io/token/${tokenMint}`,
@@ -160,12 +303,6 @@ export default function PostDetailPage() {
       coingecko: `https://www.coingecko.com/en/coins/solana-ecosystem`,
       photon: poolAddress ? `https://photon-sol.tinyastro.io/en/lp/${poolAddress}` : null,
     };
-  };
-
-  const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success('Link copied to clipboard!');
   };
 
   if (loading) {
@@ -190,48 +327,8 @@ export default function PostDetailPage() {
   const timeAgo = post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : '';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20 md:pb-0">
-      {/* Top Navigation - Mobile First */}
-      <div className="border-b border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-3 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="p-1.5 sm:p-2 hover:bg-white/5 rounded-full transition-colors"
-          >
-            <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-          </button>
-
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/5 h-8 w-8 sm:h-9 sm:w-9"
-            >
-              <ChartBarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              className="text-white hover:bg-white/5 h-8 w-8 sm:h-9 sm:w-9"
-            >
-              <ShareIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden sm:flex text-white hover:bg-white/5 h-8 w-8 sm:h-9 sm:w-9"
-            >
-              <EllipsisHorizontalIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
-            <Button className="bg-white text-black hover:bg-gray-200 font-medium text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 hidden sm:flex">
-              Log in
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+    <AppLayout showWallet={true} showSearch={true}>
+      <div className="w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column - Image/Chart */}
           <div className="relative">
@@ -269,10 +366,18 @@ export default function PostDetailPage() {
                         <p className="text-white/60 text-xs sm:text-sm">Price Chart</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-xl sm:text-2xl font-bold text-white">
-                          <span className="text-green-500">▲</span> $0.000614
+                        <div className="text-xl sm:text-2xl font-bold text-white font-mono">
+                          {loadingPoolInfo ? (
+                            '...'
+                          ) : poolInfo ? (
+                            <>
+                              <span className="text-green-500">◆</span> {poolInfo.buyPrice.toFixed(9)} SOL
+                            </>
+                          ) : (
+                            '0.000000000 SOL'
+                          )}
                         </div>
-                        <div className="text-xs sm:text-sm text-green-500 font-semibold">+24% (24h)</div>
+                        <div className="text-xs sm:text-sm text-white/60 font-semibold">Current Price</div>
                       </div>
                     </div>
 
@@ -353,16 +458,22 @@ export default function PostDetailPage() {
                     {/* Chart Stats Overlay */}
                     <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 grid grid-cols-3 gap-2 sm:gap-3">
                       <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">High</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">$0.000850</p>
+                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Market Cap</p>
+                        <p className="text-white text-xs sm:text-sm font-bold">
+                          {loadingPoolInfo ? '...' : poolInfo ? `$${(poolInfo.marketCap / 1000).toFixed(2)}K` : '$0'}
+                        </p>
                       </div>
                       <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Low</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">$0.000495</p>
+                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Liquidity</p>
+                        <p className="text-white text-xs sm:text-sm font-bold">
+                          {loadingPoolInfo ? '...' : poolInfo ? `${poolInfo.liquidity.toFixed(2)} SOL` : '0 SOL'}
+                        </p>
                       </div>
                       <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Volume</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">$1.93</p>
+                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Reserves</p>
+                        <p className="text-white text-xs sm:text-sm font-bold">
+                          {loadingPoolInfo ? '...' : poolInfo ? `${poolInfo.virtualBaseReserves.toFixed(0)}` : '0'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -435,7 +546,30 @@ export default function PostDetailPage() {
 
             {/* Title */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{post.title}</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">{post.title}</h1>
+                {/* Pool Status Badge */}
+                {!loadingPoolInfo && (
+                  poolInfo ? (
+                    poolInfo.liquidity > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-bold">
+                        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                        ACTIVE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/50 text-blue-400 text-xs font-bold">
+                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                        NEW
+                      </span>
+                    )
+                  ) : post?.pool_address ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                      LEGACY
+                    </span>
+                  ) : null
+                )}
+              </div>
               {post.token_mint && (
                 <div className="flex items-center gap-2">
                   <span className="text-white/60 text-xs sm:text-sm font-mono">${post.title?.substring(0, 10).toUpperCase()}</span>
@@ -456,164 +590,124 @@ export default function PostDetailPage() {
               <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
                 <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Market Cap</p>
                 <p className="text-white text-sm sm:text-base md:text-lg font-bold">
-                  <span className="text-green-500">▲</span> $614.06
+                  {loadingPoolInfo ? (
+                    '...'
+                  ) : poolInfo ? (
+                    <>
+                      <span className="text-green-500">◆</span> {poolInfo.marketCap >= 1000 ? `$${(poolInfo.marketCap / 1000).toFixed(2)}K` : `$${poolInfo.marketCap.toFixed(2)}`}
+                    </>
+                  ) : (
+                    '$0.00'
+                  )}
                 </p>
               </div>
               <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
-                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">24H Volume</p>
+                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Liquidity (SOL)</p>
                 <p className="text-white text-sm sm:text-base md:text-lg font-bold flex items-center gap-1">
-                  <ClockIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                  $0.16
+                  {loadingPoolInfo ? (
+                    '...'
+                  ) : poolInfo ? (
+                    `${poolInfo.liquidity.toFixed(4)} SOL`
+                  ) : (
+                    '0 SOL'
+                  )}
                 </p>
               </div>
               <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
-                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Creator Earnings</p>
-                <p className="text-white text-sm sm:text-base md:text-lg font-bold">$0.02</p>
+                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Price</p>
+                <p className="text-white text-sm sm:text-base md:text-lg font-bold font-mono">
+                  {loadingPoolInfo ? (
+                    '...'
+                  ) : poolInfo ? (
+                    `${poolInfo.buyPrice.toFixed(9)}`
+                  ) : (
+                    '0.000000000'
+                  )}
+                </p>
               </div>
             </div>
 
-            {/* Trading Interface - Clean Viral Style */}
-            <div className="relative overflow-hidden rounded-2xl sm:rounded-2xl bg-black/95 border border-purple-500/30 backdrop-blur-xl">
-              <div className="relative p-4 sm:p-5">
-                {/* Buy/Sell Toggle - Modern Pill Style */}
-                <div className="relative mb-4 p-1 bg-black/60 rounded-full border border-white/10">
-                  <div className="grid grid-cols-2 gap-1 relative">
-                    <button
-                      onClick={() => setTradeType('buy')}
-                      className={`relative z-10 py-2.5 sm:py-3 rounded-full font-bold text-sm transition-all duration-300 ${
-                        tradeType === 'buy'
-                          ? 'text-white'
-                          : 'text-white/50 hover:text-white/70'
-                      }`}
-                    >
-                      Buy
-                    </button>
-                    <button
-                      onClick={() => setTradeType('sell')}
-                      className={`relative z-10 py-2.5 sm:py-3 rounded-full font-bold text-sm transition-all duration-300 ${
-                        tradeType === 'sell'
-                          ? 'text-white'
-                          : 'text-white/50 hover:text-white/70'
-                      }`}
-                    >
-                      Sell
-                    </button>
-                    {/* Sliding Background */}
-                    <div
-                      className={`absolute top-1 bottom-1 w-[calc(50%-4px)] ${
-                        tradeType === 'buy'
-                          ? 'bg-green-500 left-1'
-                          : 'bg-red-500 right-1'
-                      } rounded-full transition-all duration-300 ease-out shadow-lg`}
-                    />
+            {/* Trading Card with BUY Button */}
+            <div className="relative overflow-hidden rounded-2xl bg-black/95 border border-purple-500/30 backdrop-blur-xl p-6">
+              {/* Pool Status Badge */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-white">Trade ${post.title?.substring(0, 10).toUpperCase()}</h3>
+                {!loadingPoolInfo && (
+                  poolInfo ? (
+                    poolInfo.liquidity > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-bold">
+                        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                        ACTIVE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/50 text-blue-400 text-xs font-bold">
+                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                        NEW
+                      </span>
+                    )
+                  ) : post?.pool_address ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                      LEGACY
+                    </span>
+                  ) : null
+                )}
+              </div>
+
+              {/* Pool Stats Grid - show for all pools with poolInfo */}
+              {poolInfo && !loadingPoolInfo && (
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="bg-black/40 rounded-lg p-3 border border-white/10">
+                    <p className="text-white/60 text-xs mb-1">Price</p>
+                    <p className="text-white text-sm font-bold font-mono">{poolInfo.buyPrice.toFixed(9)} SOL</p>
+                  </div>
+                  <div className="bg-black/40 rounded-lg p-3 border border-white/10">
+                    <p className="text-white/60 text-xs mb-1">Liquidity</p>
+                    <p className="text-white text-sm font-bold">{poolInfo.liquidity.toFixed(4)} SOL</p>
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Amount Input - Big & Bold */}
-                  <div className="relative">
-                    <div className="bg-black/40 rounded-xl sm:rounded-2xl p-4 sm:p-4 border border-white/10">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-white/60 text-xs sm:text-sm font-semibold uppercase tracking-wider">You Pay</span>
-                        <div className="flex items-center gap-2 bg-purple-500/20 px-3 py-1.5 rounded-full border border-purple-500/30">
-                          <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-white text-[10px] font-black">
-                            S
-                          </div>
-                          <span className="text-white text-xs sm:text-sm font-bold">SOL</span>
-                        </div>
-                      </div>
-                      <Input
-                        value={tradeAmount}
-                        onChange={(e) => setTradeAmount(e.target.value)}
-                        className="text-2xl sm:text-3xl font-black bg-transparent border-0 text-white p-0 h-auto focus-visible:ring-0 placeholder:text-white/20"
-                        placeholder="0.00"
-                      />
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-white/40 text-xs sm:text-sm">≈ $0.00</p>
-                        <button className="text-purple-400 text-xs sm:text-sm font-bold hover:text-purple-300 transition-colors">
-                          Balance: 0 SOL
-                        </button>
-                      </div>
-                    </div>
+              {/* BUY Button - Enable for all pools with poolInfo (DBC pools work with 0 liquidity) */}
+              <button
+                onClick={() => setShowSwapModal(true)}
+                disabled={!post?.token_mint || !poolInfo}
+                className="group relative w-full px-8 py-5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 rounded-2xl font-black text-xl text-black shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shine" />
+                <span className="relative">{poolInfo?.liquidity === 0 ? 'BE FIRST TO BUY' : 'BUY'} {post.title?.substring(0, 10).toUpperCase()}</span>
+              </button>
 
-                    {/* Swap Direction Icon */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-5 z-10">
-                      <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-4 border-[#0a0a0a]">
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* You Receive */}
-                  <div className="bg-black/40 rounded-xl sm:rounded-2xl p-4 sm:p-4 border border-white/10 mt-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-white/60 text-xs sm:text-sm font-semibold uppercase tracking-wider">You Receive</span>
-                      <div className="flex items-center gap-2 bg-pink-500/20 px-3 py-1.5 rounded-full border border-pink-500/30">
-                        <div className="w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center text-white text-[8px] font-black">
-                          {post.title?.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="text-white text-xs sm:text-sm font-bold">${post.title?.substring(0, 6).toUpperCase()}</span>
-                      </div>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white">
-                      ~0.00
-                    </div>
-                    <p className="text-white/40 text-xs sm:text-sm mt-3">≈ $0.00</p>
-                  </div>
-
-                  {/* Quick Amount Buttons - Pill Style */}
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '0.1' },
-                      { label: '0.5' },
-                      { label: '1' },
-                      { label: 'Max' }
-                    ].map((item) => (
-                      <button
-                        key={item.label}
-                        onClick={() => {
-                          if (item.label !== 'Max') {
-                            setTradeAmount(item.label);
-                          }
-                        }}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/50 rounded-full py-2.5 sm:py-3 text-white font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95"
-                      >
-                        {item.label} SOL
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Trade Button - Big & Eye-catching */}
-                  <button
-                    disabled
-                    className="w-full py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-base bg-purple-500 hover:bg-purple-600 text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30"
-                  >
-                    {tradeType === 'buy' ? 'Connect Wallet to Buy' : 'Connect Wallet to Sell'}
-                  </button>
-
-                  {/* Comment Input - Clean & Simple */}
-                  <div className="pt-4 border-t border-white/10">
-                    <div className="relative">
-                      <Input
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="Add a comment..."
-                        className="bg-black/40 border border-white/10 text-white placeholder:text-white/40 h-12 sm:h-14 text-sm sm:text-base rounded-xl px-4 focus:border-purple-500/50 transition-all"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleAddComment();
-                          }
-                        }}
-                      />
-                    </div>
-                    <p className="text-white/40 text-xs mt-2.5 text-center">
-                      Press Enter to post
-                    </p>
-                  </div>
+              {/* No Pool Warning - only show if pool not found on-chain */}
+              {!loadingPoolInfo && !poolInfo && post?.pool_address && (
+                <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <p className="text-yellow-400 text-xs font-semibold mb-1">Pool Not Found</p>
+                  <p className="text-yellow-400/80 text-xs leading-relaxed">
+                    The trading pool for this token could not be found on-chain. This may be a legacy post or there was an issue during creation.
+                  </p>
                 </div>
+              )}
+
+              {/* Comment Input */}
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <div className="relative">
+                  <Input
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="bg-black/40 border border-white/10 text-white placeholder:text-white/40 h-12 sm:h-14 text-sm sm:text-base rounded-xl px-4 focus:border-purple-500/50 transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddComment();
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2.5 text-center">
+                  Press Enter to post
+                </p>
               </div>
             </div>
 
@@ -871,6 +965,17 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Swap Modal */}
+      {post?.token_mint && (
+        <SwapModal
+          isOpen={showSwapModal}
+          onClose={() => setShowSwapModal(false)}
+          tokenMint={post.token_mint}
+          tokenSymbol={post.token_display_name || post.token_symbol || post.title?.substring(0, 10).toUpperCase() || 'TOKEN'}
+          poolAddress={post.pool_address}
+        />
+      )}
+    </AppLayout>
   );
 }

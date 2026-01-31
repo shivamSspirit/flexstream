@@ -6,11 +6,15 @@ import { Connection, PublicKey } from '@solana/web3.js';
  */
 
 // Post-level tokens: Each post gets its own tradable token
+// Pricing: 1B tokens with 20 SOL initial market cap
+// Initial price = 20 SOL / 1B tokens = 0.00000002 SOL per token
+// buildCurveMode: 1 (buildCurveWithMarketCap) - virtual reserves computed from market cap
 export const POST_TOKEN_CONFIG = {
   PROGRAM_ID: new PublicKey('dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN'),
-  CONFIG_KEY: new PublicKey(process.env.POST_POOL_CONFIG_KEY || 'GDo9K18dcHx34zefEoS7JkRPKgMQpEnS4ASDLBBbmcWF'),
+  CONFIG_KEY: new PublicKey(process.env.POST_POOL_CONFIG_KEY || '2BVWBAbVrcWsCqbAc745HTo55eqqmE5fsmcE3YBFz6mS'),
   TYPE: 'post' as const,
   DEFAULT_INITIAL_SUPPLY: 1_000_000_000, // 1B tokens per post
+  INITIAL_MARKET_CAP_SOL: 20, // 20 SOL initial market cap
   DEFAULT_FEE_BPS: 0,
 } as const;
 

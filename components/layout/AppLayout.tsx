@@ -5,7 +5,7 @@ import { UniversalHeader } from './UniversalHeader';
 import { MinimalSidebar } from './MinimalSidebar';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
-import { useEnsureUser } from '@/hooks/useEnsureUser';
+import { CommandPalette, useCommandPalette } from '@/components/search/CommandPalette';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,9 +15,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, showWallet = true, showSearch = true }: AppLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const commandPalette = useCommandPalette();
 
-  // Automatically ensure user exists when wallet connects
-  useEnsureUser();
+  // Note: User ensuring is handled by PrivyWalletProvider's UserEnsurerWithPrivy
 
   return (
     <div className="min-h-screen bg-app-bg">
@@ -31,6 +31,7 @@ export function AppLayout({ children, showWallet = true, showSearch = true }: Ap
           onMenuClick={() => setMenuOpen(!menuOpen)}
           showWallet={showWallet}
           showSearch={showSearch}
+          onSearchClick={commandPalette.open}
         />
         
         {/* Main Content */}
@@ -44,6 +45,9 @@ export function AppLayout({ children, showWallet = true, showSearch = true }: Ap
       
       {/* User Menu */}
       <UserMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette isOpen={commandPalette.isOpen} onClose={commandPalette.close} />
     </div>
   );
 }

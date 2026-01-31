@@ -5,7 +5,7 @@
  * for collecting platform fees. Run this ONCE when setting up the platform.
  *
  * Prerequisites:
- * 1. Set PLATFORM_WALLET_SECRET in .env.local (base58 encoded private key)
+ * 1. Set PLATFORM_KEYPAIR_SECRET in .env (base58 encoded private key)
  * 2. Ensure wallet has at least 0.1 SOL for account creation fees
  *
  * Usage:
@@ -31,12 +31,12 @@ async function setupJupiterReferral() {
 
   // Load environment variables
   const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-  const walletSecret = process.env.PLATFORM_WALLET_SECRET;
+  const walletSecret = process.env.PLATFORM_KEYPAIR_SECRET;
 
   if (!walletSecret) {
-    console.error('❌ Error: PLATFORM_WALLET_SECRET not found in environment variables');
-    console.error('Please add your platform wallet secret key to .env.local');
-    console.error('Example: PLATFORM_WALLET_SECRET=your_base58_encoded_secret_key\n');
+    console.error('❌ Error: PLATFORM_KEYPAIR_SECRET not found in environment variables');
+    console.error('Please add your platform wallet secret key to .env');
+    console.error('Example: PLATFORM_KEYPAIR_SECRET=your_base58_encoded_secret_key\n');
     process.exit(1);
   }
 
@@ -49,7 +49,7 @@ async function setupJupiterReferral() {
     console.log('✅ Platform wallet loaded');
     console.log(`   Address: ${platformWallet.publicKey.toString()}\n`);
   } catch (error) {
-    console.error('❌ Error: Invalid PLATFORM_WALLET_SECRET format');
+    console.error('❌ Error: Invalid PLATFORM_KEYPAIR_SECRET format');
     console.error('Secret key must be base58 encoded\n');
     process.exit(1);
   }

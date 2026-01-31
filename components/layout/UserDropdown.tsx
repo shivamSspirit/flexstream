@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useUser } from '@/contexts/UserContext';
 import {
   Settings,
   LogOut,
@@ -18,20 +18,8 @@ export function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch current user data with real-time updates
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser', publicKey?.toBase58()],
-    queryFn: async () => {
-      if (!publicKey) return null;
-      const response = await fetch(`/api/users/by-wallet?wallet=${publicKey.toBase58()}`);
-      if (!response.ok) return null;
-      const result = await response.json();
-      return result.success ? result.data : null;
-    },
-    enabled: !!publicKey && connected,
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    staleTime: 1000, // Consider data stale after 1 second for faster updates
-  });
+  // Use global user context instead of independent fetch
+  const { user: currentUser } = useUser();
 
   const address = publicKey ? publicKey.toBase58() : '';
   const addressLabel = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'Not connected';
@@ -60,16 +48,19 @@ export function UserDropdown() {
     }
   };
 
+  // Get the correct profile URL - always use wallet address as the source of truth
+  const getProfileUrl = () => {
+    if (!publicKey) return '/profile';
+    // Always route to wallet address for consistency
+    return `/profile/${publicKey.toBase58()}`;
+  };
+
   const menuItems = [
     {
       icon: UserCircle,
       label: 'Profile',
       onClick: () => {
-        if (currentUser?.username) {
-          router.push(`/profile/${currentUser.username}`);
-        } else {
-          router.push('/profile/edit');
-        }
+        router.push(getProfileUrl());
         setIsOpen(false);
       }
     },
@@ -103,8 +94,11 @@ export function UserDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 hover:bg-gray-800 rounded-lg px-2 py-1 transition-colors"
       >
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={currentUser?.avatar_url || ''} alt={displayName} />
+        <Avatar key={currentUser?.avatar_url || 'default'} className="h-8 w-8">
+          <AvatarImage
+            src={currentUser?.avatar_url ? `${currentUser.avatar_url}?t=${currentUser.updated_at || Date.now()}` : ''}
+            alt={displayName}
+          />
           <AvatarFallback>
             {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (address ? address.slice(0, 2).toUpperCase() : 'W')}
           </AvatarFallback>
@@ -127,8 +121,11 @@ export function UserDropdown() {
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-gray-700">
               <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={currentUser?.avatar_url || ''} alt={displayName} />
+                <Avatar key={currentUser?.avatar_url || 'default'} className="h-10 w-10">
+                  <AvatarImage
+                    src={currentUser?.avatar_url ? `${currentUser.avatar_url}?t=${currentUser.updated_at || Date.now()}` : ''}
+                    alt={displayName}
+                  />
                   <AvatarFallback>
                     {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (address ? address.slice(0, 2).toUpperCase() : 'W')}
                   </AvatarFallback>

@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 /**
  * GET /api/users/stats
@@ -22,33 +24,86 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      db: {
+        schema: 'public',
+      },
+      global: {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'x-cache-bust': Date.now().toString(),
+        },
+      },
+    });
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const walletParam = searchParams.get('wallet');
 
-    if (!userId) {
+    if (!userId && !walletParam) {
       return NextResponse.json({
         success: false,
-        error: 'userId is required',
+        error: 'userId or wallet is required',
       }, { status: 400 });
     }
 
-    console.log('[USER STATS] Fetching stats for user:', userId);
+    console.log('[USER STATS] Fetching stats for:', userId || walletParam);
 
-    // Get user's wallet address (single query, reused for tokens count)
-    const { data: userData } = await supabase
-      .from('users')
-      .select('wallet_address')
-      .eq('id', userId)
-      .single();
+    // Get user data (by id or wallet)
+    let userData;
+    if (userId) {
+      const { data } = await supabase
+        .from('users')
+        .select('id, wallet_address, post_launch_count')
+        .eq('id', userId)
+        .single();
+      userData = data;
+    } else if (walletParam) {
+      const { data } = await supabase
+        .from('users')
+        .select('id, wallet_address, post_launch_count')
+        .eq('wallet_address', walletParam)
+        .single();
+      userData = data;
+    }
 
-    const walletAddress = userData?.wallet_address;
+    // If user not found and wallet provided, return default stats
+    if (!userData && walletParam) {
+      console.log('[USER STATS] User not found for wallet, returning defaults');
+      return NextResponse.json({
+        success: true,
+        post_launch_count: 0,
+        data: {
+          posts_count: 0,
+          tokens_created: 0,
+          total_holders: 0,
+          tokens_holding: 0,
+          post_launch_count: 0,
+        },
+      });
+    }
+
+    if (!userData) {
+      return NextResponse.json({
+        success: false,
+        error: 'User not found',
+      }, { status: 404 });
+    }
+
+    const actualUserId = userData.id;
+    const walletAddress = userData.wallet_address;
+    const postLaunchCount = userData.post_launch_count || 0;
 
     // Get all posts by this user - use count for accurate totals
     const { count: postsCount, error: postsError } = await supabase
       .from('posts')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', actualUserId);
 
     if (postsError) {
       console.error('[USER STATS] Error fetching posts count:', postsError);
@@ -66,19 +121,29 @@ export async function GET(request: NextRequest) {
       tokens_created: tokensCreated,
       total_holders: 0, // Will implement with on-chain data
       tokens_holding: 0, // Will implement with on-chain data
+      post_launch_count: postLaunchCount, // Track gasless launches
     };
 
     console.log('[USER STATS] Stats for user:', {
-      userId,
+      userId: actualUserId,
       wallet: walletAddress?.substring(0, 8) + '...',
       postsCount: totalPosts,
+      postLaunchCount,
       ...stats
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
+      post_launch_count: postLaunchCount, // Top-level for easy access
       data: stats,
     });
+
+    // Add explicit no-cache headers to the response
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
 
   } catch (error) {
     console.error('[USER STATS] Error:', error);

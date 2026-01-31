@@ -11,7 +11,7 @@ export interface CachedPrice {
   liquidity: number;
   timestamp: number;
   updateUnixTime: number;
-  source: 'birdeye' | 'dexscreener' | 'manual';
+  source: 'dexscreener' | 'manual';
 }
 
 const DB_NAME = 'flexstream_prices';

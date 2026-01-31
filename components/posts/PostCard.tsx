@@ -1,24 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Share, MoreHorizontal, Heart } from 'lucide-react';
+import { Heart, MessageCircle, Send, MoreHorizontal, TrendingUp, TrendingDown, Eye, Users } from 'lucide-react';
 import { useLike } from '@/hooks/useLike';
 import { useWallet } from '@jup-ag/wallet-adapter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { VerificationBadge } from './VerificationBadge';
-import { PostOptionsMenu } from './PostOptionsMenu';
+import { ImageCarousel } from './ImageCarousel';
 import { ShareModal } from './ShareModal';
 import { CommentsModal } from './CommentsModal';
-import { ImageCarousel } from './ImageCarousel';
 import { SwapModal } from '@/components/swap/SwapModal';
-import { TokenPriceDisplay } from '@/components/price/TokenPriceDisplay';
-import { TokenBadge } from './TokenBadge';
-import { formatTimeAgo, getSuccessTierIcon } from '@/lib/utils';
+import { PostOptionsMenu } from './PostOptionsMenu';
+import { formatTimeAgo } from '@/lib/utils';
 import { FlexPost } from '@/types';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PostCard — The Obsidian Vault
+// Premium, content-first with subtle FOMO triggers
+// ═══════════════════════════════════════════════════════════════════════════
 
 interface PostCardProps {
   post: FlexPost;
@@ -31,299 +30,389 @@ export function PostCard({ post }: PostCardProps) {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Like functionality with real-time updates
   const { liked, toggleLike, isLoading: isLiking } = useLike(post.id, userId);
 
-  const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${post.id}`;
-
-  const handleShare = () => {
-    // Open ShareModal with all share options
-    setShowShareModal(true);
-  };
-
-  const handleComments = () => {
-    console.log('Comments button clicked');
-    setShowCommentsModal(true);
-  };
-
-  const handleUserClick = () => {
-    router.push(`/profile/${post.user?.username}`);
-  };
-
-  const [showSwapModal, setShowSwapModal] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  const [showInlineSwap, setShowInlineSwap] = useState(false);
-  const [tradeAmount, setTradeAmount] = useState('0.1');
-  const [recentActivity, setRecentActivity] = useState({
-    viewers: Math.floor(Math.random() * 50) + 10,
-    recentBuys: Math.floor(Math.random() * 15) + 3,
-    priceChange: (Math.random() * 50 - 10).toFixed(1), // -10% to +40%
+  // Live metrics (subtle FOMO)
+  const [metrics, setMetrics] = useState({
+    viewers: Math.floor(Math.random() * 24) + 3,
+    priceChange: ((Math.random() * 50) - 10).toFixed(1),
+    marketCap: (Math.random() * 80 + 10).toFixed(0),
+    holders: Math.floor(Math.random() * 40) + 8,
   });
 
-  const handleBuy = () => {
-    if (post.token_address) {
-      setShowSwapModal(true);
-    }
-  };
+  const isPriceUp = parseFloat(metrics.priceChange) > 0;
+  const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${post.id}`;
 
-  const handleQuickBuy = (amount: number) => {
-    if (post.token_address) {
-      // Open internal swap modal for integrated experience
-      setShowSwapModal(true);
-      setShowBuyModal(false);
-    }
-  };
-
-  const handleShareToTwitter = (amount?: number) => {
-    const ticker = post.token_address?.slice(0, 8) || 'TOKEN';
-    const priceChange = recentActivity.priceChange;
-    const text = amount
-      ? `Just bought $${amount} of $${ticker} on @FlexIt!\n\nCurrent price: $89 ${parseFloat(priceChange) > 0 ? '↑' : '↓'} ${priceChange}%\n\nJoin me: ${postUrl}`
-      : `Check out this post on @FlexIt!\n\n${post.title || post.content?.slice(0, 50)}\n\n${postUrl}`;
-
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  const handlePostClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.closest('input') ||
-      target.closest('[role="button"]')
-    ) {
-      return;
-    }
-    router.push(`/post/${post.id}`);
-  };
-
-  const getPostTypeIcon = (type: string) => {
-    switch (type) {
-      case 'earnings_flex':
-        return '$';
-      case 'stream_highlight':
-        return '▶';
-      case 'lifestyle':
-        return '★';
-      case 'trading_journey':
-        return '↑';
-      default:
-        return '•';
-    }
-  };
+  // Subtle live update (Nikita Bier hook: things feel alive)
+  useEffect(() => {
+    if (!post.token_mint) return;
+    const interval = setInterval(() => {
+      setMetrics(prev => ({
+        ...prev,
+        viewers: Math.max(2, prev.viewers + Math.floor(Math.random() * 3) - 1),
+      }));
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [post.token_mint]);
 
   return (
-    <Card className="card-interactive group bg-gradient-to-br from-card-bg to-card-bg/80 border border-white/10 hover:border-white/20 shadow-card-lg">
-      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
-        <div className="flex items-start justify-between gap-2 sm:gap-3">
-          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-            <Avatar
-              className="h-10 w-10 sm:h-12 sm:w-12 cursor-pointer ring-2 ring-transparent hover:ring-accent-purple/50 transition-all duration-300 shrink-0 shadow-lg"
-              onClick={handleUserClick}
-            >
-              <AvatarImage src={post.user?.avatar_url} alt={post.user?.display_name} />
-              <AvatarFallback className="bg-gradient-to-br from-accent-purple to-accent-pink text-white font-bold text-sm sm:text-base">
-                {post.user?.display_name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
+    <>
+      <article
+        className="group relative"
+        style={{
+          background: '#0A0A0B',
+          borderRadius: '16px',
+          border: '0.5px solid rgba(255, 255, 255, 0.06)',
+          overflow: 'hidden',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+          boxShadow: isHovered
+            ? '0 20px 40px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+            : '0 4px 12px -4px rgba(0, 0, 0, 0.3)',
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* ════════════════════════════════════════════════════════════════
+            HEADER — Creator + Live Activity
+            ════════════════════════════════════════════════════════════════ */}
+        <header className="flex items-center justify-between px-4 py-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+            onClick={() => router.push(`/profile/${post.user?.username}`)}
+          >
+            {/* Avatar with subtle ring */}
+            <div className="relative">
+              <Avatar className="h-9 w-9 ring-2 ring-white/[0.06]">
+                <AvatarImage src={post.user?.avatar_url} alt={post.user?.display_name} />
+                <AvatarFallback
+                  style={{
+                    background: 'linear-gradient(145deg, #1a1a1c 0%, #0d0d0e 100%)',
+                    color: '#5a5a5f',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {post.user?.display_name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {/* Online pulse (subtle social proof) */}
+              <div
+                className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse"
+                style={{
+                  background: '#E0FF62',
+                  border: '2px solid #0A0A0B',
+                }}
+              />
+            </div>
 
-            <div className="flex-1 min-w-0 space-y-1 sm:space-y-1.5">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <button
-                  onClick={handleUserClick}
-                  className="font-bold text-text-primary hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-accent-blue hover:to-accent-purple transition-all duration-200 text-sm sm:text-base"
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-[13px] font-medium truncate hover:text-[#E0FF62] transition-colors duration-300"
+                  style={{ color: '#E8E8E8', letterSpacing: '-0.01em' }}
                 >
                   {post.user?.display_name}
-                </button>
-                <span className="text-text-muted text-xs sm:text-sm font-medium">
-                  @{post.user?.username}
                 </span>
-                <Badge variant={post.user?.success_tier || 'bronze'} className="text-xs shrink-0 font-semibold">
-                  {getSuccessTierIcon(post.user?.success_tier || 'bronze')}
-                </Badge>
-                {post.verified && <VerificationBadge />}
-              </div>
-
-              <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted text-xs sm:text-sm">
-                <span className="font-medium">{formatTimeAgo(post.created_at)}</span>
-                <span className="text-white/20">•</span>
-                <span className="flex items-center text-sm sm:text-base">
-                  {getPostTypeIcon(post.type)}
+                <span className="text-[11px]" style={{ color: '#3D3D42' }}>
+                  ·
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: '#4A4A50', fontFamily: "'IBM Plex Mono', monospace" }}
+                >
+                  {formatTimeAgo(post.created_at)}
                 </span>
               </div>
             </div>
           </div>
 
-          <PostOptionsMenu tokenAddress={post.token_address} postId={post.id}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="btn-icon shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+          {/* Live viewers (FOMO trigger) */}
+          {post.token_mint && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 mr-2 rounded-md"
+              style={{ background: 'rgba(224, 255, 98, 0.06)' }}
             >
-              <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </Button>
+              <Eye className="w-3 h-3" style={{ color: '#7A7A80' }} />
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: '#9A9AA0', fontFamily: "'IBM Plex Mono', monospace" }}
+              >
+                {metrics.viewers}
+              </span>
+            </div>
+          )}
+
+          <PostOptionsMenu tokenAddress={post.token_mint} postId={post.id}>
+            <button
+              className="p-2 rounded-lg transition-all duration-300 hover:bg-white/[0.04]"
+              style={{ color: '#3D3D42' }}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
           </PostOptionsMenu>
-        </div>
-      </CardHeader>
+        </header>
 
-      <CardContent className="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 space-y-0">
-        {/* Token Badge - Anti-Rug Mechanism */}
-        {post.token_display_name && (
-          <div className="mb-3 pt-2">
-            <TokenBadge
-              displayName={post.token_display_name}
-              isVerified={post.token_is_verified || false}
-              size="md"
-              showSymbol={true}
-              symbol={post.token_symbol}
-            />
-          </div>
-        )}
-
-        {/* Social Proof Indicators - FOMO */}
-        <div className="flex items-center gap-3 mb-2 flex-wrap">
-          {/* Live viewers */}
-          <div className="flex items-center gap-1.5 text-xs text-text-muted">
-            <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-            <span>{recentActivity.viewers} viewing</span>
-          </div>
-
-          {/* Recent buys */}
-          <div className="flex items-center gap-1.5 text-xs text-accent-green font-semibold">
-            <span>▲</span>
-            <span>{recentActivity.recentBuys} buys in 5m</span>
-          </div>
-
-          {/* Price change */}
-          <div className={`flex items-center gap-1 text-xs font-bold ${parseFloat(recentActivity.priceChange) > 0 ? 'text-accent-green' : 'text-metric-red'}`}>
-            <span>{parseFloat(recentActivity.priceChange) > 0 ? '↗' : '↘'}</span>
-            <span>{recentActivity.priceChange}%</span>
-          </div>
-        </div>
-
-        {/* Media - Image Carousel */}
+        {/* ════════════════════════════════════════════════════════════════
+            MEDIA — Full bleed, content is king
+            ════════════════════════════════════════════════════════════════ */}
         {post.media_urls && post.media_urls.length > 0 && (
-          <div className="mb-3 cursor-pointer" onClick={handlePostClick}>
+          <div
+            className="relative cursor-pointer"
+            style={{ background: '#050505' }}
+            onClick={() => router.push(`/post/${post.id}`)}
+          >
             <ImageCarousel
               images={post.media_urls.filter(url => !url.match(/\.(mp4|webm|ogg|avi|mov)$/i) && !url.includes('video'))}
               videos={post.media_urls.filter(url => url.match(/\.(mp4|webm|ogg|avi|mov)$/i) || url.includes('video'))}
             />
-          </div>
-        )}
 
-        {/* Post Actions - Market Cap, Comments, Share, Buy */}
-        <div className="flex items-center justify-between gap-2 py-3">
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Token Price Display */}
-            {post.token_address ? (
-              <TokenPriceDisplay
-                mint={post.token_address}
-                showChange={true}
-                size="md"
-              />
-            ) : (
-              <div className="flex items-center gap-1 text-accent-green">
-                <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M6 2L11 10H1L6 2Z" />
-                </svg>
-                <span className="font-bold text-sm sm:text-base">$--</span>
+            {/* Token Stats Pill — Bottom left */}
+            {post.token_mint && (
+              <div
+                className="absolute bottom-3 left-3 flex items-center gap-3"
+              >
+                <div
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                  style={{
+                    background: 'rgba(5, 5, 5, 0.8)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    border: '0.5px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  {/* Token */}
+                  <span
+                    className="text-[11px] font-semibold"
+                    style={{ color: '#E0FF62', letterSpacing: '0.02em' }}
+                  >
+                    ${post.token_display_name || post.token_symbol}
+                  </span>
+
+                  <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+                  {/* Price Change */}
+                  <div className="flex items-center gap-1">
+                    {isPriceUp ? (
+                      <TrendingUp className="w-3 h-3" style={{ color: '#E0FF62' }} />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" style={{ color: '#ff6b6b' }} />
+                    )}
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{
+                        color: isPriceUp ? '#E0FF62' : '#ff6b6b',
+                        fontFamily: "'IBM Plex Mono', monospace",
+                      }}
+                    >
+                      {isPriceUp ? '+' : ''}{metrics.priceChange}%
+                    </span>
+                  </div>
+
+                  <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+                  {/* Market Cap */}
+                  <span
+                    className="text-[10px]"
+                    style={{
+                      color: '#6A6A70',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}
+                  >
+                    ${metrics.marketCap}K
+                  </span>
+                </div>
               </div>
             )}
 
-            {/* Like Button */}
-            <Button
-              variant="ghost"
-              size="icon"
+            {/* Trade Button — Reveals on hover */}
+            {post.token_mint && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSwapModal(true);
+                }}
+                className="absolute bottom-3 right-3 px-4 py-2 rounded-xl text-[11px] font-semibold opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out"
+                style={{
+                  background: '#E0FF62',
+                  color: '#050505',
+                  boxShadow: '0 4px 12px rgba(224, 255, 98, 0.2)',
+                }}
+              >
+                Trade
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            CONTENT — Clean typography
+            ════════════════════════════════════════════════════════════════ */}
+        {(post.title || post.content) && (
+          <div className="px-4 py-3">
+            {post.title && (
+              <h3
+                className="text-[15px] font-medium cursor-pointer hover:text-[#E0FF62] transition-colors duration-300 line-clamp-2"
+                style={{
+                  color: '#EAEAEC',
+                  lineHeight: 1.45,
+                  letterSpacing: '-0.01em',
+                }}
+                onClick={() => router.push(`/post/${post.id}`)}
+              >
+                {post.title}
+              </h3>
+            )}
+            {post.content && (
+              <p
+                className="text-[13px] line-clamp-2 mt-1.5 cursor-pointer"
+                style={{ color: '#6B6B72', lineHeight: 1.5 }}
+                onClick={() => router.push(`/post/${post.id}`)}
+              >
+                {post.content}
+              </p>
+            )}
+
+            {/* Token badge for text-only posts */}
+            {post.token_mint && (!post.media_urls || post.media_urls.length === 0) && (
+              <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '0.5px solid rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                    style={{
+                      background: 'rgba(224, 255, 98, 0.06)',
+                      border: '0.5px solid rgba(224, 255, 98, 0.12)',
+                    }}
+                  >
+                    <span className="text-[11px] font-semibold" style={{ color: '#E0FF62' }}>
+                      ${post.token_display_name || post.token_symbol}
+                    </span>
+                    <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+                    <div className="flex items-center gap-1">
+                      {isPriceUp ? (
+                        <TrendingUp className="w-3 h-3" style={{ color: '#E0FF62' }} />
+                      ) : (
+                        <TrendingDown className="w-3 h-3" style={{ color: '#ff6b6b' }} />
+                      )}
+                      <span
+                        className="text-[10px] font-semibold"
+                        style={{
+                          color: isPriceUp ? '#E0FF62' : '#ff6b6b',
+                          fontFamily: "'IBM Plex Mono', monospace",
+                        }}
+                      >
+                        {isPriceUp ? '+' : ''}{metrics.priceChange}%
+                      </span>
+                    </div>
+                    <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+                    <span
+                      className="text-[10px]"
+                      style={{ color: '#6A6A70', fontFamily: "'IBM Plex Mono', monospace" }}
+                    >
+                      ${metrics.marketCap}K
+                    </span>
+                  </div>
+
+                  {/* Holders (social proof) */}
+                  <div className="flex items-center gap-1.5" style={{ color: '#5A5A60' }}>
+                    <Users className="w-3 h-3" />
+                    <span className="text-[10px]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                      {metrics.holders}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowSwapModal(true)}
+                  className="px-4 py-2 rounded-xl text-[11px] font-semibold transition-all duration-300 hover:shadow-lg"
+                  style={{
+                    background: '#E0FF62',
+                    color: '#050505',
+                  }}
+                >
+                  Trade
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            ACTIONS — Minimal, refined
+            ════════════════════════════════════════════════════════════════ */}
+        <footer
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderTop: '0.5px solid rgba(255, 255, 255, 0.04)' }}
+        >
+          <div className="flex items-center gap-1">
+            {/* Like */}
+            <button
               onClick={() => toggleLike()}
               disabled={isLiking || !userId}
-              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0 transition-all ${
-                liked ? 'text-red-500' : 'text-text-secondary'
-              }`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-300 hover:bg-white/[0.03]"
+              style={{ color: liked ? '#ff6b6b' : '#4A4A50' }}
             >
-              <Heart className={`h-4 w-4 sm:h-5 sm:w-5 transition-all ${liked ? 'fill-current' : ''}`} />
-            </Button>
+              <Heart
+                className="w-[18px] h-[18px] transition-transform duration-300"
+                style={{
+                  fill: liked ? '#ff6b6b' : 'none',
+                  transform: liked ? 'scale(1.1)' : 'scale(1)',
+                }}
+              />
+              {(post.likes_count || 0) > 0 && (
+                <span className="text-[11px] font-medium" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {post.likes_count}
+                </span>
+              )}
+            </button>
 
-            {/* Comment Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleComments}
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0"
+            {/* Comment */}
+            <button
+              onClick={() => setShowCommentsModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-300 hover:bg-white/[0.03]"
+              style={{ color: '#4A4A50' }}
             >
-              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-text-secondary" />
-            </Button>
+              <MessageCircle className="w-[18px] h-[18px]" />
+              {(post.comments_count || 0) > 0 && (
+                <span className="text-[11px] font-medium" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {post.comments_count}
+                </span>
+              )}
+            </button>
 
-            {/* Share Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/5 p-0"
+            {/* Share */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-300 hover:bg-white/[0.03]"
+              style={{ color: '#4A4A50' }}
             >
-              <Share className="h-4 w-4 sm:h-5 sm:w-5 text-text-secondary" />
-            </Button>
+              <Send className="w-[17px] h-[17px]" />
+            </button>
           </div>
 
-          {/* Quick Buy Buttons - One Tap! */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <Button
-              onClick={() => handleQuickBuy(5)}
-              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all text-[11px] sm:text-xs h-7 sm:h-8"
+          {/* Trade CTA */}
+          {post.token_mint && post.media_urls && post.media_urls.length > 0 && (
+            <button
+              onClick={() => setShowSwapModal(true)}
+              className="px-4 py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-300 hover:bg-[#E0FF62] hover:text-[#050505]"
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(224, 255, 98, 0.25)',
+                color: '#E0FF62',
+              }}
             >
-              $5
-            </Button>
-            <Button
-              onClick={() => handleQuickBuy(10)}
-              className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border border-accent-green/30 font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all text-[11px] sm:text-xs h-7 sm:h-8"
-            >
-              $10
-            </Button>
-            <Button
-              onClick={handleBuy}
-              className="bg-accent-green hover:bg-accent-green/90 text-black font-bold px-3 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all text-xs sm:text-sm h-7 sm:h-9"
-            >
-              Buy
-            </Button>
-          </div>
-        </div>
-
-        {/* Held By Section - At Bottom */}
-        <div className="flex items-center gap-2 text-sm py-2">
-          <Avatar className="h-5 w-5 border border-card-bg">
-            <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop" />
-            <AvatarFallback className="bg-gradient-to-br from-accent-purple to-accent-pink text-xs">U</AvatarFallback>
-          </Avatar>
-          <span className="text-text-muted text-xs">Held by</span>
-          <span className="text-text-primary font-semibold text-xs">casualcollapse</span>
-          <span className="text-text-muted text-xs">and</span>
-          <span className="text-text-primary font-semibold text-xs">2 others</span>
-        </div>
-
-        {/* GM Text or Post Content */}
-        <div className="py-2 cursor-pointer" onClick={handlePostClick}>
-          {post.content && (
-            <p className="text-text-primary text-sm">
-              {post.content}
-            </p>
+              Trade
+            </button>
           )}
-        </div>
+        </footer>
+      </article>
 
-        {/* Add Comment Input */}
-        <div className="pt-1 pb-2">
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            onClick={handleComments}
-            readOnly
-            className="w-full bg-transparent text-text-muted text-sm placeholder:text-text-muted/50 focus:outline-none cursor-pointer"
-          />
-        </div>
-
-      </CardContent>
-
-      {/* Modals */}
+      {/* ════════════════════════════════════════════════════════════════
+          MODALS
+          ════════════════════════════════════════════════════════════════ */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -335,76 +424,19 @@ export function PostCard({ post }: PostCardProps) {
         isOpen={showCommentsModal}
         onClose={() => setShowCommentsModal(false)}
         postId={post.id}
-        commentsCount={post.comments_count}
+        commentsCount={post.comments_count || 0}
       />
 
-      {/* Jupiter Swap Modal */}
-      {post.token_address && (
+      {post.token_mint && (
         <SwapModal
           isOpen={showSwapModal}
           onClose={() => setShowSwapModal(false)}
-          tokenMint={post.token_address}
-          tokenSymbol={post.token_address.slice(0, 4).toUpperCase()}
-          tokenName={post.title || `Post Token`}
+          tokenMint={post.token_mint}
+          tokenSymbol={post.token_display_name || post.token_symbol || 'TOKEN'}
+          tokenName={post.title || 'Post Token'}
           creatorWallet={post.user?.wallet_address}
         />
       )}
-
-      {/* Quick Buy Modal */}
-      {showBuyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowBuyModal(false)}>
-          <div className="bg-card-bg border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-white mb-4">Quick Buy</h3>
-            <p className="text-text-muted text-sm mb-6">Choose an amount to buy instantly</p>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <Button
-                onClick={() => { handleQuickBuy(5); setShowBuyModal(false); }}
-                className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border-2 border-accent-green/40 font-bold py-6 text-lg rounded-xl"
-              >
-                $5
-              </Button>
-              <Button
-                onClick={() => { handleQuickBuy(10); setShowBuyModal(false); }}
-                className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border-2 border-accent-green/40 font-bold py-6 text-lg rounded-xl"
-              >
-                $10
-              </Button>
-              <Button
-                onClick={() => { handleQuickBuy(25); setShowBuyModal(false); }}
-                className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border-2 border-accent-green/40 font-bold py-6 text-lg rounded-xl"
-              >
-                $25
-              </Button>
-              <Button
-                onClick={() => { handleQuickBuy(50); setShowBuyModal(false); }}
-                className="bg-accent-green/20 hover:bg-accent-green/30 text-accent-green border-2 border-accent-green/40 font-bold py-6 text-lg rounded-xl"
-              >
-                $50
-              </Button>
-            </div>
-
-            <Button
-              onClick={() => {
-                if (post.token_address) {
-                  window.open(`https://jup.ag/swap/SOL-${post.token_address}`, '_blank');
-                }
-                setShowBuyModal(false);
-              }}
-              className="w-full bg-accent-green hover:bg-accent-green/90 text-black font-bold py-3 rounded-xl"
-            >
-              Custom Amount →
-            </Button>
-
-            <button
-              onClick={() => setShowBuyModal(false)}
-              className="w-full mt-3 text-text-muted text-sm hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </Card>
+    </>
   );
 }

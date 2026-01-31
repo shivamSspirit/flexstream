@@ -1,6 +1,6 @@
 /**
  * Rate Limiter Service
- * Ensures API calls respect rate limits (1 RPS for Birdeye free tier)
+ * Ensures API calls respect rate limits
  * Uses token bucket algorithm with queue
  */
 
@@ -95,8 +95,5 @@ export class RateLimiter {
   }
 }
 
-// Singleton instance for Birdeye API (1 RPS free tier)
-export const birdeyeRateLimiter = new RateLimiter(1);
-
-// Singleton instance for DexScreener fallback (5 RPS)
+// Singleton instance for DexScreener API (5 RPS)
 export const dexscreenerRateLimiter = new RateLimiter(5);

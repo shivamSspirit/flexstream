@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { XMarkIcon, SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Transaction, Connection } from '@solana/web3.js';
 
 interface ActivateCreatorCoinModalProps {
   isOpen: boolean;
@@ -20,15 +21,31 @@ interface ActivateCreatorCoinModalProps {
   };
 }
 
+interface PendingActivation {
+  userId: string;
+  username: string;
+  displayName: string;
+  uniqueSymbol: string;
+  metadataUri: string;
+  walletAddress: string;
+  baseMintSecretKey: string;
+  unsignedTransaction?: {
+    transaction: string;
+    baseMintPublicKey: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+  };
+}
+
 export function ActivateCreatorCoinModal({
   isOpen,
   onClose,
   onSuccess,
   userProfile
 }: ActivateCreatorCoinModalProps) {
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, signTransaction } = useWallet();
   const [isActivating, setIsActivating] = useState(false);
-  const [step, setStep] = useState<'confirm' | 'activating' | 'success'>('confirm');
+  const [step, setStep] = useState<'confirm' | 'preparing' | 'signing' | 'confirming' | 'success'>('confirm');
   const [tokenMint, setTokenMint] = useState<string>('');
 
   const handleActivate = async () => {
@@ -44,15 +61,16 @@ export function ActivateCreatorCoinModal({
     }
 
     setIsActivating(true);
-    setStep('activating');
+    setStep('preparing');
 
     try {
-      console.log('🚀 Activating creator coin...', {
+      console.log('🚀 Activating creator coin (signed flow)...', {
         wallet: publicKey.toBase58(),
         username: userProfile.username,
         displayName: userProfile.display_name
       });
 
+      // Step 1: Get unsigned transaction from API
       const response = await fetch('/api/creators/activate-coin', {
         method: 'POST',
         headers: {
@@ -72,29 +90,119 @@ export function ActivateCreatorCoinModal({
       console.log('📡 Activation response:', result);
 
       if (!response.ok || !result.success) {
-        // Show detailed error message
-        const errorMsg = result.error || result.details || 'Failed to activate creator coin';
+        const errorMsg = result.error || result.details || 'Failed to prepare creator coin transaction';
         throw new Error(errorMsg);
       }
 
-      console.log('✅ Creator coin activated:', result.data);
+      // Check if this requires signature (new flow)
+      if (!result.requiresSignature) {
+        // Legacy flow - should not happen anymore
+        throw new Error('Unexpected response format');
+      }
 
-      setTokenMint(result.data.token.mint);
-      setStep('success');
+      const { unsignedTransaction, pendingActivation } = result.data;
 
-      // Show detailed success notification with CA
-      toast.success(
-        <div className="flex flex-col gap-2">
-          <div className="font-bold">🎉 Creator Coin Activated!</div>
-          <div className="text-sm">
-            <div className="mb-2">Your token is now live and tradable</div>
-            <div className="font-mono text-xs bg-black/20 p-2 rounded">
-              CA: {result.data.token.mint}
-            </div>
-          </div>
-        </div>,
-        { duration: 8000 }
+      // Step 2: Sign the transaction
+      setStep('signing');
+      console.log('✍️ Signing transaction...');
+
+      // Deserialize the transaction
+      const transactionBuffer = Buffer.from(unsignedTransaction.transaction, 'base64');
+      const transaction = Transaction.from(transactionBuffer);
+
+      // Sign with user's wallet
+      const signedTransaction = await signTransaction(transaction);
+
+      console.log('✅ Transaction signed');
+
+      // Step 3: Send to Solana
+      setStep('confirming');
+      console.log('📤 Submitting to Solana...');
+
+      const connection = new Connection(
+        process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+        'confirmed'
       );
+
+      const signature = await connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        }
+      );
+
+      console.log('📝 Transaction submitted:', signature);
+
+      // Wait for confirmation
+      const confirmation = await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: unsignedTransaction.blockhash,
+          lastValidBlockHeight: unsignedTransaction.lastValidBlockHeight,
+        },
+        'confirmed'
+      );
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      console.log('✅ Transaction confirmed!');
+
+      // Step 4: Confirm with backend
+      const confirmResponse = await fetch('/api/creators/confirm-activation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          signature,
+          pendingActivation: {
+            ...pendingActivation,
+            unsignedTransaction,
+          },
+        }),
+      });
+
+      const confirmResult = await confirmResponse.json();
+
+      if (!confirmResponse.ok || !confirmResult.success) {
+        // Token created but DB update failed - still a partial success
+        console.warn('⚠️ Token created but confirmation failed:', confirmResult);
+        setTokenMint(unsignedTransaction.baseMintPublicKey);
+        setStep('success');
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <div className="font-bold">🎉 Creator Coin Created!</div>
+            <div className="text-sm">
+              <div className="mb-2">Token created on-chain (confirmation pending)</div>
+              <div className="font-mono text-xs bg-black/20 p-2 rounded">
+                CA: {unsignedTransaction.baseMintPublicKey}
+              </div>
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
+      } else {
+        console.log('✅ Creator coin fully activated:', confirmResult.data);
+
+        setTokenMint(confirmResult.data.token.mint);
+        setStep('success');
+
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <div className="font-bold">🎉 Creator Coin Activated!</div>
+            <div className="text-sm">
+              <div className="mb-2">Your token is now live and tradable</div>
+              <div className="font-mono text-xs bg-black/20 p-2 rounded">
+                CA: {confirmResult.data.token.mint}
+              </div>
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
+      }
 
       setTimeout(() => {
         onSuccess();
@@ -104,7 +212,6 @@ export function ActivateCreatorCoinModal({
       console.error('❌ Error activating creator coin:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to activate creator coin';
 
-      // Show detailed error toast
       toast.error(
         <div className="flex flex-col gap-1">
           <div className="font-bold">Activation Failed</div>
@@ -191,11 +298,33 @@ export function ActivateCreatorCoinModal({
                   </>
                 )}
 
-                {step === 'activating' && (
+                {step === 'preparing' && (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-green border-t-transparent mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">Activating...</h3>
-                    <p className="text-white/60">Creating your creator coin</p>
+                    <h3 className="text-xl font-bold text-white mb-2">Preparing...</h3>
+                    <p className="text-white/60">Creating token metadata</p>
+                  </div>
+                )}
+
+                {step === 'signing' && (
+                  <div className="text-center py-8">
+                    <div className="animate-pulse">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent-cyan/20 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Sign Transaction</h3>
+                    <p className="text-white/60">Please approve the transaction in your wallet</p>
+                  </div>
+                )}
+
+                {step === 'confirming' && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-cyan border-t-transparent mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-2">Confirming...</h3>
+                    <p className="text-white/60">Waiting for blockchain confirmation</p>
                   </div>
                 )}
 

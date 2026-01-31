@@ -6,7 +6,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { PostComments } from './PostComments';
 import { useComments } from '@/hooks/useComments';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 
 interface CommentsModalProps {
   isOpen: boolean;

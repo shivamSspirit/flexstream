@@ -18,6 +18,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'Sarah Chen',
         username: 'sarahc',
+        wallet_address: 'SaraH...cHen',
         avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop',
       },
       action: 'liked your post',
@@ -33,6 +34,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'Marcus Johnson',
         username: 'marcusj',
+        wallet_address: 'Marc...usjn',
         avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
       },
       action: 'commented on your post',
@@ -48,6 +50,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'Emma Williams',
         username: 'emmaw',
+        wallet_address: 'Emma...wlms',
         avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
       },
       action: 'started following you',
@@ -61,6 +64,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'David Park',
         username: 'davidp',
+        wallet_address: 'Davi...park',
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
       },
       action: 'bought your post for 2.5 SOL',
@@ -76,6 +80,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'Alex Morrison',
         username: 'alexm',
+        wallet_address: 'Alex...mrsn',
         avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop',
       },
       action: 'collected your post',
@@ -91,6 +96,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'Lisa Anderson',
         username: 'lisaa',
+        wallet_address: 'Lisa...ndrs',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
       },
       action: 'mentioned you in a comment',
@@ -106,6 +112,7 @@ export default function NotificationsPage() {
       sender: {
         name: 'James Wilson',
         username: 'jameswilson',
+        wallet_address: 'Jams...wlsn',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
       },
       action: 'started following you',

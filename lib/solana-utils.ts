@@ -22,9 +22,8 @@ export function getSolanaWallet(wallets: any[]): any | null {
   if (!wallets || wallets.length === 0) return null;
   
   // First, try to find a wallet explicitly marked as Solana
-  let solanaWallet = wallets.find(wallet => 
-    wallet.chainType === 'solana' || 
-    wallet.walletClientType === 'privy'
+  let solanaWallet = wallets.find(wallet =>
+    wallet.chainType === 'solana'
   );
   
   // If not found, try to find by address format

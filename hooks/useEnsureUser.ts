@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 
 /**
  * Hook that automatically creates a user record when wallet connects

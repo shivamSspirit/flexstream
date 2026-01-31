@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, TrendingUp } from 'lucide-react';
 import { useLike } from '@/hooks/useLike';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageCarousel } from './ImageCarousel';
 import { ShareModal } from './ShareModal';
@@ -57,7 +57,7 @@ export function PostCard({ post }: PostCardProps) {
         <div className="flex items-center justify-between p-3">
           <div
             className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
-            onClick={() => router.push(`/profile/${post.user?.username}`)}
+            onClick={() => router.push(`/profile/${post.user?.wallet_address}`)}
           >
             <Avatar className="h-9 w-9 ring-2 ring-white/5">
               <AvatarImage src={post.user?.avatar_url} />
@@ -99,7 +99,7 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           {/* Price Overlay - Top right */}
-          {post.token_address && (
+          {post.token_mint && (
             <div className="absolute top-3 right-3 backdrop-blur-xl bg-black/60 rounded-xl px-3 py-2 border border-white/10">
               <div className="flex items-center gap-2">
                 <span className="text-white font-black text-lg">
@@ -198,7 +198,7 @@ export function PostCard({ post }: PostCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (post.token_address) {
+              if (post.token_mint) {
                 setShowSwapModal(true);
               }
             }}
@@ -227,11 +227,11 @@ export function PostCard({ post }: PostCardProps) {
         commentsCount={post.comments_count || 0}
       />
 
-      {post.token_address && (
+      {post.token_mint && (
         <SwapModal
           isOpen={showSwapModal}
           onClose={() => setShowSwapModal(false)}
-          tokenMint={post.token_address}
+          tokenMint={post.token_mint}
           tokenSymbol={post.token_display_name || post.token_symbol || 'TOKEN'}
         />
       )}

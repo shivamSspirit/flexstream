@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useWallet } from '@jup-ag/wallet-adapter';
+import { useWallet } from '@/hooks/useWalletCompat';
 import { Connection, Transaction, TransactionSignature } from '@solana/web3.js';
 import { toast } from 'sonner';
 import {

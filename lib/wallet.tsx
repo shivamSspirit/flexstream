@@ -1,51 +1,35 @@
 'use client';
 
-import React, { FC, ReactNode, useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import {
-  WalletModalProvider,
-  WalletDisconnectButton,
-  WalletMultiButton
-} from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
+/**
+ * Wallet Context Provider - Now powered by Privy
+ *
+ * This file provides backwards compatibility for code that was using
+ * the old @solana/wallet-adapter setup. It re-exports Privy components
+ * and hooks with similar interfaces.
+ */
 
-// Default styles that can be overridden by your app
-require('@solana/wallet-adapter-react-ui/styles.css');
+import React, { FC, ReactNode } from 'react';
+import { PrivyWalletButton, ConnectWalletButton } from '@/components/wallet/PrivyWalletButton';
 
+/**
+ * WalletContextProvider - Legacy wrapper (no-op with Privy)
+ *
+ * Privy is configured at the app level in providers.tsx,
+ * so this just passes children through for backwards compatibility.
+ */
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-  const network = WalletAdapterNetwork.Mainnet;
-
-  // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => {
-    return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl(network);
-  }, [network]);
-
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    []
-  );
-
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider 
-        wallets={wallets} 
-        autoConnect={false}
-        onError={(error) => {
-          console.error('Wallet error:', error);
-        }}
-      >
-        <WalletModalProvider>
-          {children}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
-  );
+  return <>{children}</>;
 };
 
-export { WalletMultiButton, WalletDisconnectButton };
+/**
+ * WalletMultiButton - Re-export Privy wallet button
+ */
+export const WalletMultiButton = PrivyWalletButton;
+
+/**
+ * WalletDisconnectButton - Re-export connect button (shows when disconnected)
+ */
+export const WalletDisconnectButton = ConnectWalletButton;
+
+// Re-export the useWallet hook for convenience
+export { useWallet } from '@/hooks/useWalletCompat';

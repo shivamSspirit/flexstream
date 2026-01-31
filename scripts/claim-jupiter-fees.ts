@@ -177,11 +177,11 @@ async function main() {
 
   // Load environment variables
   const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-  const walletSecret = process.env.PLATFORM_WALLET_SECRET;
+  const walletSecret = process.env.PLATFORM_KEYPAIR_SECRET;
   const referralAccount = process.env.JUPITER_REFERRAL_ACCOUNT;
 
   if (!walletSecret) {
-    console.error('❌ Error: PLATFORM_WALLET_SECRET not found');
+    console.error('❌ Error: PLATFORM_KEYPAIR_SECRET not found');
     process.exit(1);
   }
 

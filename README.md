@@ -1,276 +1,122 @@
-# FlexIt - The Verified Social Platform for Solana & Crypto Creators
+# FlexStream
 
-A modern social media platform built for Solana traders, crypto creators, and DeFi builders to showcase verified performance, launch tokens, build community, and monetize expertise.
+A social trading platform on Solana where every post becomes a tradeable token.
 
-## 🚀 Features
+## What It Does
 
-### Core Features
-- **Verified Creator Profiles**: Blockchain-verified trading history and on-chain performance
-- **Dual Token System**: Profile-level creator coins + unlimited post-level tokens
-- **Private Token Launches**: Launch tokens to holders only, protecting your alpha
-- **Social Feed**: Infinite scroll feed with real-time updates from the crypto community
-- **Real-time Interactions**: Likes, comments, shares, tips with live updates
-- **Mobile-First Design**: Optimized for mobile consumption
+- **Post = Token**: When a creator posts content, a tradeable token (1B supply) is automatically created via Meteora DBC
+- **Creator Coins**: Creators can also launch their own profile-level token (1B supply)
+- **Zero Cost**: Platform wallet pays all token creation fees (~$3) so creators post for free
+- **Prediction Markets**: Kalshi-style prediction market integration for crypto/politics/economics
+- **Real-time Trading**: Jupiter-powered swaps with best execution routing
 
-### Creator Monetization
-- **Premium Subscriptions**: Charge $20-100/month for exclusive content access
-- **Direct Tips**: Receive SOL or token tips from followers
-- **Token Trading Fees**: Earn from post token volume
-- **Copy Trading**: Commission-based income from trading signals
-- **Recurring Revenue**: Build sustainable income from your expertise
+## Tech Stack
 
-### Advanced Features
-- **Wallet Integration**: Solana wallet connection for verification
-- **Achievement Badges**: Auto-generated from verified trades
-- **Private Launches**: Holder-only access to new tokens
-- **Search & Discovery**: Find verified creators and trending content
-- **Notifications**: Real-time notifications for interactions
-- **Media Upload**: Image and video support for posts
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14 (App Router) + TypeScript |
+| Styling | Tailwind CSS + Shadcn/ui |
+| Database | Supabase (PostgreSQL + Realtime) |
+| Auth | Privy (embedded wallets + social login) |
+| Blockchain | Solana Devnet |
+| Token Creation | Meteora Dynamic Bonding Curve SDK |
+| Swaps | Jupiter Aggregator API |
+| RPC | Helius |
+| State | React Query + Zustand |
+| Deployment | Vercel |
 
-## 🛠 Tech Stack
+## Project Structure
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS + Shadcn/ui components
-- **Database**: Supabase (PostgreSQL) with real-time subscriptions
-- **Authentication**: Jup wallet integration
-- **State Management**: Zustand + React Query
-- **Forms**: React Hook Form + Zod validation
-- **Deployment**: Vercel
-
-## 📦 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd flexstream
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env.local
-   ```
-   
-   Fill in your environment variables:
-   - Supabase credentials
-   - Clerk authentication keys
-   - Uploadthing configuration
-   - Solana RPC endpoints
-
-4. **Set up the database**
-   ```bash
-   # Run the migration in your Supabase dashboard
-   # Or use the Supabase CLI
-   supabase db reset
-   ```
-
-5. **Start the development server**
-   ```bash
-   pnpm dev
-   ```
-
-## 🗄 Database Schema
-
-The application uses the following main tables:
-
-- **users**: User profiles with wallet addresses and success tiers
-- **posts**: Social media posts with earnings and verification data
-- **follows**: User follow relationships
-- **likes**: Post likes
-- **comments**: Post comments with threading support
-- **notifications**: Real-time notifications
-- **earnings_verifications**: Blockchain verification records
-
-## 🔐 Authentication Flow
-
-FlexIt uses a dual authentication system combining email/social login with Solana wallet connection:
-
-### Email/Social Authentication (Clerk)
-1. **Sign Up/Sign In**: Users authenticate via Clerk using email or social providers (Google, Twitter, etc.)
-2. **JWT Token**: After authentication, a JWT token is generated for API access
-3. **Profile Creation**: Set up username, bio, and profile information
-
-### Wallet Connection (Jup Solana Wallet Adapter)
-1. **Connect Wallet**: Users connect their Solana wallet (Phantom, Solflare, etc.)
-2. **Wallet Linking**: The connected wallet address is linked to the user's Clerk account (1:1 mapping)
-3. **Trading Access**: Wallet connection is required for trading and creator coin operations
-
-### Example Usage
-
-**Check Authentication State:**
-```typescript
-'use client';
-import { useAuth } from '@clerk/nextjs';
-import { useWallet } from '@solana/wallet-adapter-react';
-
-export default function MyComponent() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const { connected, publicKey } = useWallet();
-  
-  const isFullyAuthenticated = isSignedIn && connected;
-  
-  if (!isSignedIn) {
-    return <div>Please sign in</div>;
-  }
-  
-  if (!connected) {
-    return <div>Please connect your Solana wallet</div>;
-  }
-  
-  return <div>Welcome! Wallet: {publicKey?.toBase58()}</div>;
-}
+```
+flexstream/
+├── app/                    # Next.js App Router
+│   ├── api/               # 20+ API routes
+│   │   ├── auth/          # Privy authentication
+│   │   ├── creators/      # Creator coin activation
+│   │   ├── dbc/           # Meteora DBC operations
+│   │   ├── posts/         # Post CRUD + token creation
+│   │   ├── predictions/   # Prediction market endpoints
+│   │   ├── swap/          # Jupiter swap integration
+│   │   └── tokens/        # Token operations
+│   ├── dashboard/         # User dashboard
+│   ├── explore/           # Discovery feed
+│   ├── predictions/       # Prediction markets UI
+│   ├── profile/           # User profiles
+│   └── settings/          # User settings
+├── components/            # React components
+├── db/                    # SQL migrations (25+)
+├── hooks/                 # Custom React hooks
+├── lib/                   # Core logic
+│   ├── meteora-dbc.ts    # Token creation via DBC
+│   ├── dbc-config.ts     # DBC configuration
+│   └── services/         # Business logic services
+├── scripts/              # Utility scripts
+└── types/                # TypeScript definitions
 ```
 
-**Link Wallet to User (Auto-linking Hook):**
-```typescript
-import { useWalletLink } from '@/lib/hooks/useWalletLink';
+## Quick Start
 
-export default function Dashboard() {
-  const { isLinked, isLinking, error } = useWalletLink();
-  
-  if (isLinking) return <div>Linking wallet...</div>;
-  if (error) return <div>Error: {error}</div>;
-  
-  return <div>Wallet linked: {isLinked ? 'Yes' : 'No'}</div>;
-}
+```bash
+# Install dependencies
+pnpm install
+
+# Set up environment (copy and fill in values)
+cp env.example .env.local
+
+# Start dev server
+pnpm dev
 ```
 
-**Fetch Authenticated Data:**
-```typescript
-import { usePumpFunLiveStreams } from '@/lib/hooks/usePumpFunLiveStreams';
+## Environment Variables
 
-export default function LiveStreams() {
-  const { liveStreams, isLoading, error } = usePumpFunLiveStreams();
-  
-  if (isLoading) return <div>Loading streams...</div>;
-  if (error) return <div>Error: {error}</div>;
-  
-  return (
-    <div>
-      {liveStreams?.map(stream => (
-        <div key={stream.mint}>{stream.name}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-## 📱 Key Pages
-
-- **`/`**: Main social feed with infinite scroll
-- **`/auth/signin`**: Authentication page
-- **`/auth/onboarding`**: Profile setup after signup
-- **`/profile/[username]`**: User profile pages
-- **`/post/[id]`**: Individual post view
-- **`/create`**: Post creation modal
-- **`/leaderboard`**: Top earners leaderboard
-- **`/discover`**: User and content discovery
-- **`/search`**: Search functionality
-
-## 🎨 Design System
-
-### Color Scheme
-- **Primary**: Purple gradient (`#a855f7` to `#ec4899`)
-- **Background**: Dark theme (`#0f0f23`)
-- **Success Tiers**: Bronze, Silver, Gold, Diamond gradients
-- **Earnings**: Green accent for verified earnings
-
-### Components
-- **Shadcn/ui**: Base component library
-- **Custom Components**: PostCard, EarningsDisplay, VerificationBadge
-- **Responsive Design**: Mobile-first approach
-- **Animations**: Smooth transitions and loading states
-
-## 🔌 API Integration
-
-### Supabase
-- Real-time subscriptions for live updates
-- Row Level Security (RLS) for data protection
-- Automatic follower count updates
-- Post engagement tracking
-
-### Solana Integration
-- Wallet connection via Solana Wallet Adapter
-- Transaction verification for earnings
-- Token balance checking
-- Pump.fun program integration
-
-### Clerk Authentication
-- Social login providers
-- User management
-- Session handling
-- Profile synchronization
-
-## 🚀 Deployment
-
-### Vercel Deployment
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-### Environment Variables
 ```env
-# Database
-DATABASE_URL=your_supabase_database_url
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
-# Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
+# Privy
+NEXT_PUBLIC_PRIVY_APP_ID=
+PRIVY_APP_SECRET=
 
-# File Uploads
-UPLOADTHING_SECRET=your_uploadthing_secret
-UPLOADTHING_APP_ID=your_uploadthing_app_id
+# Solana (DEVNET ONLY)
+NEXT_PUBLIC_HELIUS_RPC_URL=
+PLATFORM_KEYPAIR_SECRET=
 
-# App Configuration
-NEXT_PUBLIC_APP_URL=your_app_url
+# Jupiter
+JUPITER_REFERRAL_ACCOUNT=
+
+# Optional
+BIRDEYE_API_KEY=
 ```
 
-## 📊 Performance Features
+## Key Commands
 
-- **Infinite Scroll**: Efficient post loading
-- **Image Optimization**: Next.js Image component
-- **Real-time Updates**: Supabase subscriptions
-- **Caching**: React Query for data caching
-- **Lazy Loading**: Component-level code splitting
+```bash
+pnpm dev          # Start development server
+pnpm build        # Production build
+pnpm lint         # Run ESLint
+pnpm lint --fix   # Auto-fix lint issues
+```
 
-## 🔒 Security
+## Architecture Notes
 
-- **Row Level Security**: Database-level access control
-- **Input Validation**: Zod schema validation
-- **XSS Protection**: Sanitized user inputs
-- **CSRF Protection**: Built-in Next.js protection
-- **Rate Limiting**: API endpoint protection
+- **Server-side blockchain**: All Solana operations run in API routes, never client-side
+- **Platform keypair**: Single wallet pays all token creation fees
+- **Devnet only**: All blockchain operations are on Solana devnet
+- **Real-time feeds**: Supabase subscriptions for live post/price updates
+- **RLS enabled**: Row-level security on all database tables
 
-## 📈 Analytics & Monitoring
+## API Routes
 
-- **User Engagement**: Track likes, comments, shares
-- **Earnings Verification**: Monitor verification success rates
-- **Performance Metrics**: Page load times, API response times
-- **Error Tracking**: Comprehensive error logging
+| Route | Purpose |
+|-------|---------|
+| `/api/posts/create` | Create post + auto-mint token |
+| `/api/creators/activate-coin` | Launch creator token |
+| `/api/swap/*` | Jupiter swap operations |
+| `/api/predictions/*` | Prediction market data |
+| `/api/users/*` | User profile operations |
 
-## 🤝 Contributing
+## License
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For support, email support@flexstream.com or join our Discord community.
-
----
-
-Built with ❤️ for the Solana and crypto creator community
+MIT

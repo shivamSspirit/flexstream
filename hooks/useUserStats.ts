@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface UserStats {
   posts_count: number;
@@ -52,4 +52,40 @@ export function useUserStats(userId?: string) {
     refetchOnMount: 'always',
     refetchOnReconnect: true,
   });
+}
+
+/**
+ * Hook to invalidate user stats cache
+ * Use this after creating a post to update the post count
+ */
+export function useInvalidateUserStats() {
+  const queryClient = useQueryClient();
+
+  return async (userId?: string) => {
+    console.log('[INVALIDATE USER STATS] Invalidating stats for user:', userId || 'all users');
+
+    if (userId) {
+      // Invalidate specific user's stats
+      await queryClient.invalidateQueries({
+        queryKey: ['userStats', userId],
+        exact: true,
+      });
+      await queryClient.refetchQueries({
+        queryKey: ['userStats', userId],
+        exact: true,
+      });
+    } else {
+      // Invalidate all user stats
+      await queryClient.invalidateQueries({
+        queryKey: ['userStats'],
+        exact: false,
+      });
+      await queryClient.refetchQueries({
+        queryKey: ['userStats'],
+        exact: false,
+      });
+    }
+
+    console.log('[INVALIDATE USER STATS] Complete');
+  };
 }

@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       display_name: displayName,
       username: username,
       avatar_url: avatarUrl || '',
+      profile_completed: true, // Mark profile as completed when user saves
       updated_at: new Date().toISOString(),
     };
 
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
           username: username,
           bio: bio || '',
           avatar_url: avatarUrl || '',
+          profile_completed: true, // Mark as completed since user is setting up profile
           ...(website && { website }),
           ...(twitter && { twitter }),
           ...(instagram && { instagram }),

@@ -125,3 +125,9 @@ yarn.lock
 *.backup
 *.bak
 *.tmp
+
+# E2E Test artifacts
+tests/e2e/fixtures/.auth-state.json
+tests/e2e/screenshots/
+test-results/
+playwright-report/

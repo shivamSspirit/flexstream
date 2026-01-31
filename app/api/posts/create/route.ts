@@ -4,6 +4,28 @@ import { createClient } from '@supabase/supabase-js';
 import { MeteoraDBCClient } from '@/lib/meteora-dbc';
 import { DBC_CONFIG } from '@/lib/dbc-config';
 
+/**
+ * Check if a creator is verified based on:
+ * 1. Custom avatar (not a default DiceBear)
+ * 2. X/Twitter OAuth verification
+ */
+function checkCreatorVerified(user: {
+  avatar_url?: string | null;
+  twitter_verified?: boolean | null;
+}): boolean {
+  // Must have a custom avatar (not default DiceBear)
+  const hasCustomAvatar = Boolean(
+    user.avatar_url &&
+    !user.avatar_url.includes('dicebear.com') &&
+    !user.avatar_url.includes('api.dicebear')
+  );
+
+  // Must have X/Twitter OAuth verification
+  const hasXVerification = user.twitter_verified === true;
+
+  return hasCustomAvatar && hasXVerification;
+}
+
 export async function POST(request: NextRequest) {
   console.log('[POST CREATE] Starting post creation with DBC token launch');
 
@@ -99,16 +121,34 @@ export async function POST(request: NextRequest) {
     // 1. Find or create user by wallet address
     console.log('Finding or creating user...');
     let userId: string;
+    let postLaunchCount = 0;
+    const FREE_LAUNCH_LIMIT = 10;
 
     const { data: existingUser } = await supabase
       .from('users')
-      .select('id')
+      .select('id, post_launch_count, avatar_url, twitter_verified')
       .eq('wallet_address', walletAddress)
       .single();
 
     if (existingUser) {
       userId = existingUser.id;
-      console.log('Found existing user:', userId);
+      postLaunchCount = existingUser.post_launch_count || 0;
+      console.log('Found existing user:', userId, 'Launch count:', postLaunchCount);
+
+      // Check if user has exceeded free launch limit
+      if (postLaunchCount >= FREE_LAUNCH_LIMIT) {
+        console.log('[POST CREATE] User has exceeded free launch limit:', postLaunchCount);
+        return NextResponse.json({
+          success: false,
+          error: 'Free post launches exhausted',
+          code: 'FREE_LAUNCHES_EXHAUSTED',
+          details: {
+            launchCount: postLaunchCount,
+            limit: FREE_LAUNCH_LIMIT,
+            message: `You have used all ${FREE_LAUNCH_LIMIT} free post token launches. Please use the signed transaction flow to continue creating posts with tokens.`
+          }
+        }, { status: 402 }); // 402 Payment Required
+      }
     } else {
       // Create new user with wallet address
       // Generate clean, URL-friendly username (no underscores, no spaces)
@@ -165,6 +205,16 @@ export async function POST(request: NextRequest) {
         wallet: walletAddress.substring(0, 8) + '...'
       });
     }
+
+    // Check creator verification status (custom avatar + X OAuth)
+    // For new users, they're not verified yet (no avatar/X connection)
+    const isCreatorVerified = existingUser ? checkCreatorVerified(existingUser) : false;
+    console.log('Creator verification check:', {
+      hasExistingUser: !!existingUser,
+      avatarUrl: existingUser?.avatar_url?.substring(0, 50) || 'none',
+      twitterVerified: existingUser?.twitter_verified || false,
+      isCreatorVerified
+    });
 
     // 2. Upload media files to Supabase Storage
     console.log('Uploading media files...');
@@ -293,7 +343,43 @@ export async function POST(request: NextRequest) {
       willBeVerified: isFirstWithDisplayName
     });
 
-    // 5. Get user data for response
+    // 5. CRITICAL: Save token data to tokens table FIRST (before post)
+    // This ensures we don't have posts without tokens
+    console.log('Saving token data to tokens table...');
+
+    const { error: tokenError } = await supabase
+      .from('tokens')
+      .insert({
+        mint_address: tokenResult.mint.toBase58(),
+        symbol: uniqueSymbol, // Auto-generated unique symbol
+        display_name: displayName.toUpperCase(), // User's chosen display name
+        name: title,
+        description: content,
+        image_uri: mediaUrls?.[0] || '',
+        metadata_uri: metadataUri,
+        creator_wallet: walletAddress,
+        post_id: null, // Will be updated after post creation
+        pool_address: tokenResult.pool.toBase58(),
+        bonding_curve_address: tokenResult.pool.toBase58(),
+        config_key: DBC_CONFIG.POST.CONFIG_KEY.toBase58(),
+        initial_supply: 1_000_000_000,
+        is_tradable: true,
+        is_verified: isFirstWithDisplayName,
+        creation_signature: tokenResult.signature,
+        created_at: new Date().toISOString(),
+      });
+
+    if (tokenError) {
+      console.error('❌ CRITICAL: Failed to save token to database:', tokenError);
+      console.error('   Token was created on-chain but DB insert failed!');
+      console.error('   Mint:', tokenResult.mint.toBase58());
+      console.error('   Pool:', tokenResult.pool.toBase58());
+      throw new Error(`Failed to save token to database: ${tokenError.message}. Token created on-chain: ${tokenResult.mint.toBase58()}`);
+    }
+
+    console.log('✅ Token data saved to tokens table');
+
+    // 6. Get user data for response
     console.log('Fetching user data for response...');
     const { data: userData, error: userFetchError } = await supabase
       .from('users')
@@ -306,7 +392,7 @@ export async function POST(request: NextRequest) {
       // Continue anyway - token is already created
     }
 
-    // 6. Save post to database WITH user data (for cache)
+    // 7. Save post to database WITH user data (for cache)
     console.log('Saving post to database...');
 
     const { data: post, error: postError } = await supabase
@@ -322,7 +408,8 @@ export async function POST(request: NextRequest) {
         token_mint: tokenResult.mint.toBase58(),
         token_symbol: uniqueSymbol, // Auto-generated unique symbol
         token_display_name: displayName.toUpperCase(), // User's chosen display name
-        token_is_verified: isFirstWithDisplayName, // Verification status
+        token_is_verified: isFirstWithDisplayName, // Token name verification (anti-rug)
+        creator_is_verified: isCreatorVerified, // Creator profile verification (avatar + X OAuth)
         token_name: title,
         pool_address: tokenResult.pool.toBase58(),
         bonding_curve_address: tokenResult.pool.toBase58(),
@@ -368,60 +455,44 @@ export async function POST(request: NextRequest) {
       wallet: walletAddress.substring(0, 10) + '...',
       title: post.title,
       tokenMint: post.token_mint,
+      tokenIsVerified: isFirstWithDisplayName,
+      creatorIsVerified: isCreatorVerified,
       createdAt: post.created_at
     });
 
-    // Verify user exists
-    const { data: verifyUser } = await supabase
-      .from('users')
-      .select('id, username, wallet_address')
-      .eq('id', userId)
-      .single();
+    // 8. Update token record with post_id (link token to post)
+    console.log('Updating token record with post_id...');
 
-    console.log('✅ User verification:', {
-      userId,
-      userExists: !!verifyUser,
-      username: verifyUser?.username,
-      wallet: verifyUser?.wallet_address?.substring(0, 10) + '...'
-    });
-
-    // 7. Save token data to tokens table with anti-rug mechanism
-    console.log('Saving token data with anti-rug mechanism...');
-
-    const { error: tokenError } = await supabase
+    const { error: updateError } = await supabase
       .from('tokens')
-      .insert({
-        mint_address: tokenResult.mint.toBase58(),
-        symbol: uniqueSymbol, // Auto-generated unique symbol
-        display_name: displayName.toUpperCase(), // User's chosen display name
-        name: title,
-        description: content,
-        image_uri: mediaUrls?.[0] || '',
-        metadata_uri: metadataUri,
-        creator_wallet: walletAddress,
-        post_id: post.id,
-        pool_address: tokenResult.pool.toBase58(),
-        bonding_curve_address: tokenResult.pool.toBase58(),
-        config_key: DBC_CONFIG.POST.CONFIG_KEY.toBase58(),
-        initial_supply: 1_000_000_000,
-        is_tradable: true,
-        is_verified: isFirstWithDisplayName, // First token with this display_name is verified
-        creation_signature: tokenResult.signature,
-        created_at: new Date().toISOString(),
-      });
+      .update({ post_id: post.id })
+      .eq('mint_address', tokenResult.mint.toBase58());
 
-    if (tokenError) {
-      console.error('Token table error:', tokenError);
-      // Don't throw - post is already created
+    if (updateError) {
+      console.error('⚠️ Warning: Failed to update token with post_id:', updateError);
+      // Don't throw - both post and token are already created
+    } else {
+      console.log('✅ Token record updated with post_id:', post.id);
     }
 
-    console.log('Token data saved with verification:', {
-      symbol: uniqueSymbol,
-      displayName: displayName.toUpperCase(),
-      isVerified: isFirstWithDisplayName
-    });
+    // 9. Increment user's post_launch_count
+    console.log('Incrementing user post_launch_count...');
+    const { error: countError } = await supabase
+      .from('users')
+      .update({
+        post_launch_count: postLaunchCount + 1,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
 
-    // 8. Return success response with FULL post data (including users)
+    if (countError) {
+      console.error('⚠️ Warning: Failed to increment post_launch_count:', countError);
+      // Don't throw - post and token are already created
+    } else {
+      console.log('✅ Post launch count incremented to:', postLaunchCount + 1);
+    }
+
+    // 10. Return success response with FULL post data (including users)
     return NextResponse.json({
       success: true,
       data: {
@@ -440,7 +511,13 @@ export async function POST(request: NextRequest) {
         },
         message: 'Post and token created successfully!',
         explorerUrl: `https://explorer.solana.com/tx/${tokenResult.signature}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`,
-        tokenExplorerUrl: `https://explorer.solana.com/address/${tokenResult.mint.toBase58()}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`
+        tokenExplorerUrl: `https://explorer.solana.com/address/${tokenResult.mint.toBase58()}${DBC_CONFIG.RPC_URL.includes('devnet') ? '?cluster=devnet' : ''}`,
+        launchInfo: {
+          currentCount: postLaunchCount + 1,
+          limit: FREE_LAUNCH_LIMIT,
+          remaining: FREE_LAUNCH_LIMIT - (postLaunchCount + 1),
+          isGasless: true
+        }
       }
     });
 

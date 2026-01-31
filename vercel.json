@@ -1,12 +1,3 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/update-prices",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/update-leaderboard",
-      "schedule": "*/10 * * * *"
-    }
-  ]
+  "framework": "nextjs"
 }

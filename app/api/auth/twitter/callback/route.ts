@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/auth/twitter/callback
+ * also make them proper comments
  *
  * Handles Twitter OAuth 2.0 callback
  * Exchanges code for tokens and fetches user data

@@ -10,6 +10,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'FlexStream — Trade Social Content on Solana',
   description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
   keywords: ['crypto', 'trading', 'solana', 'tokens', 'social media', 'DeFi', 'Meteora', 'web3'],

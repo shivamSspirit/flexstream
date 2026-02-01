@@ -38,6 +38,7 @@ function MobileNavInner() {
   const pathname = usePathname();
   const router = useRouter();
   const { publicKey } = useWallet();
+  const [createPressed, setCreatePressed] = useState(false);
 
   // Use global user context instead of independent fetch
   const { user: currentUser } = useUser();
@@ -51,6 +52,12 @@ function MobileNavInner() {
   const handleWalletClick = () => {
     const profileUrl = getProfileUrl();
     router.push(`${profileUrl}?tab=wallet`);
+  };
+
+  const handleCreateClick = () => {
+    setCreatePressed(true);
+    // Reset after animation
+    setTimeout(() => setCreatePressed(false), 300);
   };
 
   const navItems = [
@@ -94,38 +101,70 @@ function MobileNavInner() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-t-2 border-white/10 md:hidden">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+      style={{
+        background: 'rgba(5, 5, 5, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      }}
+    >
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none" />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to top, rgba(5,5,5,0.98) 0%, rgba(5,5,5,0.9) 100%)',
+        }}
+      />
 
       <div className="relative flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.active ? item.activeIcon : item.icon;
 
-          // Special Create button - Neon Lime elevated design
+          // Special Create button - Elevated Mint design with press depth animation
           if (item.isSpecial) {
             return (
               <Link
                 key={item.label}
                 href={item.path!}
                 prefetch={true}
+                onClick={handleCreateClick}
                 className="relative w-14 h-14 -mt-7 group"
                 aria-label={item.label}
               >
-                {/* Outer glow ring */}
-                <div className="absolute inset-0 bg-neon-lime/20 rounded-full blur-xl group-hover:bg-neon-lime/30 transition-all" />
+                {/* Outer glow ring - always visible */}
+                <div
+                  className="absolute inset-0 rounded-full transition-all duration-200"
+                  style={{
+                    background: 'rgba(224, 255, 98, 0.3)',
+                    filter: 'blur(12px)',
+                    transform: createPressed ? 'scale(0.9)' : 'scale(1)',
+                    opacity: createPressed ? 0.5 : 1,
+                  }}
+                />
 
-                {/* Main button */}
-                <div className={cn(
-                  'relative w-full h-full rounded-full flex items-center justify-center',
-                  'bg-neon-lime text-black',
-                  'border-2 border-neon-lime',
-                  'shadow-glow-lime',
-                  'group-hover:bg-[#E5FF4D] group-hover:shadow-glow-lime-lg',
-                  'group-hover:scale-110 group-active:scale-95',
-                  'transition-all duration-150'
-                )}>
-                  <Icon className="relative z-10 w-7 h-7 stroke-[2.5]" />
+                {/* Main button with pressed depth effect */}
+                <div
+                  className="relative w-full h-full rounded-full flex items-center justify-center transition-all duration-100"
+                  style={{
+                    background: createPressed
+                      ? 'linear-gradient(180deg, #a8c840 0%, #c8e85a 100%)'
+                      : 'linear-gradient(180deg, #E0FF62 0%, #c8e85a 100%)',
+                    border: '2px solid rgba(224, 255, 98, 0.8)',
+                    boxShadow: createPressed
+                      ? 'inset 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 15px rgba(224, 255, 98, 0.2)'
+                      : '0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(224, 255, 98, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.1)',
+                    transform: createPressed ? 'scale(0.95) translateY(2px)' : 'scale(1) translateY(0)',
+                  }}
+                >
+                  <Icon
+                    className="relative z-10 w-7 h-7 stroke-[2.5] transition-all duration-100"
+                    style={{
+                      color: '#050505',
+                      transform: createPressed ? 'scale(0.9)' : 'scale(1)',
+                    }}
+                  />
                 </div>
               </Link>
             );
@@ -140,18 +179,22 @@ function MobileNavInner() {
                 type="button"
                 className={cn(
                   'relative flex items-center justify-center w-12 h-12 rounded-xl',
-                  'transition-all duration-150 active:scale-95',
-                  'border-2',
-                  item.active
-                    ? 'bg-white/5 text-neon-cyan border-neon-cyan/50 shadow-glow-cyan'
-                    : 'text-white/50 border-transparent hover:text-white hover:bg-white/5 hover:border-white/20'
+                  'transition-all duration-150 active:scale-90'
                 )}
+                style={{
+                  background: item.active ? 'rgba(224, 255, 98, 0.1)' : 'transparent',
+                  border: item.active ? '1px solid rgba(224, 255, 98, 0.3)' : '1px solid transparent',
+                  color: item.active ? '#E0FF62' : 'rgba(255, 255, 255, 0.5)',
+                }}
                 aria-label={item.label}
               >
                 <Icon className="w-6 h-6" />
                 {/* Active Indicator */}
                 {item.active && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-neon-cyan rounded-t-full shadow-glow-cyan" />
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 rounded-t-full"
+                    style={{ background: '#E0FF62', boxShadow: '0 0 8px rgba(224, 255, 98, 0.5)' }}
+                  />
                 )}
               </button>
             );
@@ -164,7 +207,7 @@ function MobileNavInner() {
                 key={item.label}
                 href={item.path!}
                 prefetch={true}
-                className="relative flex items-center justify-center w-12 h-12 rounded-xl transition-all active:scale-95"
+                className="relative flex items-center justify-center w-12 h-12 rounded-xl transition-all active:scale-90"
                 aria-label={item.label}
               >
                 <Avatar
@@ -172,21 +215,33 @@ function MobileNavInner() {
                   className={cn(
                     'w-9 h-9 border-2 transition-all duration-150',
                     item.active
-                      ? 'border-neon-lime/50 shadow-glow-lime'
-                      : 'border-white/20 opacity-60 hover:opacity-100 hover:border-white/40'
+                      ? 'border-[#E0FF62]/50'
+                      : 'border-white/20 opacity-60'
                   )}
+                  style={{
+                    boxShadow: item.active ? '0 0 12px rgba(224, 255, 98, 0.3)' : 'none',
+                  }}
                 >
                   <AvatarImage
                     src={currentUser?.avatar_url ? `${currentUser.avatar_url}?t=${currentUser.updated_at || Date.now()}` : ''}
                     alt={currentUser?.display_name || 'Profile'}
                   />
-                  <AvatarFallback className="bg-gradient-to-br from-neon-purple to-neon-coral text-white font-bold text-xs">
+                  <AvatarFallback
+                    className="font-bold text-xs"
+                    style={{
+                      background: 'linear-gradient(135deg, #E0FF62 0%, #14b8a6 100%)',
+                      color: '#050505',
+                    }}
+                  >
                     {currentUser?.display_name?.[0]?.toUpperCase() || currentUser?.username?.[0]?.toUpperCase() || (publicKey ? publicKey.toBase58().slice(0, 2).toUpperCase() : 'U')}
                   </AvatarFallback>
                 </Avatar>
                 {/* Active Indicator */}
                 {item.active && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-neon-lime rounded-t-full shadow-glow-lime" />
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 rounded-t-full"
+                    style={{ background: '#E0FF62', boxShadow: '0 0 8px rgba(224, 255, 98, 0.5)' }}
+                  />
                 )}
               </Link>
             );
@@ -200,23 +255,28 @@ function MobileNavInner() {
               prefetch={true}
               className={cn(
                 'relative flex items-center justify-center w-12 h-12 rounded-xl',
-                'transition-all duration-150 active:scale-95',
-                'border-2',
-                item.active
-                  ? 'bg-white/5 text-neon-lime border-neon-lime/50 shadow-glow-lime'
-                  : 'text-white/50 border-transparent hover:text-white hover:bg-white/5 hover:border-white/20'
+                'transition-all duration-150 active:scale-90'
               )}
+              style={{
+                background: item.active ? 'rgba(224, 255, 98, 0.1)' : 'transparent',
+                border: item.active ? '1px solid rgba(224, 255, 98, 0.3)' : '1px solid transparent',
+                color: item.active ? '#E0FF62' : 'rgba(255, 255, 255, 0.5)',
+              }}
               aria-label={item.label}
             >
               <Icon className="w-6 h-6" />
               {/* Active Indicator */}
               {item.active && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-neon-lime rounded-t-full shadow-glow-lime" />
+                <div
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 rounded-t-full"
+                  style={{ background: '#E0FF62', boxShadow: '0 0 8px rgba(224, 255, 98, 0.5)' }}
+                />
               )}
             </Link>
           );
         })}
       </div>
+
     </nav>
   );
 }

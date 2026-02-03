@@ -960,6 +960,7 @@ export function ViralPostCard({
         isOpen={showCommentsModal}
         onClose={() => setShowCommentsModal(false)}
         postId={post.id}
+        commentsCount={post.commentsCount}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════

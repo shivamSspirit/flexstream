@@ -27,6 +27,29 @@ interface UsernameCheckResult {
   suggestions?: string[];
 }
 
+interface UserProfile {
+  username?: string;
+  display_name?: string;
+  bio?: string;
+  website?: string;
+  twitter?: string;
+  instagram?: string;
+  tiktok?: string;
+  avatar_url?: string;
+  cover_url?: string;
+  profile_completed?: boolean;
+  twitter_verified?: boolean;
+  twitter_followers?: number;
+  twitter_verified_at?: string;
+  youtube_verified?: boolean;
+  youtube_subscribers?: number;
+  youtube_channel_name?: string;
+  youtube_verified_at?: string;
+  tiktok_verified?: boolean;
+  tiktok_followers?: number;
+  tiktok_verified_at?: string;
+}
+
 export default function EditProfilePage() {
   const router = useRouter();
   const { connected, publicKey, connecting, ready } = useWallet();
@@ -101,11 +124,12 @@ export default function EditProfilePage() {
       const walletAddress = publicKey.toBase58();
       console.log('Loading profile for wallet:', walletAddress);
 
-      const { data: user, error } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('wallet_address', walletAddress)
         .single();
+      const user = data as UserProfile | null;
 
       if (error) {
         console.error('Error loading profile:', error);
@@ -124,9 +148,9 @@ export default function EditProfilePage() {
         console.log('Profile loaded:', user.username);
 
         // Check if this is setup mode (profile not completed or auto-generated username)
-        const isAutoUsername = user.username?.match(/^user[a-z0-9]{10,}$/);
+        const isAutoUsername = !!user.username?.match(/^user[a-z0-9]{10,}$/);
         const needsSetup = !user.profile_completed || isAutoUsername;
-        setIsSetupMode(needsSetup);
+        setIsSetupMode(Boolean(needsSetup));
 
         setOriginalUsername(user.username || '');
         setDisplayName(user.display_name || '');

@@ -75,7 +75,7 @@ export function useRealtimePosts(options: RealtimePostsOptions = {}) {
       // Fetch the complete post with user data
       if (!supabase) return;
 
-      const { data: completePost, error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
@@ -89,6 +89,8 @@ export function useRealtimePosts(options: RealtimePostsOptions = {}) {
         `)
         .eq('id', newPost.id)
         .single();
+
+      const completePost = data as (PostRecord & { users: { id: string; username: string; display_name: string; avatar_url: string | null; wallet_address: string } }) | null;
 
       if (error || !completePost) {
         console.error('[REALTIME] Failed to fetch complete post:', error);
@@ -136,7 +138,7 @@ export function useRealtimePosts(options: RealtimePostsOptions = {}) {
           ...currentData,
           data: {
             ...currentData.data,
-            posts: [completePost as Post, ...currentData.data.posts],
+            posts: [completePost as unknown as Post, ...currentData.data.posts],
             count: currentData.data.count + 1,
           },
         });

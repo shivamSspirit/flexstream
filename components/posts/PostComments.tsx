@@ -81,7 +81,7 @@ export function PostComments({ postId }: PostCommentsProps) {
         return;
       }
 
-      setComments(data || []);
+      setComments((data as Comment[]) || []);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to load comments');
@@ -137,7 +137,7 @@ export function PostComments({ postId }: PostCommentsProps) {
       }
 
       // Success!
-      setComments(prev => [...prev, data]);
+      setComments(prev => [...prev, data as Comment]);
       setNewComment('');
       toast.success(SUCCESS_MESSAGES.COMMENT_POSTED);
     } catch (error) {

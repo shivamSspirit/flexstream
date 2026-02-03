@@ -58,6 +58,7 @@ interface UserProfile {
   website?: string;
   tiktok?: string;
   verified: boolean;
+  profile_completed?: boolean;
   success_tier: string;
   created_at: string;
   creator_coin_enabled?: boolean;
@@ -133,8 +134,8 @@ export default function UserProfileViewPage() {
       setIsNewUser(false);
 
       const isWalletAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(username);
-      let user = null;
-      let error = null;
+      let user: UserProfile | null = null;
+      let error: { code?: string; message?: string } | null = null;
 
       if (isWalletAddress) {
         const result = await supabase
@@ -143,7 +144,7 @@ export default function UserProfileViewPage() {
           .eq('wallet_address', username)
           .single();
 
-        user = result.data;
+        user = result.data as UserProfile | null;
         error = result.error;
 
         if (error && error.code === 'PGRST116') {
@@ -152,7 +153,7 @@ export default function UserProfileViewPage() {
             .select('*')
             .eq('username', username)
             .single();
-          user = usernameResult.data;
+          user = usernameResult.data as UserProfile | null;
           error = usernameResult.error;
         }
       } else {
@@ -161,7 +162,7 @@ export default function UserProfileViewPage() {
           .select('*')
           .eq('username', username)
           .single();
-        user = result.data;
+        user = result.data as UserProfile | null;
         error = result.error;
       }
 
@@ -178,7 +179,12 @@ export default function UserProfileViewPage() {
         return;
       }
 
-      const hasAutoUsername = user.username?.match(/^user[a-z0-9]{10,}$/);
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const hasAutoUsername = !!user.username?.match(/^user[a-z0-9]{10,}$/);
       const profileNotCompleted = !user.profile_completed;
       setIsNewUser(hasAutoUsername || profileNotCompleted);
 

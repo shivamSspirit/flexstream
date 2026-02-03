@@ -1,7 +1,7 @@
 import { Page, expect } from '@playwright/test';
 
 /**
- * FlexStream E2E Test Utilities
+ * Flexit E2E Test Utilities
  */
 
 /**

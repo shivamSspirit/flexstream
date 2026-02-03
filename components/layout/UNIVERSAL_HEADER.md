@@ -11,7 +11,7 @@ A **universal, reusable header bar** designed for crypto trading dashboards with
 ### Desktop View
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ [F] FlexStream    [      Search tokens...      ]  [Wallet] [☰]│
+│ [F] Flexit    [      Search tokens...      ]  [Wallet] [☰]│
 │  ↑                          ↑                        ↑      ↑  │
 │ Logo              Centered Search              Wallet  Menu    │
 └───────────────────────────────────────────────────────────────┘
@@ -20,14 +20,14 @@ A **universal, reusable header bar** designed for crypto trading dashboards with
 ### Tablet View
 ```
 ┌──────────────────────────────────────────────────┐
-│ [F] FlexStream  [   Search...   ]  [Wallet] [☰] │
+│ [F] Flexit  [   Search...   ]  [Wallet] [☰] │
 └──────────────────────────────────────────────────┘
 ```
 
 ### Mobile View
 ```
 ┌─────────────────────────────┐
-│ [F] FlexStream    [💰] [☰]  │
+│ [F] Flexit    [💰] [☰]  │
 │                              │
 └─────────────────────────────┘
 ```
@@ -39,7 +39,7 @@ A **universal, reusable header bar** designed for crypto trading dashboards with
 ### 1. **Logo (Far Left)**
 ```typescript
 Component: Button with icon + text
-Desktop: Icon + "FlexStream" text
+Desktop: Icon + "Flexit" text
 Mobile: Icon only
 Icon: Gradient "F" (purple → pink)
 Size: 36px (w-9 h-9)
@@ -219,7 +219,7 @@ export default function Layout() {
     </div>
     
     {/* Text (hidden on mobile) */}
-    <span className="hidden sm:block">FlexStream</span>
+    <span className="hidden sm:block">Flexit</span>
   </button>
 </div>
 ```
@@ -289,7 +289,7 @@ Elements:
 - Menu: Visible
 
 Layout:
-[F] FlexStream      [Connect Wallet] [☰]
+[F] Flexit      [Connect Wallet] [☰]
 ```
 
 ### Desktop (768px+)
@@ -301,7 +301,7 @@ Elements:
 - Menu: Visible
 
 Layout:
-[F] FlexStream  [      Search...      ]  [abc...xyz] [☰]
+[F] Flexit  [      Search...      ]  [abc...xyz] [☰]
 ```
 
 ---
@@ -531,7 +531,7 @@ placeholder="Search tokens, creators, posts..."
 ### Logo
 ```
 < 640px:  Icon only (36px)
->= 640px: Icon + "FlexStream" text
+>= 640px: Icon + "Flexit" text
 ```
 
 ### Search
@@ -652,7 +652,7 @@ Border Bottom:  border-white/10
 // Logo
 Gradient:       from-purple-600 to-pink-600
 Shadow:         shadow-purple-500/25
-Text:           flexstream-gradient-text
+Text:           flexit-gradient-text
 
 // Search
 Background:     bg-card-bg (#1a1a1a)
@@ -686,7 +686,7 @@ Hover:          text-primary, bg-card-bg/80
 
 | Requirement | Status | Implementation |
 |------------|--------|----------------|
-| Logo on far left | ✅ | Gradient "F" + FlexStream text |
+| Logo on far left | ✅ | Gradient "F" + Flexit text |
 | Centered search bar | ✅ | max-w-2xl, mx-auto |
 | Rounded corners | ✅ | rounded-full on search |
 | Subtle background | ✅ | bg-card-bg (#1a1a1a) |

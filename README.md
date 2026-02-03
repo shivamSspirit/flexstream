@@ -1,4 +1,4 @@
-# FlexStream
+# Flexit
 
 A social trading platform on Solana where every post becomes a tradeable token.
 
@@ -28,7 +28,7 @@ A social trading platform on Solana where every post becomes a tradeable token.
 ## Project Structure
 
 ```
-flexstream/
+flexit/
 ├── app/                    # Next.js App Router
 │   ├── api/               # 20+ API routes
 │   │   ├── auth/          # Privy authentication

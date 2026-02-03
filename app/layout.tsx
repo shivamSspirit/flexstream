@@ -11,10 +11,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
-  title: 'FlexStream — Trade Social Content on Solana',
+  title: 'Flexit — Trade Social Content on Solana',
   description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
   keywords: ['crypto', 'trading', 'solana', 'tokens', 'social media', 'DeFi', 'Meteora', 'web3'],
-  authors: [{ name: 'FlexStream' }],
+  authors: [{ name: 'Flexit' }],
   manifest: '/site.webmanifest',
   icons: {
     icon: [
@@ -30,23 +30,23 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'FlexStream — Trade Social Content on Solana',
+    title: 'Flexit — Trade Social Content on Solana',
     description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
     type: 'website',
     locale: 'en_US',
-    siteName: 'FlexStream',
+    siteName: 'Flexit',
     images: [
       {
         url: '/flexit-logo.png',
         width: 1200,
         height: 630,
-        alt: 'FlexStream — Trade Social Content',
+        alt: 'Flexit — Trade Social Content',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FlexStream — Trade Social Content on Solana',
+    title: 'Flexit — Trade Social Content on Solana',
     description: 'Create posts that launch tradable tokens on Solana. Share your trading journey and connect with the crypto community.',
     images: ['/flexit-logo.png'],
   },

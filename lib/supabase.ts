@@ -1,272 +1,68 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from './database.types';
 
-// Use environment variables directly with fallbacks
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPABASE CLIENT CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Only create client if we have the required variables
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
-  : null;
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC CLIENT (for client-side operations with RLS)
+// ─────────────────────────────────────────────────────────────────────────────
+export const supabase: SupabaseClient<Database> | null =
+  supabaseUrl && supabaseAnonKey
+    ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      })
+    : null;
 
-// Database types
-export interface Database {
-  public: {
-    Tables: {
-      users: {
-        Row: {
-          id: string
-          wallet_address: string | null
-          username: string
-          display_name: string
-          avatar_url: string | null
-          bio: string | null
-          verified_earnings: number
-          success_tier: 'bronze' | 'silver' | 'gold' | 'diamond'
-          total_followers: number
-          total_following: number
-          created_at: string
-          updated_at: string
-          encrypted_private_key: string | null
-          wallet_created_at: string | null
-          clerk_user_id: string | null
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN CLIENT (for server-side operations bypassing RLS)
+// Only use in API routes, never expose to client
+// ─────────────────────────────────────────────────────────────────────────────
+export const supabaseAdmin: SupabaseClient<Database> | null =
+  supabaseUrl && supabaseServiceKey
+    ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
         }
-        Insert: {
-          id?: string
-          wallet_address?: string | null
-          username: string
-          display_name: string
-          avatar_url?: string | null
-          bio?: string | null
-          verified_earnings?: number
-          success_tier?: 'bronze' | 'silver' | 'gold' | 'diamond'
-          total_followers?: number
-          total_following?: number
-          created_at?: string
-          updated_at?: string
-          encrypted_private_key?: string | null
-          wallet_created_at?: string | null
-          clerk_user_id?: string | null
-        }
-        Update: {
-          id?: string
-          wallet_address?: string | null
-          username?: string
-          display_name?: string
-          avatar_url?: string | null
-          bio?: string | null
-          verified_earnings?: number
-          success_tier?: 'bronze' | 'silver' | 'gold' | 'diamond'
-          total_followers?: number
-          total_following?: number
-          created_at?: string
-          updated_at?: string
-          encrypted_private_key?: string | null
-          wallet_created_at?: string | null
-          clerk_user_id?: string | null
-        }
-      }
-      posts: {
-        Row: {
-          id: string
-          user_id: string
-          type: 'earnings_flex' | 'stream_highlight' | 'lifestyle' | 'trading_journey'
-          content: string
-          media_urls: string[]
-          earnings_amount: number | null
-          token_address: string | null
-          verified: boolean
-          likes_count: number
-          comments_count: number
-          shares_count: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          type: 'earnings_flex' | 'stream_highlight' | 'lifestyle' | 'trading_journey'
-          content: string
-          media_urls?: string[]
-          earnings_amount?: number | null
-          token_address?: string | null
-          verified?: boolean
-          likes_count?: number
-          comments_count?: number
-          shares_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          type?: 'earnings_flex' | 'stream_highlight' | 'lifestyle' | 'trading_journey'
-          content?: string
-          media_urls?: string[]
-          earnings_amount?: number | null
-          token_address?: string | null
-          verified?: boolean
-          likes_count?: number
-          comments_count?: number
-          shares_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      follows: {
-        Row: {
-          id: string
-          follower_id: string
-          following_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          follower_id: string
-          following_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          follower_id?: string
-          following_id?: string
-          created_at?: string
-        }
-      }
-      likes: {
-        Row: {
-          id: string
-          user_id: string
-          post_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          post_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          post_id?: string
-          created_at?: string
-        }
-      }
-      comments: {
-        Row: {
-          id: string
-          user_id: string
-          post_id: string
-          parent_id: string | null
-          content: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          post_id: string
-          parent_id?: string | null
-          content: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          post_id?: string
-          parent_id?: string | null
-          content?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          type: 'like' | 'comment' | 'follow' | 'mention'
-          from_user_id: string
-          post_id: string | null
-          read: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          type: 'like' | 'comment' | 'follow' | 'mention'
-          from_user_id: string
-          post_id?: string | null
-          read?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          type?: 'like' | 'comment' | 'follow' | 'mention'
-          from_user_id?: string
-          post_id?: string | null
-          read?: boolean
-          created_at?: string
-        }
-      }
-      earnings_verifications: {
-        Row: {
-          id: string
-          user_id: string
-          post_id: string
-          wallet_address: string
-          claimed_amount: number
-          verified_amount: number | null
-          verification_status: 'pending' | 'verified' | 'rejected'
-          pump_fun_tx_hash: string | null
-          verification_date: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          post_id: string
-          wallet_address: string
-          claimed_amount: number
-          verified_amount?: number | null
-          verification_status?: 'pending' | 'verified' | 'rejected'
-          pump_fun_tx_hash?: string | null
-          verification_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          post_id?: string
-          wallet_address?: string
-          claimed_amount?: number
-          verified_amount?: number | null
-          verification_status?: 'pending' | 'verified' | 'rejected'
-          pump_fun_tx_hash?: string | null
-          verification_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
+      })
+    : null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Get admin client or throw
+// ─────────────────────────────────────────────────────────────────────────────
+export function getSupabaseAdmin(): SupabaseClient<Database> {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not initialized. Check SUPABASE_SERVICE_ROLE_KEY.');
   }
+  return supabaseAdmin;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Get public client or throw
+// ─────────────────────────────────────────────────────────────────────────────
+export function getSupabase(): SupabaseClient<Database> {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+  }
+  return supabase;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORAGE BUCKET NAME (matches Supabase configuration)
+// ─────────────────────────────────────────────────────────────────────────────
+export const STORAGE_BUCKET = 'flexstream';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPE EXPORTS (re-export from database.types for convenience)
+// ─────────────────────────────────────────────────────────────────────────────
+export type { Database, Tables, TablesInsert, TablesUpdate, Views, Json } from './database.types';

@@ -433,7 +433,7 @@ export default function EditProfilePage() {
               {isSetupMode ? (
                 <>
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-black bg-gradient-to-r from-accent-green via-accent-cyan to-accent-blue bg-clip-text text-transparent mb-1 sm:mb-2">
-                    Welcome to FlexStream!
+                    Welcome to Flexit!
                   </h1>
                   <p className="text-sm sm:text-base text-white/70">
                     Let&apos;s set up your profile to get started
@@ -580,7 +580,7 @@ export default function EditProfilePage() {
                 )}
               </div>
               <p className="text-xs text-secondary mt-1">
-                flexstream.com/@{username || 'username'}
+                flexit.com/@{username || 'username'}
               </p>
             </div>
 

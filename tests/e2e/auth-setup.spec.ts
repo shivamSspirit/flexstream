@@ -25,7 +25,7 @@ test.describe('Auth Setup', () => {
 
     console.log('\n');
     console.log('='.repeat(60));
-    console.log('FLEXSTREAM AUTHENTICATION SETUP');
+    console.log('FLEXIT AUTHENTICATION SETUP');
     console.log('='.repeat(60));
     console.log('\n');
     console.log('This will open a browser for you to complete Privy login.');

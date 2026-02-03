@@ -37,7 +37,7 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
           accentColor: '#00ff88',
           logo: '/flexit-logo.png',
           walletChainType: 'solana-only',
-          landingHeader: 'Welcome to FlexStream',
+          landingHeader: 'Welcome to Flexit',
           loginMessage: 'Sign in to start flexing',
         },
         // Social first, wallet optional

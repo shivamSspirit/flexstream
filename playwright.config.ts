@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * FlexStream E2E Test Configuration
+ * Flexit E2E Test Configuration
  *
  * Run tests with: npx playwright test
  * Run with UI: npx playwright test --ui

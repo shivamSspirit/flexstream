@@ -38,7 +38,7 @@ export default function AppearanceSettingsPage() {
           </button>
           <div>
             <h1 className="heading-3">Appearance</h1>
-            <p className="body-sm">Customize how FlexStream looks</p>
+            <p className="body-sm">Customize how Flexit looks</p>
           </div>
         </div>
 

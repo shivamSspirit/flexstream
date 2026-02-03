@@ -1,5 +1,5 @@
 /**
- * FlexStream Prediction Market Components
+ * Flexit Prediction Market Components
  *
  * "The Oracle of Solana" - Social Prediction Layer
  *

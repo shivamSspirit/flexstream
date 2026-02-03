@@ -9,7 +9,7 @@ import {
 } from './helpers/test-utils';
 
 /**
- * FlexStream Feed Tests
+ * Flexit Feed Tests
  *
  * Tests for the main feed page functionality
  * These tests run without authentication to verify public feed viewing
@@ -23,7 +23,7 @@ test.describe('Feed Page - Public View', () => {
 
   test('should display the homepage with navigation', async ({ page }) => {
     // Check page title
-    await expect(page).toHaveTitle(/FlexStream/);
+    await expect(page).toHaveTitle(/Flexit/);
 
     // Check navigation elements
     await expect(page.getByRole('link', { name: /home/i })).toBeVisible();

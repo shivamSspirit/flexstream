@@ -7,7 +7,7 @@ import {
 } from './helpers/test-utils';
 
 /**
- * FlexStream Authentication Flow Tests
+ * Flexit Authentication Flow Tests
  *
  * These tests cover:
  * 1. New user registration + profile completion

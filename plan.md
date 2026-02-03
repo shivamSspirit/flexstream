@@ -1,6 +1,6 @@
-# FlexStream MVP - One Week Launch Plan
+# Flexit MVP - One Week Launch Plan
 
-**Goal:** Launch FlexStream MVP by end of week
+**Goal:** Launch Flexit MVP by end of week
 **Start Date:** Week of Jan 27, 2025
 **Target Launch:** Feb 3, 2025
 
@@ -561,7 +561,7 @@ app/api/
 - [ ] Deploy to Vercel production
 - [ ] Verify all API routes
 - [ ] Test end-to-end flows
-- [ ] Create launch post on FlexStream
+- [ ] Create launch post on Flexit
 - [ ] Share on Twitter
 - [ ] Monitor error logs
 
@@ -585,7 +585,7 @@ This MVP plan prioritizes:
 
 The architecture follows the YouTube model: **all content contributes to ONE creator token** rather than fragmenting value across content-specific tokens.
 
-By the end of week, FlexStream will have:
+By the end of week, Flexit will have:
 - Creator tokens with real utility (gated content)
 - Multiple revenue streams (tips, promotions, trading fees)
 - Engagement incentives (FLEX points)

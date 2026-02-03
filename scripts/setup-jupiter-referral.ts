@@ -79,7 +79,7 @@ async function setupJupiterReferral() {
       projectPubKey: JUPITER_PROJECT_PUBKEY,
       partnerPubKey: platformWallet.publicKey,
       payerPubKey: platformWallet.publicKey,
-      name: 'FlexStream'
+      name: 'Flexit'
     });
 
     const referralSig = await connection.sendTransaction(referralTx, [platformWallet]);

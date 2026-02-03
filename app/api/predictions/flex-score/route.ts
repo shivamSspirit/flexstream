@@ -221,11 +221,11 @@ export async function POST(request: NextRequest) {
       }[tier];
 
       const tweetText = encodeURIComponent(
-        `${tierEmoji} My FlexStream Flex Score: ${flexScore.flexScore}\n\n` +
+        `${tierEmoji} My Flexit Flex Score: ${flexScore.flexScore}\n\n` +
         `📊 ${flexScore.totalPredictions} predictions\n` +
         `🎯 ${Math.round(winRate)}% win rate\n` +
         `🔥 ${flexScore.currentStreak} win streak\n\n` +
-        `Think you can beat me? Challenge me on FlexStream! 💪`
+        `Think you can beat me? Challenge me on Flexit! 💪`
       );
 
       cardData.shareUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;

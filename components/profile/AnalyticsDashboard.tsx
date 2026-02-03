@@ -311,7 +311,7 @@ export function AnalyticsDashboard({ userId, walletAddress, isOwnProfile }: Anal
         <div className="rounded-xl bg-gradient-to-br from-accent-purple/10 to-accent-blue/10 border border-accent-purple/20 p-5">
           <div className="flex items-center gap-2 mb-4">
             <UserGroupIcon className="w-5 h-5 text-accent-purple" />
-            <h3 className="font-bold text-white">FlexStream Followers</h3>
+            <h3 className="font-bold text-white">Flexit Followers</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>

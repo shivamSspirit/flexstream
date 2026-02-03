@@ -298,7 +298,7 @@ export default function UserProfileViewPage() {
               <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-neon-lime/20 to-neon-cyan/20 border-2 border-dashed border-neon-lime/30 flex items-center justify-center">
                 <SparklesIcon className="w-10 h-10 text-neon-lime" />
               </div>
-              <h2 className="text-3xl font-black text-white mb-3 font-display">Welcome to FlexStream!</h2>
+              <h2 className="text-3xl font-black text-white mb-3 font-display">Welcome to Flexit!</h2>
               <p className="text-white/60 mb-8">Create your profile to start earning from your content.</p>
               <Button
                 onClick={() => createProfileLazily(username)}

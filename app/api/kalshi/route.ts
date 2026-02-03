@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'FlexStream/1.0',
+        'User-Agent': 'Flexit/1.0',
       },
       next: { revalidate: 30 }, // Cache for 30 seconds
     });

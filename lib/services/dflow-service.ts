@@ -420,7 +420,7 @@ export async function getMarketByMint(mint: string): Promise<DFlowMarket | null>
  * TODO: Get our builder code from DFlow dashboard
  * https://pond.dflow.net/build/api-key
  */
-export const FLEXSTREAM_BUILDER_CODE = process.env.DFLOW_BUILDER_CODE || '';
+export const FLEXIT_BUILDER_CODE = process.env.DFLOW_BUILDER_CODE || '';
 
 /**
  * Add builder code to trade request headers
@@ -430,8 +430,8 @@ export function getTradeHeaders(): HeadersInit {
     'Accept': 'application/json',
   };
 
-  if (FLEXSTREAM_BUILDER_CODE) {
-    headers['x-api-key'] = FLEXSTREAM_BUILDER_CODE;
+  if (FLEXIT_BUILDER_CODE) {
+    headers['x-api-key'] = FLEXIT_BUILDER_CODE;
   }
 
   return headers;

@@ -1,7 +1,7 @@
 import { test as base, expect, Page, BrowserContext } from '@playwright/test';
 
 /**
- * FlexStream Authentication Fixtures
+ * Flexit Authentication Fixtures
  *
  * IMPORTANT: Privy authentication requires one of:
  * 1. Email OTP verification (needs email access)
@@ -133,7 +133,7 @@ export async function mockUserSession(
   user: TestUser
 ): Promise<void> {
   await page.addInitScript((userData) => {
-    // Set sessionStorage items that FlexStream uses
+    // Set sessionStorage items that Flexit uses
     sessionStorage.setItem('current_username', userData.username);
     sessionStorage.setItem(
       'current_user',

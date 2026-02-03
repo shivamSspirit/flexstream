@@ -1,4 +1,4 @@
--- FlexStream Database Migration Script
+-- Flexit Database Migration Script
 -- Run this in your Supabase SQL Editor to ensure all columns exist
 
 -- Add social_link column to posts table if it doesn't exist

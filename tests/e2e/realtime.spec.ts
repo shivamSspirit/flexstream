@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { waitForPageLoad, waitForNewPost } from './helpers/test-utils';
 
 /**
- * FlexStream Real-Time Tests
+ * Flexit Real-Time Tests
  *
  * Tests for real-time post updates using Supabase Realtime
  * These tests verify that new posts appear instantly without refresh

@@ -41,8 +41,8 @@ export function ShareModal({ isOpen, onClose, postUrl, postId, postTitle }: Shar
   const handleNativeShare = async () => {
     try {
       await navigator.share({
-        title: postTitle || 'Check out this post on FlexStream!',
-        text: 'Check out this post on FlexStream!',
+        title: postTitle || 'Check out this post on Flexit!',
+        text: 'Check out this post on Flexit!',
         url: postUrl,
       });
 
@@ -58,7 +58,7 @@ export function ShareModal({ isOpen, onClose, postUrl, postId, postTitle }: Shar
 
   const handleShare = (platform: string) => {
     let shareUrl = '';
-    const text = postTitle || 'Check out this post on FlexStream!';
+    const text = postTitle || 'Check out this post on Flexit!';
 
     switch (platform) {
       case 'twitter':

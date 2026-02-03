@@ -476,7 +476,7 @@ export function generateShareableStats(
   if (state.wins >= 50) badges.push('💯 50+ wins');
   if (state.bestStreak >= 10) badges.push('⚡ 10+ best streak');
 
-  const shareText = `${headline}\n\n${subtext}\n\nProve your predictions on @FlexStream 🔮`;
+  const shareText = `${headline}\n\n${subtext}\n\nProve your predictions on @Flexit 🔮`;
 
   return {
     headline,

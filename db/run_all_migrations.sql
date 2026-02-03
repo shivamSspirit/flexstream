@@ -1,5 +1,5 @@
 -- ============================================
--- FlexStream Complete Database Migration
+-- Flexit Complete Database Migration
 -- Run this script in Supabase SQL Editor
 -- ============================================
 

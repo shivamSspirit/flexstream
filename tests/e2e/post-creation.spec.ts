@@ -8,7 +8,7 @@ import {
 import path from 'path';
 
 /**
- * FlexStream Post Creation Tests
+ * Flexit Post Creation Tests
  *
  * Tests for creating posts with tokens and images
  * Some tests require authentication - use auth fixture

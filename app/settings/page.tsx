@@ -118,7 +118,7 @@ export default function SettingsPage() {
 
         {/* Version Info */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-text-muted">FlexStream v0.1.0 (Beta)</p>
+          <p className="text-xs text-text-muted">Flexit v0.1.0 (Beta)</p>
         </div>
       </div>
     </AppLayout>

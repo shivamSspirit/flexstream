@@ -77,29 +77,89 @@ export function PostCard({ post }: PostCardProps) {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* ════════════════════════════════════════════════════════════════
-            HEADER — Creator + Live Activity
+            HEADER — Creator + Live Activity (Mobile-First Design)
+            Top-right corner positioning for badges
             ════════════════════════════════════════════════════════════════ */}
-        <header className="flex items-center justify-between px-4 py-3">
-          <div
-            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
-            onClick={() => router.push(`/profile/${post.user?.username}`)}
-          >
-            {/* Avatar with subtle ring */}
-            <div className="relative">
-              <Avatar className="h-9 w-9 ring-2 ring-white/[0.06]">
+        <header className="relative px-3 sm:px-4 pt-2.5 pb-2 sm:pt-3 sm:pb-2.5">
+          {/* ═══════════════════════════════════════════════════════════════
+              TOP-RIGHT BADGES — "Whisper" micro-indicators
+              Luxury watch complication aesthetic: tiny, precise, elegant
+              ═══════════════════════════════════════════════════════════════ */}
+          <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-3 flex items-center gap-0.5 sm:gap-1">
+            {/* Viewers — Ghost badge, almost invisible */}
+            {post.token_mint && (
+              <div
+                className="flex items-center gap-px px-1 py-px rounded-sm backdrop-blur-sm"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '0.5px solid rgba(255, 255, 255, 0.04)'
+                }}
+              >
+                <Eye
+                  className="w-[7px] h-[7px] sm:w-2.5 sm:h-2.5"
+                  style={{ color: '#4A4A50' }}
+                  strokeWidth={2.5}
+                />
+                <span
+                  className="text-[7px] sm:text-[10px] tabular-nums"
+                  style={{
+                    color: '#5A5A60',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    letterSpacing: '-0.02em',
+                    fontWeight: 500
+                  }}
+                >
+                  {metrics.viewers}
+                </span>
+              </div>
+            )}
+            {/* Token Ticker — Mint whisper pill */}
+            {post.token_mint && (
+              <button
+                onClick={() => setShowSwapModal(true)}
+                className="px-1 sm:px-2 py-px sm:py-0.5 rounded-sm text-[7px] sm:text-[10px] font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{
+                  background: 'rgba(224, 255, 98, 0.08)',
+                  color: '#C4E650',
+                  border: '0.5px solid rgba(224, 255, 98, 0.15)',
+                  letterSpacing: '-0.01em',
+                  textShadow: '0 0 8px rgba(224, 255, 98, 0.3)'
+                }}
+              >
+                ${post.token_display_name || post.token_symbol}
+              </button>
+            )}
+            {/* Options — Three-dot menu with scanner links */}
+            <PostOptionsMenu tokenAddress={post.token_mint} postId={post.id}>
+              <button
+                className="p-1 sm:p-1.5 rounded-md transition-all duration-200 hover:bg-white/[0.08] active:scale-95"
+                style={{ color: '#5A5A60' }}
+              >
+                <MoreHorizontal className="w-4 h-4 sm:w-4 sm:h-4" strokeWidth={2.5} />
+              </button>
+            </PostOptionsMenu>
+          </div>
+
+          {/* Left side: Avatar + Name + Handle */}
+          <div className="flex items-center gap-2.5 sm:gap-3 pr-28 sm:pr-36">
+            {/* Avatar with online indicator */}
+            <div
+              className="relative flex-shrink-0 cursor-pointer"
+              onClick={() => router.push(`/profile/${post.user?.username}`)}
+            >
+              <Avatar className="h-10 w-10 sm:h-11 sm:w-11 ring-2 ring-white/[0.06]">
                 <AvatarImage src={post.user?.avatar_url} alt={post.user?.display_name} />
                 <AvatarFallback
                   style={{
                     background: 'linear-gradient(145deg, #1a1a1c 0%, #0d0d0e 100%)',
                     color: '#5a5a5f',
-                    fontSize: '12px',
+                    fontSize: '13px',
                     fontWeight: 600,
                   }}
                 >
                   {post.user?.display_name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              {/* Online pulse (subtle social proof) */}
               <div
                 className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse"
                 style={{
@@ -109,51 +169,36 @@ export function PostCard({ post }: PostCardProps) {
               />
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+            {/* Name + Handle + Time - Stacked layout */}
+            <div
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => router.push(`/profile/${post.user?.username}`)}
+            >
+              {/* Name row */}
+              <span
+                className="text-[14px] sm:text-[15px] font-semibold truncate block hover:text-[#E0FF62] transition-colors"
+                style={{ color: '#F5F5F5', letterSpacing: '-0.01em', lineHeight: '1.3' }}
+              >
+                {post.user?.display_name}
+              </span>
+              {/* Handle + Time row */}
+              <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
                 <span
-                  className="text-[13px] font-medium truncate hover:text-[#E0FF62] transition-colors duration-300"
-                  style={{ color: '#E8E8E8', letterSpacing: '-0.01em' }}
+                  className="text-[10px] sm:text-[12px] truncate"
+                  style={{ color: '#6A6A70' }}
                 >
-                  {post.user?.display_name}
+                  @{post.user?.username}
                 </span>
-                <span className="text-[11px]" style={{ color: '#3D3D42' }}>
-                  ·
-                </span>
+                <span className="text-[8px] sm:text-[10px]" style={{ color: '#3A3A40' }}>•</span>
                 <span
-                  className="text-[11px]"
-                  style={{ color: '#4A4A50', fontFamily: "'IBM Plex Mono', monospace" }}
+                  className="text-[9px] sm:text-[11px]"
+                  style={{ color: '#5A5A60', fontFamily: "'IBM Plex Mono', monospace" }}
                 >
                   {formatTimeAgo(post.created_at)}
                 </span>
               </div>
             </div>
           </div>
-
-          {/* Live viewers (FOMO trigger) */}
-          {post.token_mint && (
-            <div
-              className="flex items-center gap-1.5 px-2 py-1 mr-2 rounded-md"
-              style={{ background: 'rgba(224, 255, 98, 0.06)' }}
-            >
-              <Eye className="w-3 h-3" style={{ color: '#7A7A80' }} />
-              <span
-                className="text-[10px] font-medium"
-                style={{ color: '#9A9AA0', fontFamily: "'IBM Plex Mono', monospace" }}
-              >
-                {metrics.viewers}
-              </span>
-            </div>
-          )}
-
-          <PostOptionsMenu tokenAddress={post.token_mint} postId={post.id}>
-            <button
-              className="p-2 rounded-lg transition-all duration-300 hover:bg-white/[0.04]"
-              style={{ color: '#3D3D42' }}
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-          </PostOptionsMenu>
         </header>
 
         {/* ════════════════════════════════════════════════════════════════

@@ -139,6 +139,25 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        // ═══════════════════════════════════════════════════════════════════
+        // MODAL ANIMATIONS — iOS-like physics, no transform conflicts
+        // ═══════════════════════════════════════════════════════════════════
+        "slide-up-sheet": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-down-sheet": {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(100%)", opacity: "0" },
+        },
+        "modal-enter": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "modal-exit": {
+          "0%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0", transform: "scale(0.96)" },
+        },
         "vault-fade-in": {
           "0%": { opacity: 0, transform: "translateY(8px)" },
           "100%": { opacity: 1, transform: "translateY(0)" },
@@ -172,6 +191,11 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // Modal animations with iOS-like spring physics
+        "slide-up-sheet": "slide-up-sheet 320ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "slide-down-sheet": "slide-down-sheet 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "modal-enter": "modal-enter 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "modal-exit": "modal-exit 150ms cubic-bezier(0.16, 1, 0.3, 1)",
         "vault-fade": "vault-fade-in 0.5s ease-out forwards",
         "vault-fade-up": "vault-fade-up 0.6s ease-out forwards",
         "vault-scale": "vault-scale-in 0.4s ease-out forwards",

@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       symbol: uniqueSymbol,
       description: tokenDescription,
       image: tokenImage,
-      external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://flexstream.app'}/profile/${username}`
+      external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://flexit.app'}/profile/${username}`
     }, supabase);
 
     console.log('[CREATOR COIN] Metadata uploaded:', metadataUri);

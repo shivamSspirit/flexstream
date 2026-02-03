@@ -1,5 +1,5 @@
 -- ============================================================================
--- FlexStream Prediction Markets Schema
+-- Flexit Prediction Markets Schema
 -- "The Oracle of Solana" - Social Prediction Layer
 -- ============================================================================
 

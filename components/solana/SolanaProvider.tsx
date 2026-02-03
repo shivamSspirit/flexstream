@@ -124,9 +124,9 @@ export function SolanaProvider({ children }: Props) {
         autoConnect: true, // Auto-reconnect wallet on page navigation
         env: WALLET_ENV,
         metadata: {
-          name: 'FlexStream',
+          name: 'Flexit',
           description: 'Social Platform for Crypto Traders',
-          url: typeof window !== 'undefined' ? window.location.origin : 'https://flexstream.app',
+          url: typeof window !== 'undefined' ? window.location.origin : 'https://flexit.app',
           iconUrls: ['/favicon.ico'],
         },
         theme: 'dark',

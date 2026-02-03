@@ -1,4 +1,4 @@
-# FlexStream: Vision & Mission
+# Flexit: Vision & Mission
 
 > **"The Financial Social Network Where Your AI Works While You Sleep"**
 
@@ -6,9 +6,9 @@
 
 ## One-Liner
 
-**FlexStream is Twitter if every profile was a publicly traded stock.**
+**Flexit is Twitter if every profile was a publicly traded stock.**
 
-**Or:** FlexStream is where creators ARE the asset class — powered by 7 compounding primitives and AI agents that never stop working.
+**Or:** Flexit is where creators ARE the asset class — powered by 7 compounding primitives and AI agents that never stop working.
 
 ---
 
@@ -30,7 +30,7 @@
 │                                                                             │
 │   Twitter gave creators followers.                                          │
 │   TikTok gave creators views.                                               │
-│   FlexStream gives creators SHAREHOLDERS.                                   │
+│   Flexit gives creators SHAREHOLDERS.                                   │
 │                                                                             │
 │   We're not building a social network.                                      │
 │   We're building a CREATOR STOCK EXCHANGE.                                  │
@@ -66,7 +66,7 @@
 │   Prediction Markets:  $44B volume (2025)                                   │
 │   AI Agents:           $24-27B market cap                                   │
 │                                                                             │
-│   FLEXSTREAM = THE INTERSECTION OF ALL FIVE                                 │
+│   FLEXIT = THE INTERSECTION OF ALL FIVE                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -235,7 +235,7 @@ CATEGORIES:
 ├── Sports (championships, players)
 ├── Entertainment (awards, box office)
 ├── Science (space, medical)
-└── FlexStream Exclusive (creator milestones, post performance)
+└── Flexit Exclusive (creator milestones, post performance)
 ```
 
 ### 5. TRADING
@@ -325,7 +325,7 @@ Revenue: Premium tiers, battles, API
 │   ├── No way to invest in creators you believe in                           │
 │   └── Platform monetizes, creator gets crumbs                               │
 │                                                                             │
-│   FLEXSTREAM:                                                               │
+│   FLEXIT:                                                               │
 │   ├── You see: Token price, market cap, growth %                            │
 │   ├── Financial signal = credibility signal                                 │
 │   ├── Buy token = invest in creator's success                               │
@@ -340,7 +340,7 @@ Revenue: Premium tiers, battles, API
 │   "What if likes were replaced by trading volume?"                          │
 │   "What if clout was measured in dollars, not hearts?"                      │
 │                                                                             │
-│   FlexStream makes creators into asset classes.                             │
+│   Flexit makes creators into asset classes.                             │
 │   Fans don't just follow. They INVEST.                                      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -393,7 +393,7 @@ Revenue: Premium tiers, battles, API
                           │
                           └──────────► REPEAT
 
-THIS IS WHY FLEXSTREAM HAS RETENTION. PUMP.FUN DOESN'T.
+THIS IS WHY FLEXIT HAS RETENTION. PUMP.FUN DOESN'T.
 ```
 
 ---
@@ -426,7 +426,7 @@ CURRENT STATE:
 │   FOR THE TRADER (Strategy Creator):                                         │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
 │   │                                                                      │   │
-│   │   1. Trade normally on FlexStream                                    │   │
+│   │   1. Trade normally on Flexit                                    │   │
 │   │   2. Enable "Copy Me" with fee (e.g., 10% of profits)               │   │
 │   │   3. Your trades stay PRIVATE (no one sees your positions)           │   │
 │   │   4. Copiers only see your STATS (win rate, ROI, Flex Score)         │   │
@@ -473,7 +473,7 @@ EXAMPLE:
 ├── 100 people copy with $1,000 each = $100,000 AUM
 ├── Monthly return: 20% = $20,000 profit for copiers
 ├── @degen_trader earns: 15% × $20,000 = $3,000/month
-└── FlexStream takes: 2% platform fee = $400/month
+└── Flexit takes: 2% platform fee = $400/month
 
 EVERYONE WINS:
 ├── Trader: Monetizes alpha without revealing edge
@@ -562,7 +562,7 @@ WHAT IT DOES:
 ├── Switch between public ↔ confidential anytime
 └── On-chain programs can manage confidential accounts
 
-FOR FLEXSTREAM COPY TRADING:
+FOR FLEXIT COPY TRADING:
 ├── Trader positions → encrypted via C-SPL
 ├── Copier allocation → confidential
 ├── Trade execution → private MPC computation
@@ -600,7 +600,7 @@ COPY TRADING FLOW:
 Tech Stack:
 ├── Arcium SDK (Arcis DSL — Rust-based)
 ├── C-SPL tokens for balances
-├── FlexStream API → Arcium MXE
+├── Flexit API → Arcium MXE
 └── Jupiter for swap execution
 ```
 
@@ -640,7 +640,7 @@ CHARACTER TEMPLATE:
   "lore": ["Trading history, predictions..."],
   "knowledge": ["Solana, DeFi, predictions..."],
   "clients": ["twitter", "discord"],
-  "plugins": ["solana-agent-kit", "flexstream"]
+  "plugins": ["solana-agent-kit", "flexit"]
 }
 ```
 
@@ -660,7 +660,7 @@ WHY SOLANA AGENT KIT:
 PLUGINS:
 ├── @solana-agent-kit/plugin-token
 ├── @solana-agent-kit/plugin-defi
-└── Custom FlexStream plugin (predictions, copy trading)
+└── Custom Flexit plugin (predictions, copy trading)
 ```
 
 ### Agent Architecture
@@ -689,7 +689,7 @@ PLUGINS:
 │                              │                                   │
 │                              ▼                                   │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │               FLEXSTREAM PLUGIN                             │ │
+│  │               FLEXIT PLUGIN                             │ │
 │  │  ├── Prediction Module (DFlow/Kalshi API)                   │ │
 │  │  ├── Social Module (Supabase integration)                   │ │
 │  │  ├── Content Module (auto-posting)                          │ │
@@ -708,7 +708,7 @@ DEPLOYMENT STRATEGY:
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                  │
 │   1. DOCKER BASE IMAGE                                           │
-│      └── Single ElizaOS image with FlexStream plugin             │
+│      └── Single ElizaOS image with Flexit plugin             │
 │                                                                  │
 │   2. STATE MANAGEMENT                                            │
 │      └── All 1,000 agents → single PostgreSQL/Supabase           │
@@ -813,7 +813,7 @@ Good trader gets copied → Earns passive income → Posts about earnings → Mo
 │                                                                 │
 │  ─────────────────────────────────────────────────────────────  │
 │                                                                 │
-│  FLEXSTREAM (7 Primitives Compounding):                         │
+│  FLEXIT (7 Primitives Compounding):                         │
 │  ├── Content (posts, videos)                                    │
 │  ├── Social (graph, feed)                                       │
 │  ├── Tokens (creator coins)                                     │
@@ -914,7 +914,7 @@ Social:
 ### Phase 5: Scale (Month 5+)
 ```
 ⬜ Mobile apps
-⬜ FlexStream protocol token
+⬜ Flexit protocol token
 ⬜ Developer API
 ⬜ Multi-chain expansion
 ⬜ Institutional features
@@ -1002,7 +1002,7 @@ CONVERGENCE MOMENT:
 2025: 50+ projects building prediction infra (we build social layer)
 2025: Copy trading demand → traders want monetization
 
-= PERFECT STORM FOR FLEXSTREAM
+= PERFECT STORM FOR FLEXIT
 ```
 
 ---

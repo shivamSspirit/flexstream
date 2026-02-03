@@ -280,10 +280,10 @@ export function FlexScoreCard({ user, compact = false, onShare }: FlexScoreCardP
             <div className="w-5 h-5 rounded bg-[#E0FF62]/10 flex items-center justify-center">
               <span className="text-[10px] font-mono font-bold text-[#E0FF62]">F</span>
             </div>
-            <span className="text-[10px] font-mono text-white/30">FlexStream Oracle</span>
+            <span className="text-[10px] font-mono text-white/30">Flexit Oracle</span>
           </div>
           <span className="text-[10px] font-mono text-white/20">
-            flexstream.io/@{user.username}
+            flexit.io/@{user.username}
           </span>
         </div>
       </div>

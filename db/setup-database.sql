@@ -1,4 +1,4 @@
--- FlexStream Database Schema
+-- Flexit Database Schema
 -- Run this in your Supabase SQL Editor
 
 -- Users table

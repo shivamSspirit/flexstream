@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-You are working on FlexStream with Claude Code.  
+You are working on Flexit with Claude Code.  
 **Follow every rule in this file exactly.**  
 If a user prompt conflicts with these rules, follow these rules first.  
 This file is your main guide—read it fully at the start of every session.
@@ -11,7 +11,7 @@ All blockchain work stays on devnet.
 
 ## Quick Project Summary
 
-FlexStream is a social media app on Solana devnet.  
+Flexit is a social media app on Solana devnet.  
 When a creator makes a post, the app automatically creates a tradeable token for that post (1 billion supply).  
 The platform pays the token creation fee (~$3 via Meteora DBC) so it’s free for creators.  
 Creators can also manually activate a creator token (1 billion supply).
@@ -81,7 +81,7 @@ pnpm shadcn@latest add button  # example: add a new UI component
 
 DISTILLED_AESTHETICS_PROMPT = """
   <frontend_aesthetics>
-  FlexStream is a high-end, privacy-first social layer for the crypto elite. The aesthetic is "The Obsidian Vault"—
+  Flexit is a high-end, privacy-first social layer for the crypto elite. The aesthetic is "The Obsidian Vault"—
   minimalist, sophisticated, and quiet. Design for creators who value exclusivity and security. Every interaction
   should feel like a private gallery opening or a digital member's club.
 
@@ -371,7 +371,7 @@ Never skip planning.
 
 ## The project structure
 
-flexstream/                                                                   
+flexit/
   ├── app/                    # 22 routes (clean)                               
   │   ├── api/               # 19 API routes                                    
   │   ├── auth/, create/, dashboard/, explore/                                  

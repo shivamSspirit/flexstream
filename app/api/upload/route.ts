@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage
-      .from('token-media')
-      .upload(uniqueFileName, fileBuffer, {
+      .from('flexstream')
+      .upload(`tokens/${uniqueFileName}`, fileBuffer, {
         contentType: file.type,
         upsert: true,
       });
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
 
     // 2. Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('token-media')
-      .getPublicUrl(uniqueFileName);
+      .from('flexstream')
+      .getPublicUrl(`tokens/${uniqueFileName}`);
 
     // 3. Return uploaded file public URL (token creation handled elsewhere)
     return NextResponse.json({

@@ -307,18 +307,30 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-app-bg">
-        <LoadingSpinner message="Loading post" submessage="Fetching content..." />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#050505' }}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-[#E0FF62] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Loading post...</p>
+        </div>
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-app-bg flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#050505' }}>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Post not found</h2>
-          <Button onClick={() => router.push('/')}>Go Home</Button>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-lg text-[14px] font-semibold"
+            style={{
+              background: 'linear-gradient(135deg, #E0FF62 0%, #c8e85a 100%)',
+              color: '#050505',
+            }}
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
@@ -337,7 +349,7 @@ export default function PostDetailPage() {
               {mediaView === 'image' && (
                 <>
                   {post.media_urls && post.media_urls.length > 0 ? (
-                    <div className="w-full bg-black/40 border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: '500px', maxHeight: '700px' }}>
+                    <div className="w-full rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: '500px', maxHeight: '700px', background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
                       <img
                         src={post.media_urls[0]}
                         alt={post.title}
@@ -346,8 +358,8 @@ export default function PostDetailPage() {
                       />
                     </div>
                   ) : (
-                    <div className="w-full bg-black/40 border border-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center" style={{ minHeight: '500px' }}>
-                      <SparklesIcon className="w-16 h-16 sm:w-24 sm:h-24 text-white/20" />
+                    <div className="w-full rounded-xl sm:rounded-2xl flex items-center justify-center" style={{ minHeight: '500px', background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                      <SparklesIcon className="w-16 h-16 sm:w-24 sm:h-24" style={{ color: 'rgba(224, 255, 98, 0.2)' }} />
                     </div>
                   )}
                 </>
@@ -355,9 +367,9 @@ export default function PostDetailPage() {
 
               {/* Chart View */}
               {mediaView === 'chart' && (
-                <div className="w-full bg-black/40 border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: '500px' }}>
+                <div className="w-full rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: '500px', background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
                   {/* Chart Header */}
-                  <div className="p-4 sm:p-6 border-b border-white/10">
+                  <div className="p-4 sm:p-6" style={{ borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold text-white mb-1">
@@ -371,7 +383,7 @@ export default function PostDetailPage() {
                             '...'
                           ) : poolInfo ? (
                             <>
-                              <span className="text-green-500">◆</span> {poolInfo.buyPrice.toFixed(9)} SOL
+                              <span style={{ color: '#E0FF62' }}>◆</span> {poolInfo.buyPrice.toFixed(9)} SOL
                             </>
                           ) : (
                             '0.000000000 SOL'
@@ -404,8 +416,8 @@ export default function PostDetailPage() {
                       {/* Grid lines */}
                       <defs>
                         <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+                          <stop offset="0%" stopColor="#E0FF62" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#E0FF62" stopOpacity="0.05" />
                         </linearGradient>
                       </defs>
 
@@ -431,7 +443,7 @@ export default function PostDetailPage() {
                       <path
                         d="M 0 250 Q 50 240 100 200 T 200 150 T 300 100 T 400 50"
                         fill="none"
-                        stroke="#10b981"
+                        stroke="#E0FF62"
                         strokeWidth="2"
                         strokeLinecap="round"
                       />
@@ -449,7 +461,7 @@ export default function PostDetailPage() {
                           cx={point.x}
                           cy={point.y}
                           r="4"
-                          fill="#10b981"
+                          fill="#E0FF62"
                           className="opacity-75"
                         />
                       ))}
@@ -457,21 +469,21 @@ export default function PostDetailPage() {
 
                     {/* Chart Stats Overlay */}
                     <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 grid grid-cols-3 gap-2 sm:gap-3">
-                      <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Market Cap</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">
+                      <div className="backdrop-blur-sm rounded-lg p-2 sm:p-3" style={{ background: 'rgba(5, 5, 5, 0.8)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-[10px] sm:text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Market Cap</p>
+                        <p className="text-xs sm:text-sm font-bold" style={{ color: '#FAFAFA' }}>
                           {loadingPoolInfo ? '...' : poolInfo ? `$${(poolInfo.marketCap / 1000).toFixed(2)}K` : '$0'}
                         </p>
                       </div>
-                      <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Liquidity</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">
+                      <div className="backdrop-blur-sm rounded-lg p-2 sm:p-3" style={{ background: 'rgba(5, 5, 5, 0.8)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-[10px] sm:text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Liquidity</p>
+                        <p className="text-xs sm:text-sm font-bold" style={{ color: '#FAFAFA' }}>
                           {loadingPoolInfo ? '...' : poolInfo ? `${poolInfo.liquidity.toFixed(2)} SOL` : '0 SOL'}
                         </p>
                       </div>
-                      <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                        <p className="text-white/60 text-[10px] sm:text-xs mb-0.5">Reserves</p>
-                        <p className="text-white text-xs sm:text-sm font-bold">
+                      <div className="backdrop-blur-sm rounded-lg p-2 sm:p-3" style={{ background: 'rgba(5, 5, 5, 0.8)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-[10px] sm:text-xs mb-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Reserves</p>
+                        <p className="text-xs sm:text-sm font-bold" style={{ color: '#FAFAFA' }}>
                           {loadingPoolInfo ? '...' : poolInfo ? `${poolInfo.virtualBaseReserves.toFixed(0)}` : '0'}
                         </p>
                       </div>
@@ -479,11 +491,11 @@ export default function PostDetailPage() {
                   </div>
 
                   {/* Chart Footer */}
-                  <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-white/10 bg-black/20">
+                  <div className="px-4 sm:px-6 py-3 sm:py-4" style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(5, 5, 5, 0.4)' }}>
                     <div className="flex items-center justify-between text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-white/60">Live Price</span>
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#E0FF62' }}></div>
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Live Price</span>
                       </div>
                       <div className="flex items-center gap-2 text-white/60">
                         <ClockIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -533,7 +545,7 @@ export default function PostDetailPage() {
               <div className="flex items-center gap-2 sm:gap-3">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white/10">
                   <AvatarImage src={post.user?.avatar_url} />
-                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white text-sm">
+                  <AvatarFallback className="text-white text-sm" style={{ background: 'linear-gradient(135deg, #2D1B4E 0%, #1a1a2e 100%)' }}>
                     {post.user?.username?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -587,22 +599,22 @@ export default function PostDetailPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-              <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
-                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Market Cap</p>
+              <div className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4" style={{ background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255, 255, 255, 0.06)' }}>
+                <p className="text-[10px] sm:text-xs mb-0.5 sm:mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Market Cap</p>
                 <p className="text-white text-sm sm:text-base md:text-lg font-bold">
                   {loadingPoolInfo ? (
                     '...'
                   ) : poolInfo ? (
                     <>
-                      <span className="text-green-500">◆</span> {poolInfo.marketCap >= 1000 ? `$${(poolInfo.marketCap / 1000).toFixed(2)}K` : `$${poolInfo.marketCap.toFixed(2)}`}
+                      <span style={{ color: '#E0FF62' }}>◆</span> {poolInfo.marketCap >= 1000 ? `$${(poolInfo.marketCap / 1000).toFixed(2)}K` : `$${poolInfo.marketCap.toFixed(2)}`}
                     </>
                   ) : (
                     '$0.00'
                   )}
                 </p>
               </div>
-              <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
-                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Liquidity (SOL)</p>
+              <div className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4" style={{ background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255, 255, 255, 0.06)' }}>
+                <p className="text-[10px] sm:text-xs mb-0.5 sm:mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Liquidity (SOL)</p>
                 <p className="text-white text-sm sm:text-base md:text-lg font-bold flex items-center gap-1">
                   {loadingPoolInfo ? (
                     '...'
@@ -613,8 +625,8 @@ export default function PostDetailPage() {
                   )}
                 </p>
               </div>
-              <div className="bg-black/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4 border border-white/10">
-                <p className="text-white/60 text-[10px] sm:text-xs mb-0.5 sm:mb-1">Price</p>
+              <div className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 md:p-4" style={{ background: 'rgba(18, 18, 18, 0.6)', border: '0.5px solid rgba(255, 255, 255, 0.06)' }}>
+                <p className="text-[10px] sm:text-xs mb-0.5 sm:mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Price</p>
                 <p className="text-white text-sm sm:text-base md:text-lg font-bold font-mono">
                   {loadingPoolInfo ? (
                     '...'
@@ -628,7 +640,7 @@ export default function PostDetailPage() {
             </div>
 
             {/* Trading Card with BUY Button */}
-            <div className="relative overflow-hidden rounded-2xl bg-black/95 border border-purple-500/30 backdrop-blur-xl p-6">
+            <div className="relative overflow-hidden rounded-2xl backdrop-blur-xl p-6" style={{ background: 'rgba(18, 18, 18, 0.8)', border: '0.5px solid rgba(255, 255, 255, 0.08)' }}>
               {/* Pool Status Badge */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-black text-white">Trade ${post.title?.substring(0, 10).toUpperCase()}</h3>
@@ -672,7 +684,18 @@ export default function PostDetailPage() {
               <button
                 onClick={() => setShowSwapModal(true)}
                 disabled={!post?.token_mint || !poolInfo}
-                className="group relative w-full px-8 py-5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 rounded-2xl font-black text-xl text-black shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="group relative w-full px-8 py-5 rounded-2xl font-black text-xl transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  background: 'linear-gradient(135deg, #E0FF62 0%, #c8e85a 100%)',
+                  color: '#050505',
+                  boxShadow: '0 8px 32px rgba(224, 255, 98, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(224, 255, 98, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(224, 255, 98, 0.25)';
+                }}
               >
                 {/* Shine effect */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shine" />
@@ -696,7 +719,7 @@ export default function PostDetailPage() {
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Add a comment..."
-                    className="bg-black/40 border border-white/10 text-white placeholder:text-white/40 h-12 sm:h-14 text-sm sm:text-base rounded-xl px-4 focus:border-purple-500/50 transition-all"
+                    className="bg-black/40 border border-white/10 text-white placeholder:text-white/40 h-12 sm:h-14 text-sm sm:text-base rounded-xl px-4 transition-all focus:border-[#E0FF62]/40 focus:ring-1 focus:ring-[#E0FF62]/20"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -732,7 +755,7 @@ export default function PostDetailPage() {
                   <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0">
                     <UserGroupIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                     <span className="hidden md:inline truncate text-[11px] sm:text-sm">Holders</span>
-                    <span className="inline-flex items-center justify-center min-w-[18px] sm:min-w-[20px] h-4 sm:h-5 text-[9px] sm:text-xs bg-purple-500/20 text-purple-300 px-1 sm:px-1.5 rounded-full font-bold border border-purple-500/30 shrink-0">6</span>
+                    <span className="inline-flex items-center justify-center min-w-[18px] sm:min-w-[20px] h-4 sm:h-5 text-[9px] sm:text-xs px-1 sm:px-1.5 rounded-full font-bold shrink-0" style={{ background: 'rgba(224, 255, 98, 0.15)', color: '#E0FF62', border: '0.5px solid rgba(224, 255, 98, 0.3)' }}>6</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger
@@ -778,7 +801,7 @@ export default function PostDetailPage() {
                       <div className="flex items-start gap-3 sm:gap-4">
                         <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 ring-2 ring-white/5">
                           <AvatarImage src={comment.user?.avatar_url} />
-                          <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white text-sm font-semibold">
+                          <AvatarFallback className="text-white text-sm font-semibold" style={{ background: 'linear-gradient(135deg, #2D1B4E 0%, #1a1a2e 100%)' }}>
                             {comment.user?.username?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
@@ -839,7 +862,7 @@ export default function PostDetailPage() {
                         <span className="text-white/60 text-sm sm:text-base font-medium">Contract Address</span>
                         <button
                           onClick={copyAddress}
-                          className="text-white font-mono text-sm sm:text-base hover:text-purple-400 transition-colors font-semibold flex items-center gap-2"
+                          className="text-white font-mono text-sm sm:text-base hover:text-[#E0FF62] transition-colors font-semibold flex items-center gap-2"
                         >
                           {post.token_mint.slice(0, 6)}...{post.token_mint.slice(-6)}
                           <DocumentDuplicateIcon className="w-4 h-4" />
@@ -851,7 +874,7 @@ export default function PostDetailPage() {
                   <div className="flex justify-between items-center gap-4 py-2">
                     <span className="text-white/60 text-sm sm:text-base font-medium">Network</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2D1B4E 0%, #E0FF62 100%)' }}>
                         <span className="text-white text-xs font-bold">S</span>
                       </div>
                       <span className="text-white text-sm sm:text-base font-semibold">Solana</span>
@@ -877,9 +900,9 @@ export default function PostDetailPage() {
                                   href={links.solscan}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                 >
-                                  <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                  <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                                   </svg>
                                   <span className="text-white text-sm font-semibold">Solscan</span>
@@ -890,9 +913,9 @@ export default function PostDetailPage() {
                                   href={links.dexscreener}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                 >
-                                  <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                   </svg>
                                   <span className="text-white text-sm font-semibold">DEXScreener</span>
@@ -903,9 +926,9 @@ export default function PostDetailPage() {
                                   href={links.solanaExplorer}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                 >
-                                  <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                   </svg>
                                   <span className="text-white text-sm font-semibold">Solana Explorer</span>
@@ -916,9 +939,9 @@ export default function PostDetailPage() {
                                   href={links.birdeye}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                 >
-                                  <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                   </svg>
@@ -930,9 +953,9 @@ export default function PostDetailPage() {
                                   href={links.coingecko}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                  className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                 >
-                                  <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                   <span className="text-white text-sm font-semibold">CoinGecko</span>
@@ -944,9 +967,9 @@ export default function PostDetailPage() {
                                     href={links.photon}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-purple-500/50 rounded-lg px-4 py-3 transition-all group"
+                                    className="flex items-center justify-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-[#E0FF62]/30 rounded-lg px-4 py-3 transition-all group"
                                   >
-                                    <svg className="w-5 h-5 text-white/80 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <svg className="w-5 h-5 text-white/80 group-hover:text-[#E0FF62] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                     <span className="text-white text-sm font-semibold">Photon</span>

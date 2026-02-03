@@ -296,7 +296,7 @@ export function SocialVerification({
             <p className="text-xs text-white/60 mt-1 leading-relaxed">
               Verified accounts earn up to <span className="text-accent-green font-semibold">+20 points</span> each.
               High follower counts add <span className="text-accent-cyan font-semibold">+5 to +15 bonus points</span>.
-              A higher trust score means better visibility and credibility on FlexStream.
+              A higher trust score means better visibility and credibility on Flexit.
             </p>
           </div>
         </div>

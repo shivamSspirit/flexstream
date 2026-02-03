@@ -93,7 +93,7 @@ export function TradingInterface({ poolAddress, tokenSymbol }: TradingInterfaceP
             <div>
               <CardTitle className="text-white text-xl">Quick Trade</CardTitle>
               <CardDescription className="text-gray-400">
-                Trade tokens directly in FlexStream
+                Trade tokens directly in Flexit
               </CardDescription>
             </div>
           </div>

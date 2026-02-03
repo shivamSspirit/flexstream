@@ -1,4 +1,4 @@
-# FlexStream Viral MVP - Nikita Bier Strategy
+# Flexit Viral MVP - Nikita Bier Strategy
 
 **Philosophy:** Ship ONE viral mechanic, not 10 features. Make users look good. Create FOMO. Make sharing dead simple.
 
@@ -29,14 +29,14 @@
 
 ---
 
-## 3 Viral Narratives for FlexStream
+## 3 Viral Narratives for Flexit
 
 ### Narrative 1: "TRADE YOUR FRIENDS" (Profile Stock Market)
 ```
 HOOK: "Your profile is a publicly traded stock"
 
 WHY IT'S VIRAL:
-├── EGO → "I'm worth $50K on FlexStream" (flex on Twitter)
+├── EGO → "I'm worth $50K on Flexit" (flex on Twitter)
 ├── FOMO → "My friend's stock is up 300% and I didn't buy"
 ├── COMPETITION → Leaderboard of most valuable creators
 ├── SOCIAL PROOF → Price = credibility signal
@@ -44,7 +44,7 @@ WHY IT'S VIRAL:
 
 SHARE TRIGGERS:
 ├── "I just hit $100K market cap 📈"
-├── "I'm in the Top 50 creators on FlexStream"
+├── "I'm in the Top 50 creators on Flexit"
 ├── "My token is up 47% today"
 └── "[Friend] just bought my token"
 
@@ -124,7 +124,7 @@ TIME: 2 days
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
-│                         FLEXSTREAM VIRAL MVP                                │
+│                         FLEXIT VIRAL MVP                                │
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │                                                                      │  │
@@ -218,7 +218,7 @@ MORNING (4 hours):
 │       └── Dynamic image with user's stats
 ├── [ ] Add "Share My Stats" button to profile
 │       └── Copies Twitter-ready text + image
-└── [ ] Create share URL: flexstream.io/u/[username]/card
+└── [ ] Create share URL: flexit.io/u/[username]/card
 
 AFTERNOON (4 hours):
 ├── [ ] Add "Someone bought your token" push notification
@@ -387,15 +387,15 @@ AFTERNOON (4 hours):
 │   +23.4%                                    │
 │   24H CHANGE                                │
 │                                             │
-│   #23 on FlexStream                         │
+│   #23 on Flexit                         │
 │                                             │
-│   flexstream.io                             │
+│   flexit.io                             │
 │                                             │
 └─────────────────────────────────────────────┘
 
 SHARE TEXT:
-"I'm worth $47K on FlexStream 📈
-Trade me: flexstream.io/u/username"
+"I'm worth $47K on Flexit 📈
+Trade me: flexit.io/u/username"
 ```
 
 ### 2. Prediction Challenge Card
@@ -410,7 +410,7 @@ Trade me: flexstream.io/u/username"
 │   "Will BTC hit $100K by March?"            │
 │                                             │
 │   WHO'S RIGHT?                              │
-│   flexstream.io/challenge/xyz               │
+│   flexit.io/challenge/xyz               │
 │                                             │
 └─────────────────────────────────────────────┘
 
@@ -439,7 +439,7 @@ Who's right? 👇"
 SHARE TEXT:
 "Just beat @friend in our prediction battle 🏆
 5-win streak, Flex Score 847
-Come at me: flexstream.io/u/username"
+Come at me: flexit.io/u/username"
 ```
 
 ---

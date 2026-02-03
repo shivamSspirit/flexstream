@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         category: 'image',
         creators: [],
       },
-      external_url: 'https://flexstream.app',
+      external_url: 'https://flexit.app',
     };
 
     /**

@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useWallet } from '@/hooks/useWalletCompat';
 import { useUser } from '@/contexts/UserContext';
 import {
   HomeIcon,
   MagnifyingGlassIcon,
   PlusIcon,
-  WalletIcon,
+  ChartBarSquareIcon,
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeSolidIcon,
   MagnifyingGlassIcon as SearchSolidIcon,
+  ChartBarSquareIcon as ChartBarSquareSolidIcon,
   UserCircleIcon as UserSolidIcon
 } from '@heroicons/react/24/solid';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -36,7 +37,6 @@ export function MobileNav() {
 
 function MobileNavInner() {
   const pathname = usePathname();
-  const router = useRouter();
   const { publicKey } = useWallet();
   const [createPressed, setCreatePressed] = useState(false);
 
@@ -47,11 +47,6 @@ function MobileNavInner() {
   const getProfileUrl = () => {
     if (!publicKey) return '/profile';
     return `/profile/${publicKey.toBase58()}`;
-  };
-
-  const handleWalletClick = () => {
-    const profileUrl = getProfileUrl();
-    router.push(`${profileUrl}?tab=wallet`);
   };
 
   const handleCreateClick = () => {
@@ -84,12 +79,11 @@ function MobileNavInner() {
       isSpecial: true
     },
     {
-      icon: WalletIcon,
-      activeIcon: WalletIcon,
-      path: null,
-      active: pathname.startsWith('/profile') && pathname.includes('wallet'),
-      label: 'Wallet',
-      isWallet: true
+      icon: ChartBarSquareIcon,
+      activeIcon: ChartBarSquareSolidIcon,
+      path: '/predictions',
+      active: pathname.startsWith('/predictions'),
+      label: 'Predictions'
     },
     {
       icon: UserCircleIcon,
@@ -167,36 +161,6 @@ function MobileNavInner() {
                   />
                 </div>
               </Link>
-            );
-          }
-
-          // Wallet button
-          if (item.isWallet) {
-            return (
-              <button
-                key={item.label}
-                onClick={handleWalletClick}
-                type="button"
-                className={cn(
-                  'relative flex items-center justify-center w-12 h-12 rounded-xl',
-                  'transition-all duration-150 active:scale-90'
-                )}
-                style={{
-                  background: item.active ? 'rgba(224, 255, 98, 0.1)' : 'transparent',
-                  border: item.active ? '1px solid rgba(224, 255, 98, 0.3)' : '1px solid transparent',
-                  color: item.active ? '#E0FF62' : 'rgba(255, 255, 255, 0.5)',
-                }}
-                aria-label={item.label}
-              >
-                <Icon className="w-6 h-6" />
-                {/* Active Indicator */}
-                {item.active && (
-                  <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 rounded-t-full"
-                    style={{ background: '#E0FF62', boxShadow: '0 0 8px rgba(224, 255, 98, 0.5)' }}
-                  />
-                )}
-              </button>
             );
           }
 

@@ -8,9 +8,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { SwipeableMarketCards } from '@/components/predictions/SwipeableMarketCard';
 import { cn } from '@/lib/utils';
 
-// Hook to detect mobile vs desktop
+// Hook to detect mobile vs desktop with SSR-safe mounting
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -251,7 +251,7 @@ function MarketCard({ market, index }: { market: Market; index: number }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DROPDOWN COMPONENT
+// COMPACT DROPDOWN — Mobile-optimized
 // ═══════════════════════════════════════════════════════════════════════════════
 function Dropdown({
   label,
@@ -270,24 +270,24 @@ function Dropdown({
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/70 bg-[#1a1a1a] border border-white/[0.08] rounded-md hover:border-white/[0.15] transition-colors"
+        className="flex items-center gap-1 px-2 py-1 text-[11px] sm:text-xs text-white/60 bg-white/[0.04] border border-white/[0.08] rounded-md hover:border-white/[0.15] transition-colors"
       >
-        {label}
-        <svg className="w-3 h-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="truncate max-w-[70px] sm:max-w-none">{label}</span>
+        <svg className="w-2.5 h-2.5 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 py-1 bg-[#1a1a1a] border border-white/[0.1] rounded-md shadow-xl z-50 min-w-[150px]">
+          <div className="absolute top-full left-0 mt-1 py-1 bg-[#1a1a1a] border border-white/[0.1] rounded-md shadow-xl z-50 min-w-[120px]">
             {options.map((opt) => (
               <button
                 key={opt.id}
                 onClick={() => { onChange(opt.id); setOpen(false); }}
                 className={cn(
-                  "w-full px-3 py-1.5 text-left text-sm transition-colors",
-                  value === opt.id ? "text-teal-400 bg-teal-400/10" : "text-white/70 hover:bg-white/[0.05]"
+                  "w-full px-2.5 py-1.5 text-left text-[11px] sm:text-xs transition-colors",
+                  value === opt.id ? "text-cyan-400 bg-cyan-400/10" : "text-white/70 hover:bg-white/[0.05]"
                 )}
               >
                 {opt.label}
@@ -320,17 +320,41 @@ export default function PredictionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Track if user has started interacting (to prevent data swap mid-swipe)
+  const hasInteractedRef = useRef(false);
+  const initialLoadDoneRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
-    // Load mock data immediately on client
-    const mockData = getMockMarkets();
-    setMarkets(mockData);
-    setLoading(false);
-
-    // Then try to fetch from Kalshi
     const fetchMarkets = async () => {
       try {
+        // Check cache first (only for initial load)
+        if (marketsCache.data && Date.now() - marketsCache.timestamp < CACHE_DURATION) {
+          if (!initialLoadDoneRef.current) {
+            setMarkets(marketsCache.data);
+            setLoading(false);
+            initialLoadDoneRef.current = true;
+          }
+          return;
+        }
+
+        // Show mock data immediately on initial load (fast time-to-content)
+        // This ensures users always see something right away
+        if (!initialLoadDoneRef.current) {
+          const mockData = getMockMarkets();
+          setMarkets(mockData);
+          setLoading(false);
+          initialLoadDoneRef.current = true;
+
+          // Cache mock data as fallback
+          if (!marketsCache.data) {
+            marketsCache.data = mockData;
+            marketsCache.timestamp = Date.now();
+          }
+        }
+
+        // Now try to fetch real Kalshi data in background
         const response = await fetch('/api/kalshi?endpoint=/markets&status=open&limit=100');
         const result = await response.json();
 
@@ -339,32 +363,38 @@ export default function PredictionsPage() {
         if (result.success && result.data?.markets) {
           const cleanMarkets = result.data.markets.filter((m: Market) => {
             const title = m.title || '';
-            // Filter out sports parlay garbage data
+            // Filter out sports parlays and garbage data
             const isGarbage = (
               (title.match(/yes /gi) || []).length > 2 ||
               (title.match(/\d+\+/g) || []).length > 1 ||
-              (title.match(/:/g) || []).length > 2
+              (title.match(/:/g) || []).length > 2 ||
+              title.toLowerCase().includes('parlay')
             );
             return !isGarbage;
           });
 
-          // Only use Kalshi data if we have enough valid markets
+          // Only update if we have good Kalshi data
           if (cleanMarkets.length >= 5) {
+            // Update cache
             marketsCache.data = cleanMarkets;
             marketsCache.timestamp = Date.now();
-            setMarkets(cleanMarkets);
+
+            // Only update state if user hasn't started swiping
+            if (!hasInteractedRef.current) {
+              setMarkets(cleanMarkets);
+            }
           }
+          // If less than 5 valid markets, keep the mock data that's already showing
         }
       } catch (err) {
-        console.error('Failed to fetch markets:', err);
-        // Keep mock data on error
+        console.error('Failed to fetch Kalshi markets, using mock data:', err);
+        // On error, mock data is already loaded so no action needed
       }
     };
 
-    // Fetch Kalshi data in background
     fetchMarkets();
 
-    // Refresh every 60 seconds
+    // Refresh every 60 seconds (but won't disrupt user if they're interacting)
     const interval = setInterval(fetchMarkets, 60000);
 
     return () => {
@@ -427,9 +457,10 @@ export default function PredictionsPage() {
 
   // Handle bet from swipe
   const handleSwipeBet = (market: Market, side: 'yes' | 'no') => {
+    // Mark that user has interacted - prevents data refresh from disrupting
+    hasInteractedRef.current = true;
     console.log(`Bet ${side.toUpperCase()} on: ${market.title}`);
     // TODO: Integrate with actual betting logic
-    // For now, could show a toast or navigate to bet confirmation
   };
 
   return (
@@ -494,46 +525,51 @@ export default function PredictionsPage() {
           </div>
         </div>
 
-        {/* Filters Row */}
+        {/* Filters Row — Compact inline layout */}
         <div className="border-b border-white/[0.04]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
+            <div className="flex items-center justify-between gap-2">
+              {/* Dropdowns */}
+              <div className="flex items-center gap-1.5">
                 <Dropdown
-                  label={sortBy === 'volume' ? 'Trending' : sortBy === 'newest' ? 'Newest' : 'Closing Soon'}
+                  label={sortBy === 'volume' ? 'Hot' : sortBy === 'newest' ? 'New' : 'Ending'}
                   options={[
-                    { id: 'volume', label: 'Trending' },
-                    { id: 'newest', label: 'Newest' },
-                    { id: 'closing', label: 'Closing Soon' },
+                    { id: 'volume', label: 'Hot' },
+                    { id: 'newest', label: 'New' },
+                    { id: 'closing', label: 'Ending' },
                   ]}
                   value={sortBy}
                   onChange={setSortBy}
                 />
                 <Dropdown
-                  label={marketStatus === 'open' ? 'Open markets' : 'Resolved'}
+                  label={marketStatus === 'open' ? 'Open' : 'Closed'}
                   options={[
-                    { id: 'open', label: 'Open markets' },
-                    { id: 'closed', label: 'Resolved' },
+                    { id: 'open', label: 'Open' },
+                    { id: 'closed', label: 'Closed' },
                   ]}
                   value={marketStatus}
                   onChange={setMarketStatus}
                 />
               </div>
-              <div className="text-xs text-white/30">
-                {filteredMarkets.length} markets • {formatLargeNumber(totalVolume)} volume
+              {/* Stats — Hidden on very small, compact on mobile */}
+              <div className="text-[10px] sm:text-xs text-white/30 whitespace-nowrap">
+                <span className="hidden sm:inline">{filteredMarkets.length} markets • </span>
+                <span className="font-mono">{formatLargeNumber(totalVolume)}</span>
+                <span className="hidden sm:inline"> vol</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Markets - Mobile Swipe or Desktop Grid */}
-        {loading ? (
+        {loading || isMobile === null ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-teal-500/30 border-t-teal-500 rounded-full animate-spin" />
           </div>
         ) : isMobile ? (
           /* Mobile: Tinder-style swipe interface */
           <SwipeableMarketCards
+            key={`${activeCategory}-${sortBy}-${marketStatus}-${searchQuery}`}
             markets={filteredMarkets}
             onBet={handleSwipeBet}
           />

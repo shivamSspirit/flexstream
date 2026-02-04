@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
+// Kalshi API endpoints (try main API first, fallback to elections)
+const KALSHI_MAIN_API = 'https://api.kalshi.com/trade-api/v2';
+const KALSHI_ELECTIONS_API = 'https://api.elections.kalshi.com/trade-api/v2';
 
 /**
  * API Route to proxy Kalshi requests
@@ -28,16 +30,30 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const kalshiUrl = `${KALSHI_API_BASE}${endpoint}${kalshiParams.toString() ? `?${kalshiParams.toString()}` : ''}`;
+    const paramString = kalshiParams.toString() ? `?${kalshiParams.toString()}` : '';
 
-    const response = await fetch(kalshiUrl, {
+    // Try main Kalshi API first
+    let response = await fetch(`${KALSHI_MAIN_API}${endpoint}${paramString}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Flexit/1.0',
       },
-      next: { revalidate: 30 }, // Cache for 30 seconds
+      next: { revalidate: 60 }, // Cache for 60 seconds
     });
+
+    // If main API fails, try elections API
+    if (!response.ok) {
+      console.log('Main Kalshi API failed, trying elections API...');
+      response = await fetch(`${KALSHI_ELECTIONS_API}${endpoint}${paramString}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Flexit/1.0',
+        },
+        next: { revalidate: 60 },
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

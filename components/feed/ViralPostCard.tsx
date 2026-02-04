@@ -334,25 +334,27 @@ export function ViralPostCard({
         }}
       >
         {/* ═══════════════════════════════════════════════════════════════════
-            HEADER — Creator + Token Badge + Live Status
+            HEADER — Viral Mobile-First Layout
+            Row 1: Avatar + Name/Handle | Options Menu
+            Row 2 (mobile only): Token + Viewers + Time
             ═══════════════════════════════════════════════════════════════════ */}
-        <div className="flex items-center justify-between p-4 pb-3">
-          {/* Creator Info */}
-          <Link
-            href={`/profile/${post.creator.username}`}
-            className="flex items-center gap-3 min-w-0 flex-1"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="px-3 sm:px-4 pt-3 pb-2 sm:pt-4 sm:pb-3">
+          {/* Main row: Avatar + Info + Desktop badges + Options */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Avatar */}
-            <div className="relative flex-shrink-0">
+            <Link
+              href={`/profile/${post.creator.username}`}
+              className="relative flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div
-                className="w-10 h-10 rounded-full overflow-hidden transition-transform duration-200 hover:scale-105"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden transition-transform duration-150 hover:scale-105"
                 style={{
                   border: post.creator.isWhale
-                    ? '2px solid #14b8a6'
+                    ? '2px solid #00F0FF'
                     : '1.5px solid rgba(255, 255, 255, 0.12)',
                   boxShadow: post.creator.isWhale
-                    ? '0 0 12px rgba(20, 184, 166, 0.3)'
+                    ? '0 0 12px rgba(0, 240, 255, 0.3)'
                     : 'none',
                 }}
               >
@@ -366,7 +368,7 @@ export function ViralPostCard({
                   <div
                     className="w-full h-full flex items-center justify-center text-sm font-bold"
                     style={{
-                      background: 'linear-gradient(135deg, #E0FF62 0%, #14b8a6 100%)',
+                      background: 'linear-gradient(135deg, #00F0FF 0%, #FF2D92 100%)',
                       color: '#050505',
                     }}
                   >
@@ -379,52 +381,136 @@ export function ViralPostCard({
                 <div
                   className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px]"
                   style={{
-                    background: '#14b8a6',
+                    background: '#00F0FF',
                     border: '2px solid #121212',
                   }}
                 >
                   🐋
                 </div>
               )}
-            </div>
+            </Link>
 
-            {/* Name + Handle */}
-            <div className="min-w-0 flex-1">
+            {/* Name + Handle — Desktop shows time inline */}
+            <Link
+              href={`/profile/${post.creator.username}`}
+              className="min-w-0 flex-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-1.5">
-                <span className="text-[14px] font-semibold truncate" style={{ color: '#FAFAFA' }}>
+                <span className="text-[14px] sm:text-[15px] font-semibold truncate hover:text-[#00F0FF] transition-colors duration-150" style={{ color: '#FAFAFA' }}>
                   {post.creator.displayName}
                 </span>
                 {post.creator.isVerified && (
-                  <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#E0FF62">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#00F0FF">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
-                  @{post.creator.username}
-                </span>
-                <span className="text-[10px]" style={{ color: 'rgba(255, 255, 255, 0.25)' }}>
-                  •
-                </span>
-                <span
-                  className="text-[11px]"
-                  style={{ color: 'rgba(255, 255, 255, 0.35)' }}
-                >
-                  {formatTimeAgo(post.createdAt)}
+                {/* Desktop: Time inline */}
+                <span className="hidden sm:inline-flex items-center gap-1 text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>•</span>
+                  <span>{formatTimeAgo(post.createdAt)}</span>
                 </span>
               </div>
-            </div>
-          </Link>
+              <span className="text-[11px] sm:text-[12px] truncate block mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+                @{post.creator.username}
+              </span>
+            </Link>
 
-          {/* Token Badge + Live Status + Viewers */}
+            {/* Right side: Desktop badges + Options */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              {/* Desktop: Viewers */}
+              {hasToken && (
+                <div
+                  className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md"
+                  style={{ background: 'rgba(255, 255, 255, 0.04)' }}
+                  title="People viewing"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.5)"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-[10px] font-mono" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {formatNumber(post.viewersCount || Math.floor(Math.random() * 200) + 10)}
+                  </span>
+                </div>
+              )}
+
+              {/* Desktop: Live Indicator */}
+              {hasToken && isLive && (
+                <div
+                  className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full"
+                  style={{ background: 'rgba(16, 185, 129, 0.15)' }}
+                >
+                  <LivePulse size={5} />
+                  <span className="text-[9px] font-bold tracking-wider" style={{ color: '#10b981' }}>
+                    LIVE
+                  </span>
+                </div>
+              )}
+
+              {/* Desktop: Token Pill */}
+              {hasToken && (
+                <button
+                  onClick={handleTrade}
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all duration-150 hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'rgba(0, 240, 255, 0.1)',
+                    border: '0.5px solid rgba(0, 240, 255, 0.2)',
+                  }}
+                >
+                  <span className="text-[10px] font-bold" style={{ color: '#00F0FF', textShadow: '0 0 10px rgba(0, 240, 255, 0.4)' }}>
+                    ${post.token!.symbol}
+                  </span>
+                </button>
+              )}
+
+              {/* Options Menu — Always visible */}
+              {hasToken && (
+                <PostOptionsMenu tokenAddress={post.token!.mint} postId={post.id}>
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded-lg transition-all duration-150 hover:bg-white/[0.06] active:scale-95"
+                    style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+                  >
+                    <MoreHorizontal className="w-5 h-5" strokeWidth={2} />
+                  </button>
+                </PostOptionsMenu>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ Mobile-only: Metadata Row ═══
+              Clean horizontal strip — left aligned for clean look
+              Token | Viewers | Time
+          */}
           {hasToken && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Viewers Count - Small */}
-              <div
-                className="flex items-center gap-1"
-                title="People viewing"
+            <div className="flex sm:hidden items-center mt-2 ml-3">
+              {/* Token Pill — Primary action feel */}
+              <button
+                onClick={handleTrade}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-150 active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(0, 240, 255, 0.08) 100%)',
+                  border: '1px solid rgba(0, 240, 255, 0.25)',
+                  boxShadow: '0 0 12px rgba(0, 240, 255, 0.1)',
+                }}
               >
+                <span className="text-[11px] font-bold tracking-tight" style={{ color: '#00F0FF' }}>
+                  ${post.token!.symbol}
+                </span>
+              </button>
+
+              {/* Separator dot */}
+              <span className="mx-2 text-[8px]" style={{ color: 'rgba(255, 255, 255, 0.15)' }}>•</span>
+
+              {/* Viewers — Subtle pill */}
+              <div className="flex items-center gap-1">
                 <svg
                   className="w-3.5 h-3.5"
                   fill="none"
@@ -435,71 +521,35 @@ export function ViralPostCard({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-[11px] font-mono" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                <span className="text-[11px] font-medium tabular-nums" style={{ color: 'rgba(255, 255, 255, 0.45)' }}>
                   {formatNumber(post.viewersCount || Math.floor(Math.random() * 200) + 10)}
                 </span>
               </div>
 
-              {/* Live Indicator */}
-              {isLive && (
-                <div
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-full"
-                  style={{ background: 'rgba(16, 185, 129, 0.15)' }}
-                >
-                  <LivePulse size={5} />
-                  <span className="text-[9px] font-bold tracking-wider" style={{ color: '#10b981' }}>
-                    LIVE
-                  </span>
-                </div>
-              )}
+              {/* Separator dot */}
+              <span className="mx-2 text-[8px]" style={{ color: 'rgba(255, 255, 255, 0.15)' }}>•</span>
 
-              {/* Token Pill */}
-              <button
-                onClick={handleTrade}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{
-                  background: 'rgba(224, 255, 98, 0.1)',
-                  border: '1px solid rgba(224, 255, 98, 0.25)',
-                }}
+              {/* Time — Clean, readable */}
+              <span
+                className="text-[11px] font-medium"
+                style={{ color: 'rgba(255, 255, 255, 0.4)' }}
               >
-                <span className="text-[11px] font-bold tracking-wide" style={{ color: '#E0FF62' }}>
-                  ${post.token!.symbol}
-                </span>
-              </button>
+                {formatTimeAgo(post.createdAt)}
+              </span>
 
-              {/* Three-dot Menu */}
-              <PostOptionsMenu tokenAddress={post.token!.mint} postId={post.id}>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 rounded-md transition-all duration-200 hover:bg-white/[0.08] active:scale-95"
-                  style={{ color: 'rgba(255, 255, 255, 0.4)' }}
-                >
-                  <MoreHorizontal className="w-4 h-4" strokeWidth={2} />
-                </button>
-              </PostOptionsMenu>
+              {/* Live indicator (if applicable) — at the end */}
+              {isLive && (
+                <>
+                  <span className="mx-2 text-[8px]" style={{ color: 'rgba(255, 255, 255, 0.15)' }}>•</span>
+                  <div className="flex items-center gap-1">
+                    <LivePulse size={5} />
+                    <span className="text-[9px] font-bold tracking-wider" style={{ color: '#10b981' }}>
+                      LIVE
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            CONTENT — Title + Text
-            ═══════════════════════════════════════════════════════════════════ */}
-        <div className="px-4 pb-3 cursor-pointer" onClick={handlePostClick}>
-          {post.title && (
-            <h3
-              className="text-[15px] font-semibold mb-1.5 leading-snug"
-              style={{ color: '#FAFAFA' }}
-            >
-              {post.title}
-            </h3>
-          )}
-          {post.content && (
-            <p
-              className="text-[14px] leading-relaxed line-clamp-2"
-              style={{ color: 'rgba(255, 255, 255, 0.75)' }}
-            >
-              {post.content}
-            </p>
           )}
         </div>
 
@@ -509,9 +559,9 @@ export function ViralPostCard({
             ═══════════════════════════════════════════════════════════════════ */}
         {post.mediaUrl && (
           <div
-            className="relative mx-4 mb-3 rounded-xl overflow-hidden cursor-pointer group/media"
+            className="relative mx-3 sm:mx-4 mt-3 mb-3 rounded-xl overflow-hidden cursor-pointer group/media"
             onClick={handlePostClick}
-            style={{ aspectRatio: '16/10' }}
+            style={{ aspectRatio: '3/4' }}
           >
             {/* ═══ THE MEDIA — Full, Rich, Unobstructed ═══ */}
             {post.mediaType === 'video' ? (
@@ -831,21 +881,45 @@ export function ViralPostCard({
 
           </div>
 
-          {/* Right: Trade Button */}
+          {/* Right: Trade Button — Cute & compact on mobile */}
           {hasToken && (
             <button
               onClick={handleTrade}
-              className="px-5 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-200 active:scale-95 hover:shadow-lg"
+              className="px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-full sm:rounded-lg text-[11px] sm:text-[13px] font-bold transition-all duration-200 active:scale-95 hover:shadow-lg"
               style={{
                 background: 'linear-gradient(135deg, #E0FF62 0%, #c8e85a 100%)',
                 color: '#050505',
-                boxShadow: '0 0 20px rgba(224, 255, 98, 0.15)',
+                boxShadow: '0 0 16px rgba(224, 255, 98, 0.2)',
               }}
             >
               Trade
             </button>
           )}
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            CONTENT — Title + Description (moved to bottom for mobile-first)
+            ═══════════════════════════════════════════════════════════════════ */}
+        {(post.title || post.content) && (
+          <div className="px-3 sm:px-4 pb-2 cursor-pointer" onClick={handlePostClick}>
+            {post.title && (
+              <h3
+                className="text-[14px] sm:text-[15px] font-semibold mb-1 leading-snug"
+                style={{ color: '#FAFAFA' }}
+              >
+                {post.title}
+              </h3>
+            )}
+            {post.content && (
+              <p
+                className="text-[13px] sm:text-[14px] leading-relaxed line-clamp-2"
+                style={{ color: 'rgba(255, 255, 255, 0.6)' }}
+              >
+                {post.content}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════
             COMMENTS PREVIEW — Below engagement, hookable

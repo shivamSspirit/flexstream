@@ -131,3 +131,22 @@ tests/e2e/fixtures/.auth-state.json
 tests/e2e/screenshots/
 test-results/
 playwright-report/
+
+# Markdown files (documentation generated separately)
+*.md
+!README.md
+
+# Claude Code
+.claude/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Screenshots in root
+*.png
+
+# Skill files
+*.skill
+
+# Vercel
+.vercel/

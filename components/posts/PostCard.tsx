@@ -77,71 +77,13 @@ export function PostCard({ post }: PostCardProps) {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* ════════════════════════════════════════════════════════════════
-            HEADER — Creator + Live Activity (Mobile-First Design)
-            Top-right corner positioning for badges
+            HEADER — Viral Mobile-First Layout
+            Row 1: Avatar + Name/Handle | Options Menu
+            Row 2 (mobile only): Token badge + Eye count + Time
             ════════════════════════════════════════════════════════════════ */}
-        <header className="relative px-3 sm:px-4 pt-2.5 pb-2 sm:pt-3 sm:pb-2.5">
-          {/* ═══════════════════════════════════════════════════════════════
-              TOP-RIGHT BADGES — "Whisper" micro-indicators
-              Luxury watch complication aesthetic: tiny, precise, elegant
-              ═══════════════════════════════════════════════════════════════ */}
-          <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-3 flex items-center gap-0.5 sm:gap-1">
-            {/* Viewers — Ghost badge, almost invisible */}
-            {post.token_mint && (
-              <div
-                className="flex items-center gap-px px-1 py-px rounded-sm backdrop-blur-sm"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '0.5px solid rgba(255, 255, 255, 0.04)'
-                }}
-              >
-                <Eye
-                  className="w-[7px] h-[7px] sm:w-2.5 sm:h-2.5"
-                  style={{ color: '#4A4A50' }}
-                  strokeWidth={2.5}
-                />
-                <span
-                  className="text-[7px] sm:text-[10px] tabular-nums"
-                  style={{
-                    color: '#5A5A60',
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    letterSpacing: '-0.02em',
-                    fontWeight: 500
-                  }}
-                >
-                  {metrics.viewers}
-                </span>
-              </div>
-            )}
-            {/* Token Ticker — Mint whisper pill */}
-            {post.token_mint && (
-              <button
-                onClick={() => setShowSwapModal(true)}
-                className="px-1 sm:px-2 py-px sm:py-0.5 rounded-sm text-[7px] sm:text-[10px] font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{
-                  background: 'rgba(224, 255, 98, 0.08)',
-                  color: '#C4E650',
-                  border: '0.5px solid rgba(224, 255, 98, 0.15)',
-                  letterSpacing: '-0.01em',
-                  textShadow: '0 0 8px rgba(224, 255, 98, 0.3)'
-                }}
-              >
-                ${post.token_display_name || post.token_symbol}
-              </button>
-            )}
-            {/* Options — Three-dot menu with scanner links */}
-            <PostOptionsMenu tokenAddress={post.token_mint} postId={post.id}>
-              <button
-                className="p-1 sm:p-1.5 rounded-md transition-all duration-200 hover:bg-white/[0.08] active:scale-95"
-                style={{ color: '#5A5A60' }}
-              >
-                <MoreHorizontal className="w-4 h-4 sm:w-4 sm:h-4" strokeWidth={2.5} />
-              </button>
-            </PostOptionsMenu>
-          </div>
-
-          {/* Left side: Avatar + Name + Handle */}
-          <div className="flex items-center gap-2.5 sm:gap-3 pr-28 sm:pr-36">
+        <header className="px-3 sm:px-4 pt-3 pb-2 sm:pt-3.5 sm:pb-2.5">
+          {/* Main row: Avatar + Info + Options */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Avatar with online indicator */}
             <div
               className="relative flex-shrink-0 cursor-pointer"
@@ -163,41 +105,136 @@ export function PostCard({ post }: PostCardProps) {
               <div
                 className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse"
                 style={{
-                  background: '#E0FF62',
+                  background: '#00F0FF',
                   border: '2px solid #0A0A0B',
+                  boxShadow: '0 0 8px rgba(0, 240, 255, 0.4)'
                 }}
               />
             </div>
 
-            {/* Name + Handle + Time - Stacked layout */}
+            {/* Name + Handle — Desktop shows time inline */}
             <div
               className="flex-1 min-w-0 cursor-pointer"
               onClick={() => router.push(`/profile/${post.user?.username}`)}
             >
               {/* Name row */}
-              <span
-                className="text-[14px] sm:text-[15px] font-semibold truncate block hover:text-[#E0FF62] transition-colors"
-                style={{ color: '#F5F5F5', letterSpacing: '-0.01em', lineHeight: '1.3' }}
-              >
-                {post.user?.display_name}
-              </span>
-              {/* Handle + Time row */}
-              <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
+              <div className="flex items-center gap-1.5">
                 <span
-                  className="text-[10px] sm:text-[12px] truncate"
-                  style={{ color: '#6A6A70' }}
+                  className="text-[14px] sm:text-[15px] font-semibold truncate hover:text-[#00F0FF] transition-colors duration-150"
+                  style={{ color: '#F5F5F5', letterSpacing: '-0.01em', lineHeight: '1.3' }}
                 >
-                  @{post.user?.username}
+                  {post.user?.display_name}
                 </span>
-                <span className="text-[8px] sm:text-[10px]" style={{ color: '#3A3A40' }}>•</span>
-                <span
-                  className="text-[9px] sm:text-[11px]"
-                  style={{ color: '#5A5A60', fontFamily: "'IBM Plex Mono', monospace" }}
-                >
-                  {formatTimeAgo(post.created_at)}
+                {/* Desktop: Time shown inline */}
+                <span className="hidden sm:inline-flex items-center gap-1 text-[11px]" style={{ color: '#5A5A60' }}>
+                  <span style={{ color: '#3A3A40' }}>•</span>
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                    {formatTimeAgo(post.created_at)}
+                  </span>
                 </span>
               </div>
+              {/* Handle row */}
+              <span
+                className="text-[11px] sm:text-[12px] truncate block mt-0.5"
+                style={{ color: '#6A6A70' }}
+              >
+                @{post.user?.username}
+              </span>
             </div>
+
+            {/* Right side: Desktop badges + Options */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              {/* Desktop: Viewers badge */}
+              {post.token_mint && (
+                <div
+                  className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md backdrop-blur-sm"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '0.5px solid rgba(255, 255, 255, 0.06)'
+                  }}
+                >
+                  <Eye className="w-3 h-3" style={{ color: '#5A5A60' }} strokeWidth={2} />
+                  <span
+                    className="text-[10px] tabular-nums"
+                    style={{
+                      color: '#6A6A70',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontWeight: 500
+                    }}
+                  >
+                    {metrics.viewers}
+                  </span>
+                </div>
+              )}
+
+              {/* Desktop: Token ticker */}
+              {post.token_mint && (
+                <button
+                  onClick={() => setShowSwapModal(true)}
+                  className="hidden sm:block px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all duration-150 hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'rgba(0, 240, 255, 0.1)',
+                    color: '#00F0FF',
+                    border: '0.5px solid rgba(0, 240, 255, 0.2)',
+                    textShadow: '0 0 12px rgba(0, 240, 255, 0.4)'
+                  }}
+                >
+                  ${post.token_display_name || post.token_symbol}
+                </button>
+              )}
+
+              {/* Options menu — Always visible */}
+              <PostOptionsMenu tokenAddress={post.token_mint} postId={post.id}>
+                <button
+                  className="p-1.5 rounded-lg transition-all duration-150 hover:bg-white/[0.06] active:scale-95"
+                  style={{ color: '#5A5A60' }}
+                >
+                  <MoreHorizontal className="w-5 h-5" strokeWidth={2} />
+                </button>
+              </PostOptionsMenu>
+            </div>
+          </div>
+
+          {/* Mobile-only: Second row with Token + Viewers + Time */}
+          <div className="flex sm:hidden items-center gap-2 mt-2 pl-[52px]">
+            {/* Token ticker pill */}
+            {post.token_mint && (
+              <button
+                onClick={() => setShowSwapModal(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all duration-150 active:scale-95"
+                style={{
+                  background: 'rgba(0, 240, 255, 0.1)',
+                  color: '#00F0FF',
+                  border: '0.5px solid rgba(0, 240, 255, 0.2)',
+                }}
+              >
+                ${post.token_display_name || post.token_symbol}
+              </button>
+            )}
+
+            {/* Viewers count */}
+            {post.token_mint && (
+              <div
+                className="flex items-center gap-1 px-1.5 py-1 rounded-md"
+                style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+              >
+                <Eye className="w-3 h-3" style={{ color: '#5A5A60' }} strokeWidth={2} />
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: '#6A6A70', fontFamily: "'IBM Plex Mono', monospace" }}
+                >
+                  {metrics.viewers}
+                </span>
+              </div>
+            )}
+
+            {/* Time — always visible on mobile */}
+            <span
+              className="text-[10px] ml-auto"
+              style={{ color: '#5A5A60', fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              {formatTimeAgo(post.created_at)}
+            </span>
           </div>
         </header>
 

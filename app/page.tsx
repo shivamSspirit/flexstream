@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { MainHeader } from '@/components/layout/MainHeader';
 import { useWallet } from '@/hooks/useWalletCompat';
 import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, Suspense, useState, useMemo, useCallback } from 'react';
@@ -10,9 +11,6 @@ import { usePosts, Post } from '@/hooks/usePosts';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { useLeaderboard, LeaderboardTrader } from '@/hooks/useLeaderboard';
 import { ViralPostCard as NewViralPostCard, ViralPostData } from '@/components/feed/ViralPostCard';
-import { Bell, Search } from 'lucide-react';
-import { PrivyWalletButton } from '@/components/wallet/PrivyWalletButton';
-import { CommandPalette, useCommandPalette } from '@/components/search/CommandPalette';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FLEXIT — VIRAL LANDING PAGE (SAME FOR ALL USERS)
@@ -1367,9 +1365,6 @@ function MainFeed() {
   const [activeTab, setActiveTab] = useState<'general' | 'predictions'>('general');
   const [moneyFlowIndex, setMoneyFlowIndex] = useState(0);
 
-  // Command Palette (⌘K search)
-  const commandPalette = useCommandPalette();
-
   const isAuthenticated = authenticated || !!publicKey;
 
   // ═══ REAL DATA HOOKS ═══
@@ -1479,112 +1474,8 @@ function MainFeed() {
         }}
       />
 
-      {/* ═══ HEADER — Premium Obsidian Vault Design ═══ */}
-      <header
-        className="fixed top-0 left-0 right-0 z-40 h-14"
-        style={{
-          background: 'rgba(5, 5, 5, 0.88)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        <div className="h-full max-w-[1400px] mx-auto px-4 md:px-6 flex items-center justify-between gap-4">
-          {/* ════ LEFT — Logo ════ */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, #E0FF62 0%, #14b8a6 100%)',
-                boxShadow: '0 0 20px rgba(224, 255, 98, 0.15)',
-              }}
-            >
-              <span className="text-black font-black text-sm">F</span>
-            </div>
-            <span
-              className="text-lg font-semibold hidden sm:block transition-colors duration-300 group-hover:text-[#E0FF62]"
-              style={{ color: '#FAFAFA', fontFamily: '"Cormorant Garamond", serif', letterSpacing: '-0.02em' }}
-            >
-              Flexit
-            </span>
-          </Link>
-
-          {/* ════ CENTER — Search Bar (Click to Open ⌘K) ════ */}
-          <div className="hidden sm:flex flex-1 max-w-xl">
-            <button
-              onClick={commandPalette.open}
-              className="w-full group"
-            >
-              <div
-                className="flex items-center gap-3 w-full px-4 h-10 rounded-xl transition-all duration-300 hover:border-[#E0FF62]/30"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                }}
-              >
-                <Search className="w-4 h-4 text-[#6A6A70] group-hover:text-[#8A8A90] transition-colors" />
-                <span className="flex-1 text-left text-[13px] text-[#6A6A70] group-hover:text-[#8A8A90] transition-colors">
-                  Search creators, tokens...
-                </span>
-                <kbd
-                  className="hidden md:flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    color: '#5A5A60',
-                    fontFamily: "'IBM Plex Mono', monospace",
-                  }}
-                >
-                  ⌘K
-                </kbd>
-              </div>
-            </button>
-          </div>
-
-          {/* ════ RIGHT — Live Count + Notifications + Wallet + Create ════ */}
-          <div className="flex items-center gap-2">
-            {/* Live Online Badge */}
-            <div
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300 hover:bg-emerald-500/15"
-              style={{ background: 'rgba(16, 185, 129, 0.08)' }}
-            >
-              <LivePulse color="#10b981" size={5} />
-              <span className="text-[11px] font-semibold font-mono" style={{ color: '#10b981' }}>
-                {onlineCount.toLocaleString()}
-              </span>
-              <span className="text-[9px] uppercase tracking-wide" style={{ color: 'rgba(16, 185, 129, 0.6)' }}>
-                live
-              </span>
-            </div>
-
-            {/* Notifications Bell */}
-            <button
-              onClick={() => router.push('/notifications')}
-              className="relative h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300 hover:bg-white/6"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '0.5px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <Bell className="w-4 h-4 text-[#6A6A70] hover:text-[#E8E8E8] transition-colors" />
-              {/* Notification Dot — Mint Accent */}
-              <div
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full animate-pulse"
-                style={{ background: '#E0FF62', boxShadow: '0 0 6px rgba(224, 255, 98, 0.5)' }}
-              />
-            </button>
-
-            {/* Wallet Button */}
-            {mounted && (
-              <div className="relative" style={{ zIndex: 50 }}>
-                <PrivyWalletButton />
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Command Palette (⌘K Search) */}
-      <CommandPalette isOpen={commandPalette.isOpen} onClose={commandPalette.close} />
+      {/* ═══ HEADER — Reusable MainHeader Component ═══ */}
+      <MainHeader onlineCount={onlineCount} />
 
       {/* ═══ MAIN LAYOUT ═══ */}
       <main className="pt-14 min-h-screen">

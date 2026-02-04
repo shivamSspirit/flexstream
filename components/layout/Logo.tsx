@@ -3,150 +3,94 @@
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
+/* eslint-disable @next/next/no-img-element */
+
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   showText?: boolean;
+  variant?: 'full' | 'icon' | 'wordmark';
 }
 
 /**
- * FlexIt Logo - Modern streaming wave icon with Solana gradient
- * Represents content flowing/streaming on the platform
- */
-function FlexItIcon({ className }: { className?: string }) {
-  const id = Math.random().toString(36).substr(2, 9);
-  const gradientId = `streamGradient-${id}`;
-  const glowId = `streamGlow-${id}`;
-
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 48 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        {/* Green-violet-green gradient */}
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="20%" stopColor="#3B0764" />
-          <stop offset="40%" stopColor="#5B21B6" />
-          <stop offset="60%" stopColor="#7C3AED" />
-          <stop offset="80%" stopColor="#A855F7" />
-          <stop offset="100%" stopColor="#14F195" />
-        </linearGradient>
-
-        {/* Meme-style glow */}
-        <filter id={glowId} x="-70%" y="-70%" width="240%" height="240%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feFlood floodColor="#9945FF" floodOpacity="0.6" />
-          <feComposite in2="blur" operator="in" result="glow" />
-          <feMerge>
-            <feMergeNode in="glow" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      {/* Capsule/Elliptic "F" design */}
-
-      {/* Top horizontal capsule - elongated pill shape */}
-      <ellipse
-        cx="28"
-        cy="10"
-        rx="18"
-        ry="5"
-        fill={`url(#${gradientId})`}
-        transform="rotate(-2 28 10)"
-      />
-
-      {/* Middle horizontal capsule - medium pill */}
-      <ellipse
-        cx="22"
-        cy="24"
-        rx="13"
-        ry="5"
-        fill={`url(#${gradientId})`}
-        opacity="0.95"
-        transform="rotate(-3 22 24)"
-      />
-
-      {/* Vertical capsule spine - tall pill connecting bars */}
-      <ellipse
-        cx="12"
-        cy="24"
-        rx="5"
-        ry="18"
-        fill={`url(#${gradientId})`}
-      />
-    </svg>
-  );
-}
-
-/**
- * FlexIt Logo - Modern, Vibrant SocialFi Streaming Platform
+ * FlexIt Logo Component
+ * Terminal/Cyberpunk style with neon green (#00FF9F) glow effects
+ * Dark background (#0D0D0D) with scanlines and grid patterns
  */
 export function Logo({
   className,
   size = 'md',
   showIcon = true,
-  showText = true
+  showText = true,
+  variant = 'full'
 }: LogoProps) {
   const router = useRouter();
 
+  // Size configurations for the terminal SVG logo
+  // The terminal logo has viewBox of 545x280, so we maintain that aspect ratio
   const sizes = {
     sm: {
-      icon: 'w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16',
-      text: 'text-lg sm:text-xl md:text-2xl',
-      gap: 'gap-2.5 sm:gap-3'
+      logo: { width: 100, height: 52 },
+      icon: { width: 32, height: 32 },
+      containerClass: 'h-8'
     },
     md: {
-      icon: 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20',
-      text: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl',
-      gap: 'gap-3 sm:gap-3.5 md:gap-4'
+      logo: { width: 130, height: 67 },
+      icon: { width: 40, height: 40 },
+      containerClass: 'h-10'
     },
     lg: {
-      icon: 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28',
-      text: 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl',
-      gap: 'gap-4 sm:gap-4.5 md:gap-5'
+      logo: { width: 180, height: 93 },
+      icon: { width: 56, height: 56 },
+      containerClass: 'h-14'
     }
   };
+
+  const currentSize = sizes[size];
+
+  // Determine what to render based on variant
+  const renderIcon = variant === 'icon' || (variant === 'full' && showIcon && !showText);
+  const renderWordmark = variant === 'wordmark' || (variant === 'full' && showText);
 
   return (
     <button
       onClick={() => router.push('/')}
       className={cn(
-        'flex items-center transition-all duration-300 hover:opacity-80 group',
-        sizes[size].gap,
+        'group flex items-center relative transition-all duration-150',
         className
       )}
       aria-label="FlexIt Home"
     >
-      {showIcon && (
-        <div className="relative">
-          <div className={cn(
-            'relative flex items-center justify-center',
-            'group-hover:scale-110 group-hover:rotate-2',
-            'transition-all duration-300 ease-out'
-          )}>
-            <FlexItIcon className={sizes[size].icon} />
-          </div>
-        </div>
+      {/* Terminal green glow on hover */}
+      <div className="absolute -inset-2 bg-[#00FF9F]/0 group-hover:bg-[#00FF9F]/10 rounded-xl blur-xl transition-all duration-300 pointer-events-none" />
+
+      {renderIcon && (
+        <img
+          src="/logo/flexit-terminal-icon.svg"
+          alt="FlexIt"
+          width={currentSize.icon.width}
+          height={currentSize.icon.height}
+          className={cn(
+            'relative z-10 transition-transform duration-150 group-hover:scale-[1.02]',
+            currentSize.containerClass
+          )}
+          style={{ width: 'auto' }}
+        />
       )}
 
-      {showText && (
-        <span className={cn(
-          'font-extrabold tracking-tight',
-          sizes[size].text
-        )}>
-          <span className="bg-gradient-to-r from-[#9945FF] via-[#8A2BE2] to-[#14F195] bg-clip-text text-transparent">
-            Flex
-          </span>
-          <span className="text-white/95">
-            It
-          </span>
-        </span>
+      {renderWordmark && (
+        <img
+          src="/logo/flexit-terminal.svg"
+          alt="FlexIt"
+          width={currentSize.logo.width}
+          height={currentSize.logo.height}
+          className={cn(
+            'relative z-10 transition-transform duration-150 group-hover:scale-[1.02]',
+            currentSize.containerClass
+          )}
+          style={{ width: 'auto' }}
+        />
       )}
     </button>
   );
@@ -156,17 +100,22 @@ export function Logo({
  * Logo variants for different use cases
  */
 
-// Icon only - for mobile nav, small spaces
-export function LogoIcon(props: Omit<LogoProps, 'showText'>) {
-  return <Logo {...props} showText={false} />;
+// Icon only - for mobile nav, favicon, small spaces
+export function LogoIcon(props: Omit<LogoProps, 'variant' | 'showText' | 'showIcon'>) {
+  return <Logo {...props} variant="icon" />;
 }
 
-// Text only - for compact headers
+// Wordmark only - for headers
+export function LogoWordmark(props: Omit<LogoProps, 'variant' | 'showText' | 'showIcon'>) {
+  return <Logo {...props} variant="wordmark" />;
+}
+
+// Text only (alias for LogoWordmark)
 export function LogoText(props: Omit<LogoProps, 'showIcon'>) {
   return <Logo {...props} showIcon={false} />;
 }
 
-// Minimal version - just the wordmark with gradient
+// Minimal version - terminal style text (fallback)
 export function LogoMinimal({ className }: { className?: string }) {
   const router = useRouter();
 
@@ -174,15 +123,14 @@ export function LogoMinimal({ className }: { className?: string }) {
     <button
       onClick={() => router.push('/')}
       className={cn(
-        'font-black text-2xl tracking-tight hover:opacity-80 transition-all duration-300',
+        'group font-mono font-bold text-2xl tracking-tight transition-all duration-150 relative',
         className
       )}
     >
-      <span className="bg-gradient-to-r from-[#9945FF] via-[#8A2BE2] to-[#14F195] bg-clip-text text-transparent">
-        Flex
-      </span>
-      <span className="text-white/95">
-        It
+      {/* Terminal green hover glow */}
+      <div className="absolute -inset-2 bg-[#00FF9F]/0 group-hover:bg-[#00FF9F]/10 rounded-lg blur-lg transition-all duration-300" />
+      <span className="relative text-[#00FF9F] drop-shadow-[0_0_10px_rgba(0,255,159,0.5)]">
+        FlexIt
       </span>
     </button>
   );

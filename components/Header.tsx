@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 interface NavigationItem {
@@ -17,7 +18,7 @@ const navigationItems: NavigationItem[] = [
   { label: 'Profile', href: '/profile', icon: '👤' },
 ];
 
-export default function Header() {
+export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -26,59 +27,74 @@ export default function Header() {
   return (
     <>
       {/* Header Bar */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#0A0A0F]/90 backdrop-blur-xl">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="flex items-center">
-                <span className="heading-5 bg-gradient-to-r from-accent-purple via-accent-pink to-accent-blue bg-clip-text text-transparent">
-                  FlexIt
-                </span>
-              </div>
+            {/* Logo with hover glow effect */}
+            <Link
+              href="/"
+              className="group flex items-center relative"
+            >
+              {/* Subtle glow on hover */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-[#00D4FF]/0 via-[#8B5CF6]/0 to-[#A855F7]/0 group-hover:from-[#00D4FF]/10 group-hover:via-[#8B5CF6]/10 group-hover:to-[#A855F7]/10 rounded-xl blur-xl transition-all duration-300" />
+
+              <Image
+                src="/logo/flexit-logo.svg"
+                alt="FlexIt"
+                width={124}
+                height={60}
+                className="h-9 w-auto relative z-10 transition-transform duration-150 group-hover:scale-[1.02]"
+                priority
+              />
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation - Viral dopamine-optimized */}
+            <nav className="hidden md:flex items-center gap-1">
               {navigationItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-4 py-2 rounded-lg font-display font-medium text-sm transition-all duration-200 ${
+                    className={`relative px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 ${
                       isActive
-                        ? 'bg-white/10 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        ? 'text-white'
+                        : 'text-[#6B7B8E] hover:text-white'
                     }`}
                   >
-                    <span className="mr-2">{item.icon}</span>
-                    {item.label}
+                    {/* Active indicator glow */}
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#00D4FF]/15 to-[#8B5CF6]/15 rounded-lg" />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className="text-base">{item.icon}</span>
+                      {item.label}
+                    </span>
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Sandwich Menu Button - Mobile */}
+            {/* Mobile Menu Button - 150ms snappy animation */}
             <button
               onClick={toggleMenu}
-              className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 border border-white/10"
+              className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl bg-[#12121A] hover:bg-[#1A1A24] transition-all duration-150 border border-white/5"
               aria-label="Toggle menu"
             >
               <div className="w-5 h-4 flex flex-col justify-between">
                 <span
-                  className={`w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    isMenuOpen ? 'rotate-45 translate-y-1.5' : ''
+                  className={`w-full h-0.5 bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] rounded-full transition-all duration-150 origin-center ${
+                    isMenuOpen ? 'rotate-45 translate-y-[7px]' : ''
                   }`}
                 />
                 <span
-                  className={`w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    isMenuOpen ? 'opacity-0' : ''
+                  className={`w-full h-0.5 bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] rounded-full transition-all duration-150 ${
+                    isMenuOpen ? 'opacity-0 scale-0' : ''
                   }`}
                 />
                 <span
-                  className={`w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
-                    isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
+                  className={`w-full h-0.5 bg-gradient-to-r from-[#00D4FF] to-[#8B5CF6] rounded-full transition-all duration-150 origin-center ${
+                    isMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''
                   }`}
                 />
               </div>
@@ -87,30 +103,30 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Fast 150ms transitions */}
       <div
-        className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${
+        className={`fixed inset-0 z-40 md:hidden transition-all duration-150 ${
           isMenuOpen ? 'visible' : 'invisible'
         }`}
       >
-        {/* Backdrop */}
+        {/* Backdrop with blur */}
         <div
-          className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-[#0A0A0F]/90 backdrop-blur-md transition-opacity duration-150 ${
             isMenuOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={toggleMenu}
         />
 
-        {/* Menu Panel */}
+        {/* Menu Panel - Slide in from right */}
         <div
-          className={`absolute top-16 right-0 w-64 bg-gradient-to-br from-slate-900 via-slate-800 to-black border-l border-b border-white/10 shadow-2xl transition-transform duration-300 ${
+          className={`absolute top-16 right-0 w-72 bg-[#12121A] border-l border-b border-white/5 shadow-2xl shadow-black/50 transition-transform duration-150 ${
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Metallic shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+          {/* Top gradient accent */}
+          <div className="h-[2px] bg-gradient-to-r from-[#00D4FF] via-[#8B5CF6] to-[#A855F7]" />
 
-          <nav className="relative p-4 space-y-1">
+          <nav className="relative p-4 space-y-2">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -118,21 +134,29 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   onClick={toggleMenu}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-display font-medium text-sm transition-all duration-200 ${
+                  className={`relative flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-150 ${
                     isActive
-                      ? 'bg-gradient-to-r from-accent-purple/20 to-accent-pink/20 text-white border border-accent-purple/30 shadow-lg shadow-accent-purple/20'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
+                      ? 'text-white'
+                      : 'text-[#6B7B8E] hover:text-white'
                   }`}
                 >
-                  <span className="text-xl">{item.icon}</span>
-                  <span>{item.label}</span>
+                  {/* Active state glow */}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#00D4FF]/15 to-[#8B5CF6]/15 rounded-xl border border-[#00D4FF]/20" />
+                  )}
+                  <span className="relative z-10 text-xl">{item.icon}</span>
+                  <span className="relative z-10">{item.label}</span>
+                  {/* Arrow indicator for active */}
+                  {isActive && (
+                    <span className="relative z-10 ml-auto text-[#00D4FF]">→</span>
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Decorative gradient footer */}
-          <div className="h-1 bg-gradient-to-r from-accent-purple via-accent-pink to-accent-blue" />
+          {/* Bottom gradient accent */}
+          <div className="h-[2px] bg-gradient-to-r from-[#00D4FF] via-[#8B5CF6] to-[#A855F7] opacity-50" />
         </div>
       </div>
     </>

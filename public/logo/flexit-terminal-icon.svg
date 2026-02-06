@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="iconGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="iconOuterGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0 0 0 0 0
+                1 0 0 0 0.5
+                0.6 0 0 0 0.4
+                0 0 0 0.4 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <pattern id="iconScanlines" patternUnits="userSpaceOnUse" width="4" height="4">
+      <rect width="4" height="2" fill="#00FF9F" opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <!-- Background with rounded corners -->
+  <rect width="100%" height="100%" rx="96" fill="#0D0D0D"/>
+
+  <!-- Scanlines -->
+  <rect width="100%" height="100%" rx="96" fill="url(#iconScanlines)"/>
+
+  <!-- Outer glow -->
+  <g filter="url(#iconOuterGlow)" opacity="0.6">
+    <path d="M0,0 L80,0 L80,24 L24,24 L24,78 L70,78 L70,102 L24,102 L24,180 L0,180 Z"
+          transform="translate(120, 80) scale(1.9555555555555555)"
+          fill="#00FF9F"/>
+  </g>
+
+  <!-- Main F -->
+  <g filter="url(#iconGlow)">
+    <path d="M0,0 L80,0 L80,24 L24,24 L24,78 L70,78 L70,102 L24,102 L24,180 L0,180 Z"
+          transform="translate(120, 80) scale(1.9555555555555555)"
+          fill="#00FF9F"/>
+  </g>
+
+  <!-- Corner accents -->
+  <path d="M40,40 L40,70 M40,40 L70,40" stroke="#00FF9F" stroke-width="3" fill="none" opacity="0.4"/>
+  <path d="M472,40 L472,70 M472,40 L442,40" stroke="#00FF9F" stroke-width="3" fill="none" opacity="0.4"/>
+  <path d="M40,472 L40,442 M40,472 L70,472" stroke="#00FF9F" stroke-width="3" fill="none" opacity="0.4"/>
+  <path d="M472,472 L472,442 M472,472 L442,472" stroke="#00FF9F" stroke-width="3" fill="none" opacity="0.4"/>
+
+</svg>

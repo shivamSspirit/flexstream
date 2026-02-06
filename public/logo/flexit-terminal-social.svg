@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <filter id="socialGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="socialOuterGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="25" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0 0 0 0 0
+                1 0 0 0 0.5
+                0.6 0 0 0 0.4
+                0 0 0 0.5 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <pattern id="socialScanlines" patternUnits="userSpaceOnUse" width="4" height="4">
+      <rect width="4" height="2" fill="#00FF9F" opacity="0.02"/>
+    </pattern>
+
+    <pattern id="socialGrid" patternUnits="userSpaceOnUse" width="30" height="30">
+      <path d="M30,0 L0,0 L0,30" fill="none" stroke="#1A1A2E" stroke-width="0.5" opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#0D0D0D"/>
+  <rect width="100%" height="100%" fill="url(#socialGrid)"/>
+  <rect width="100%" height="100%" fill="url(#socialScanlines)"/>
+
+  <!-- Outer glow -->
+  <g filter="url(#socialOuterGlow)" opacity="0.6">
+    <path d="M0,0 L80,0 L80,24 L24,24 L24,78 L70,78 L70,102 L24,102 L24,180 L0,180 Z" transform="translate(281.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,180 L0,180 Z" transform="translate(428.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,60 L0,150 Q0,180 30,180 L80,180 L80,156 L30,156 Q24,156 24,150 L24,132 L65,132 L65,108 L24,108 L24,90 Q24,84 30,84 L80,84 L80,60 L30,60 Q0,60 0,90 Z" transform="translate(492.75, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,60 L20,60 L42,95 L64,60 L85,60 L55,115 L85,180 L64,180 L42,142 L20,180 L0,180 L30,115 Z" transform="translate(624.75, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,30 L0,30 Z M0,60 L24,60 L24,180 L0,180 Z" transform="translate(764.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M15,40 L15,60 L0,60 L0,84 L15,84 L15,150 Q15,180 40,180 L60,180 L60,156 L45,156 Q39,156 39,150 L39,84 L60,84 L60,60 L39,60 L39,40 Z" transform="translate(828.75, 180) scale(1.5)" fill="#00FF9F"/>
+  </g>
+
+  <!-- Main text -->
+  <g filter="url(#socialGlow)">
+    <path d="M0,0 L80,0 L80,24 L24,24 L24,78 L70,78 L70,102 L24,102 L24,180 L0,180 Z" transform="translate(281.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,180 L0,180 Z" transform="translate(428.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,60 L0,150 Q0,180 30,180 L80,180 L80,156 L30,156 Q24,156 24,150 L24,132 L65,132 L65,108 L24,108 L24,90 Q24,84 30,84 L80,84 L80,60 L30,60 Q0,60 0,90 Z" transform="translate(492.75, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,60 L20,60 L42,95 L64,60 L85,60 L55,115 L85,180 L64,180 L42,142 L20,180 L0,180 L30,115 Z" transform="translate(624.75, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,30 L0,30 Z M0,60 L24,60 L24,180 L0,180 Z" transform="translate(764.25, 180) scale(1.5)" fill="#00FF9F"/>
+    <path d="M15,40 L15,60 L0,60 L0,84 L15,84 L15,150 Q15,180 40,180 L60,180 L60,156 L45,156 Q39,156 39,150 L39,84 L60,84 L60,60 L39,60 L39,40 Z" transform="translate(828.75, 180) scale(1.5)" fill="#00FF9F"/>
+  </g>
+
+  <!-- Tagline -->
+  <text x="600.0" y="540"
+        fill="#00FF9F" opacity="0.6"
+        font-size="18" font-family="'JetBrains Mono','Fira Code',monospace"
+        text-anchor="middle" letter-spacing="6">
+    TRADE WHAT YOU POST
+  </text>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="100%" height="3" fill="#00FF9F" opacity="0.5"/>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="627" width="100%" height="3" fill="#00FF9F" opacity="0.5"/>
+
+  <!-- Corner brackets -->
+  <path d="M20,20 L20,50 M20,20 L50,20" stroke="#00FF9F" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M1180,20 L1180,50 M1180,20 L1150,20" stroke="#00FF9F" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M20,610 L20,580 M20,610 L50,610" stroke="#00FF9F" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M1180,610 L1180,580 M1180,610 L1150,610" stroke="#00FF9F" stroke-width="2" fill="none" opacity="0.4"/>
+
+</svg>

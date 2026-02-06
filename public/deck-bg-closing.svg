@@ -1,0 +1,59 @@
+<svg viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- FlexIt Pitch Deck Background - Closing/CTA Slide -->
+  <!-- Bold background for final impression -->
+
+  <defs>
+    <!-- Dramatic gradient - Solana purple focused -->
+    <radialGradient id="closingGrad" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#9945FF" stop-opacity="0.35" />
+      <stop offset="50%" stop-color="#14F195" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#0A0A0F" stop-opacity="1" />
+    </radialGradient>
+
+    <!-- Secondary gradient overlay -->
+    <linearGradient id="overlayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D787" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#14F195" stop-opacity="0.15" />
+    </linearGradient>
+
+    <!-- Strong glow for emphasis -->
+    <filter id="strongGlow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1920" height="1080" fill="#0A0A0F"/>
+
+  <!-- Main radial gradient -->
+  <rect width="1920" height="1080" fill="url(#closingGrad)"/>
+
+  <!-- Overlay gradient -->
+  <rect width="1920" height="1080" fill="url(#overlayGrad)"/>
+
+  <!-- Large glowing orb - center -->
+  <circle cx="960" cy="540" r="400" fill="#9945FF" opacity="0.15" filter="url(#strongGlow)"/>
+  <circle cx="960" cy="540" r="300" fill="#14F195" opacity="0.08" filter="url(#strongGlow)"/>
+
+  <!-- Dramatic diagonal lines -->
+  <line x1="0" y1="0" x2="600" y2="600" stroke="#9945FF" stroke-width="2" opacity="0.15"/>
+  <line x1="1920" y1="0" x2="1320" y2="600" stroke="#14F195" stroke-width="2" opacity="0.15"/>
+  <line x1="0" y1="1080" x2="600" y2="480" stroke="#00D787" stroke-width="2" opacity="0.15"/>
+  <line x1="1920" y1="1080" x2="1320" y2="480" stroke="#9945FF" stroke-width="2" opacity="0.15"/>
+
+  <!-- Energy particles - more dramatic -->
+  <circle cx="300" cy="250" r="6" fill="#14F195" opacity="0.7" filter="url(#strongGlow)"/>
+  <circle cx="1620" cy="830" r="6" fill="#9945FF" opacity="0.7" filter="url(#strongGlow)"/>
+  <circle cx="500" cy="700" r="5" fill="#00D787" opacity="0.6" filter="url(#strongGlow)"/>
+  <circle cx="1400" cy="350" r="5" fill="#14F195" opacity="0.6" filter="url(#strongGlow)"/>
+
+  <!-- Corner frames - bold -->
+  <path d="M 60 60 L 60 200 M 60 60 L 200 60" stroke="#14F195" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M 1860 880 L 1860 1020 M 1860 1020 L 1720 1020" stroke="#9945FF" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M 1860 60 L 1860 200 M 1860 60 L 1720 60" stroke="#00D787" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M 60 880 L 60 1020 M 60 1020 L 200 1020" stroke="#14F195" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+</svg>

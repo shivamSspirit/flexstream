@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="brandGrad" x1="14.6%" y1="85.4%" x2="85.4%" y2="14.6%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#FF2D92"/>
+    </linearGradient>
+    <linearGradient id="brandGradV" x1="50.0%" y1="100.0%" x2="50.0%" y2="0.0%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#FF2D92"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="ambientGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+    <rect x="0" y="0" width="512" height="512" rx="96" fill="#0A0A0F" />
+    <rect x="0" y="0" width="512" height="512" rx="96" fill="url(#ambientGlow)" opacity="0.15"/>
+    <rect x="100" y="72" width="56" height="368" rx="6" fill="#0A0A0F" />
+    <rect x="100" y="72" width="280" height="52" rx="6" fill="#0A0A0F" />
+    <rect x="100" y="220" width="200" height="44" rx="6" fill="#0A0A0F" />
+    <polygon points="304.5876987549066,226.55385536415233 344.5876987549066,198.55385536415233 335.4123012450934,185.44614463584767 295.4123012450934,213.44614463584767" fill="#0A0A0F" />
+    <polygon points="336.4222912360003,199.15541752799933 356.4222912360003,209.15541752799933 363.5777087639997,194.84458247200067 343.5777087639997,184.84458247200067" fill="#0A0A0F" />
+    <polygon points="366.94594513699565,205.96911150685466 406.94594513699565,135.96911150685466 393.05405486300435,128.03088849314534 353.05405486300435,198.03088849314534" fill="#0A0A0F" />
+    <polygon points="407.1554175279993,135.57770876399965 427.1554175279993,95.57770876399967 412.8445824720007,88.42229123600033 392.8445824720007,128.42229123600035" fill="#0A0A0F" />
+    <polygon points="420,76 436,100 416,96" fill="#0A0A0F" />
+</svg>

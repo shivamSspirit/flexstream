@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 755 320" width="755" height="320">
+  <defs>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#softGlow)">
+    <g transform="translate(60,60)">
+      <path d="M0,0 L130,0 L130,35 L45,35 L45,85 L110,85 L110,120 L45,120 L45,200 L0,200 Z                 M130,0 L140,10 L140,35 L130,35 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(208,60)">
+      <path d="M0,0 L45,0 L45,165 L55,165 L55,200 L0,200 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(271,60)">
+      <path d="M20,60 Q0,60 0,100 L0,160 Q0,200 40,200 L130,200 L130,165 L45,165 Q35,165 35,155 L35,125 L100,125 L100,95 L35,95 L35,85 Q35,75 45,75 L130,75 L130,60 L40,60 Q20,60 20,60 Z                 M130,190 L130,200 L120,200 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(409,60)">
+      <path d="M0,60 L35,60 L65,105 L95,60 L130,60 L85,130 L130,200 L95,200 L65,155 L35,200 L0,200 L45,130 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(547,60)">
+      <path d="M0,0 L50,0 L50,200 L0,200 Z                 M50,0 L55,5 L55,10 L50,10 Z                 M50,190 L55,195 L55,200 L50,200 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(605,60)">
+      <path d="M25,60 L25,75 L0,75 L0,110 L25,110 L25,165 Q25,200 60,200 L90,200 L90,165 L60,165 Q55,165 55,160 L55,110 L90,110 L90,75 L55,75 L55,60 Z" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

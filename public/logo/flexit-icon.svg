@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF"/>
+      <stop offset="35%" stop-color="#4F8FFF"/>
+      <stop offset="70%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <linearGradient id="iconHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="20%" stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="iconReflect" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#00D4FF" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="iconBgGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+
+    <filter id="iconGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="iconShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1E1B4B" flood-opacity="0.5"/>
+    </filter>
+
+    <clipPath id="fClip">
+      <path d="M0,0 L280,0 C295,0 310,15 310,30 L310,85 C310,100 295,115 280,115 L110,115 L110,225 L250,225 C265,225 280,240 280,255 L280,310 C280,325 265,340 250,340 L110,340 L110,480 C110,495 95,510 80,510 L30,510 C15,510 0,495 0,480 Z" transform="translate(101,1)"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" rx="96" fill="#050508"/>
+  <rect width="100%" height="100%" rx="96" fill="url(#iconBgGlow)"/>
+
+  <!-- Glow -->
+  <g filter="url(#iconGlow)" opacity="0.5">
+    <path d="M0,0 L280,0 C295,0 310,15 310,30 L310,85 C310,100 295,115 280,115 L110,115 L110,225 L250,225 C265,225 280,240 280,255 L280,310 C280,325 265,340 250,340 L110,340 L110,480 C110,495 95,510 80,510 L30,510 C15,510 0,495 0,480 Z" transform="translate(101,1)" fill="#00D4FF"/>
+  </g>
+
+  <!-- Shadow -->
+  <g filter="url(#iconShadow)">
+    <path d="M0,0 L280,0 C295,0 310,15 310,30 L310,85 C310,100 295,115 280,115 L110,115 L110,225 L250,225 C265,225 280,240 280,255 L280,310 C280,325 265,340 250,340 L110,340 L110,480 C110,495 95,510 80,510 L30,510 C15,510 0,495 0,480 Z" transform="translate(101,1)" fill="#A855F7"/>
+  </g>
+
+  <!-- Main F -->
+  <path d="M0,0 L280,0 C295,0 310,15 310,30 L310,85 C310,100 295,115 280,115 L110,115 L110,225 L250,225 C265,225 280,240 280,255 L280,310 C280,325 265,340 250,340 L110,340 L110,480 C110,495 95,510 80,510 L30,510 C15,510 0,495 0,480 Z" transform="translate(101,1)" fill="url(#iconGrad)"/>
+
+  <!-- Highlight -->
+  <g clip-path="url(#fClip)">
+    <rect x="96" y="-4" width="320" height="250" fill="url(#iconHighlight)"/>
+  </g>
+
+  <!-- Reflection -->
+  <g clip-path="url(#fClip)">
+    <rect x="96" y="380" width="320" height="140" fill="url(#iconReflect)"/>
+  </g>
+
+</svg>

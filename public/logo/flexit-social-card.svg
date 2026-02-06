@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="jellyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF"/>
+      <stop offset="35%" stop-color="#4F8FFF"/>
+      <stop offset="70%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="15%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.1"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="bottomReflect" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.2"/>
+      <stop offset="40%" stop-color="#00D4FF" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="centerGlow" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#00D4FF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+
+    <filter id="bigGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="25" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="textShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="18" flood-color="#1E1B4B" flood-opacity="0.7"/>
+    </filter>
+
+    <clipPath id="clipS0">
+      <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(99.0,105.0) scale(2.0)"/>
+    </clipPath>
+    <clipPath id="clipS1">
+      <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(335.0,105.0) scale(2.0)"/>
+    </clipPath>
+    <clipPath id="clipS2">
+      <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(427.0,105.0) scale(2.0)"/>
+    </clipPath>
+    <clipPath id="clipS3">
+      <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(653.0,105.0) scale(2.0)"/>
+    </clipPath>
+    <clipPath id="clipS4">
+      <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(869.0,105.0) scale(2.0)"/>
+    </clipPath>
+    <clipPath id="clipS5">
+      <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(961.0,105.0) scale(2.0)"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#050508"/>
+  <rect width="100%" height="100%" fill="url(#centerGlow)"/>
+
+  <!-- Glow -->
+  <g filter="url(#bigGlow)" opacity="0.5">
+    <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(99.0,105.0) scale(2.0)" fill="#00D4FF"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(335.0,105.0) scale(2.0)" fill="#00D4FF"/>
+    <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(427.0,105.0) scale(2.0)" fill="#00D4FF"/>
+    <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(653.0,105.0) scale(2.0)" fill="#00D4FF"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(869.0,105.0) scale(2.0)" fill="#00D4FF"/>
+    <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(961.0,105.0) scale(2.0)" fill="#00D4FF"/>
+  </g>
+
+  <!-- Shadow -->
+  <g filter="url(#textShadow)">
+    <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(99.0,105.0) scale(2.0)" fill="#A855F7"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(335.0,105.0) scale(2.0)" fill="#A855F7"/>
+    <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(427.0,105.0) scale(2.0)" fill="#A855F7"/>
+    <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(653.0,105.0) scale(2.0)" fill="#A855F7"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(869.0,105.0) scale(2.0)" fill="#A855F7"/>
+    <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(961.0,105.0) scale(2.0)" fill="#A855F7"/>
+  </g>
+
+  <!-- Main letters -->
+  <g>
+    <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(99.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(335.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+    <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(427.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+    <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(653.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(869.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+    <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(961.0,105.0) scale(2.0)" fill="url(#jellyGrad)"/>
+  </g>
+
+  <!-- Highlights -->
+  <g>
+    <g clip-path="url(#clipS0)">
+      <rect x="89.0" y="95.0" width="240.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+    <g clip-path="url(#clipS1)">
+      <rect x="325.0" y="95.0" width="96.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+    <g clip-path="url(#clipS2)">
+      <rect x="417.0" y="95.0" width="230.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+    <g clip-path="url(#clipS3)">
+      <rect x="643.0" y="95.0" width="220.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+    <g clip-path="url(#clipS4)">
+      <rect x="859.0" y="95.0" width="96.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+    <g clip-path="url(#clipS5)">
+      <rect x="951.0" y="95.0" width="160.0" height="170.0" fill="url(#glassHighlight)"/>
+    </g>
+  </g>
+
+  <!-- Reflections -->
+  <g>
+    <g clip-path="url(#clipS0)">
+      <rect x="89.0" y="375.0" width="240.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+    <g clip-path="url(#clipS1)">
+      <rect x="325.0" y="375.0" width="96.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+    <g clip-path="url(#clipS2)">
+      <rect x="417.0" y="375.0" width="230.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+    <g clip-path="url(#clipS3)">
+      <rect x="643.0" y="375.0" width="220.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+    <g clip-path="url(#clipS4)">
+      <rect x="859.0" y="375.0" width="96.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+    <g clip-path="url(#clipS5)">
+      <rect x="951.0" y="375.0" width="160.0" height="100.0" fill="url(#bottomReflect)"/>
+    </g>
+  </g>
+
+  <!-- Tagline -->
+  <text x="600.0" y="520.0"
+        fill="#8B8BA3" font-size="18" font-family="'Inter','SF Pro Display',system-ui,sans-serif"
+        text-anchor="middle" letter-spacing="6" font-weight="500">TRADE WHAT YOU POST</text>
+
+</svg>

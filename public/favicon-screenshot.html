@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FlexIt Favicon - For Conversion</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #0A0A0F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui;
+      color: white;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      background: linear-gradient(to right, #10B981, #5B21B6, #14F195);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo-box {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      margin: 20px 0;
+      display: inline-block;
+    }
+    .instructions {
+      max-width: 600px;
+      text-align: left;
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FlexIt Favicon</h1>
+    <p>Screenshot this logo (on white background) for favicon conversion</p>
+
+    <div class="logo-box">
+      <img src="/favicon.svg" width="256" height="256" alt="FlexIt Logo">
+    </div>
+
+    <div class="instructions">
+      <h3 style="margin-top: 0;">Quick Steps:</h3>
+      <ol>
+        <li>Screenshot JUST the logo above (the part with white background)</li>
+        <li>Go to <a href="https://favicon.io/favicon-converter/" target="_blank" style="color: #14F195;">favicon.io/favicon-converter</a></li>
+        <li>Upload your screenshot</li>
+        <li>Download the generated favicon package</li>
+        <li>Replace the files in your public/ folder</li>
+        <li>Restart server and hard refresh</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

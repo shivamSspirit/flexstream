@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 569 160" width="569" height="160">
+  <defs>
+    <linearGradient id="brandGrad" x1="14.6%" y1="85.4%" x2="85.4%" y2="14.6%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#FF2D92"/>
+    </linearGradient>
+    <linearGradient id="brandGradV" x1="50.0%" y1="100.0%" x2="50.0%" y2="0.0%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#FF2D92"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+    <rect x="55" y="51" width="8" height="57" rx="0" fill="#0A0A0F" />
+    <rect x="55" y="51" width="43" height="8" rx="0" fill="#0A0A0F" />
+    <rect x="55" y="74" width="31" height="6" rx="0" fill="#0A0A0F" />
+    <polygon points="86.64018439966448,74.76822127959737 92.64018439966448,69.76822127959737 91.35981560033552,68.23177872040263 85.35981560033552,73.23177872040263" fill="#0A0A0F" />
+    <polygon points="91.44529980377477,69.83205029433785 94.44529980377477,71.83205029433785 95.55470019622523,70.16794970566215 92.55470019622523,68.16794970566215" fill="#0A0A0F" />
+    <polygon points="95.87789557291438,71.47885213068058 101.87789557291438,60.47885213068057 100.12210442708562,59.52114786931943 94.12210442708562,70.52114786931942" fill="#0A0A0F" />
+    <polygon points="101.83205029433785,60.55470019622523 105.83205029433785,54.55470019622523 104.16794970566215,53.44529980377477 100.16794970566215,59.44529980377477" fill="#0A0A0F" />
+    <polygon points="105,52 107,55 105,54" fill="#0A0A0F" />
+    <g transform="translate(144,45.0) scale(0.5)">
+    <path d="M0,0 L120,0 L120,28 L32,28 L32,62 L100,62 L100,86 L32,86 L32,140 L0,140 Z" fill="#0A0A0F" />
+    </g>
+    <g transform="translate(212.0,45.0) scale(0.5)">
+    <path d="M0,0 L32,0 L32,112 L120,112 L120,140 L0,140 Z" fill="#0A0A0F" />
+    </g>
+    <g transform="translate(280.0,45.0) scale(0.5)">
+    <path d="M0,0 L120,0 L120,28 L32,28 L32,56 L100,56 L100,80 L32,80 L32,112 L120,112 L120,140 L0,140 Z" fill="#0A0A0F" />
+    </g>
+    <g transform="translate(348.0,45.0) scale(0.5)">
+    <path d="M0,0 L38,0 L70,52 L102,0 L140,0 L92,70 L140,140 L102,140 L70,88 L38,140 L0,140 L48,70 Z" fill="#0A0A0F" />
+    </g>
+    <g transform="translate(426.0,45.0) scale(0.5)">
+    <path d="M0,0 L90,0 L90,28 L57,28 L57,112 L90,112 L90,140 L0,140 L0,112 L25,112 L25,28 L0,28 Z" fill="#0A0A0F" />
+    </g>
+    <g transform="translate(479.0,45.0) scale(0.5)">
+    <path d="M0,0 L140,0 L140,28 L86,28 L86,140 L54,140 L54,28 L0,28 Z" fill="#0A0A0F" />
+    </g>
+</svg>

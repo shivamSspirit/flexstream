@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 545 280" width="545" height="280">
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#0D0D0D"/>
+
+  <g filter="url(#glow)">
+    <path d="M0,0 L80,0 L80,24 L24,24 L24,78 L70,78 L70,102 L24,102 L24,180 L0,180 Z" transform="translate(60, 50)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,180 L0,180 Z" transform="translate(158, 50)" fill="#00FF9F"/>
+    <path d="M0,60 L0,150 Q0,180 30,180 L80,180 L80,156 L30,156 Q24,156 24,150 L24,132 L65,132 L65,108 L24,108 L24,90 Q24,84 30,84 L80,84 L80,60 L30,60 Q0,60 0,90 Z" transform="translate(201, 50)" fill="#00FF9F"/>
+    <path d="M0,60 L20,60 L42,95 L64,60 L85,60 L55,115 L85,180 L64,180 L42,142 L20,180 L0,180 L30,115 Z" transform="translate(289, 50)" fill="#00FF9F"/>
+    <path d="M0,0 L24,0 L24,30 L0,30 Z M0,60 L24,60 L24,180 L0,180 Z" transform="translate(382, 50)" fill="#00FF9F"/>
+    <path d="M15,40 L15,60 L0,60 L0,84 L15,84 L15,150 Q15,180 40,180 L60,180 L60,156 L45,156 Q39,156 39,150 L39,84 L60,84 L60,60 L39,60 L39,40 Z" transform="translate(425, 50)" fill="#00FF9F"/>
+  </g>
+</svg>

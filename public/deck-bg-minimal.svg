@@ -1,0 +1,40 @@
+<svg viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- FlexIt Pitch Deck Background - Minimal/Content Slides -->
+  <!-- Clean background for slides with lots of text/data -->
+
+  <defs>
+    <!-- Subtle gradient -->
+    <linearGradient id="minimalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0A0F" stop-opacity="1" />
+      <stop offset="100%" stop-color="#121218" stop-opacity="1" />
+    </linearGradient>
+
+    <!-- Accent gradient for corners -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14F195" stop-opacity="0.6" />
+      <stop offset="50%" stop-color="#9945FF" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#00D787" stop-opacity="0.6" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1920" height="1080" fill="url(#minimalGrad)"/>
+
+  <!-- Top accent bar -->
+  <rect width="1920" height="4" fill="url(#accentGrad)" opacity="0.4"/>
+
+  <!-- Bottom accent bar -->
+  <rect width="1920" height="4" y="1076" fill="url(#accentGrad)" opacity="0.4"/>
+
+  <!-- Subtle corner accent - top left -->
+  <path d="M 60 60 L 60 140 M 60 60 L 140 60" stroke="#14F195" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- Subtle corner accent - bottom right -->
+  <path d="M 1860 1020 L 1860 940 M 1860 1020 L 1780 1020" stroke="#9945FF" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- Tiny floating dots for texture (very subtle) -->
+  <circle cx="200" cy="150" r="2" fill="#14F195" opacity="0.15"/>
+  <circle cx="1720" cy="930" r="2" fill="#9945FF" opacity="0.15"/>
+  <circle cx="400" cy="900" r="2" fill="#00D787" opacity="0.15"/>
+  <circle cx="1500" cy="200" r="2" fill="#14F195" opacity="0.15"/>
+</svg>

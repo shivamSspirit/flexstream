@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlexIt - New Favicon Test</title>
+
+  <!-- Force new favicon with cache-busting -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0A0A0F 0%, #1a1a2e 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #10B981, #5B21B6, #14F195);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-preview {
+      margin: 40px 0;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .favicon-sizes {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .favicon-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .instructions {
+      text-align: left;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 30px 0;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #14F195;
+    }
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Monaco', monospace;
+      font-size: 0.9em;
+    }
+    .note {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 FlexIt New Favicon</h1>
+    <p style="opacity: 0.8; font-size: 1.1rem;">Check your browser tab - you should see the new logo!</p>
+
+    <div class="logo-preview">
+      <h3 style="margin-top: 0;">Favicon Preview</h3>
+      <div class="favicon-sizes">
+        <div class="favicon-box">
+          <img src="/favicon.svg" width="64" height="64" alt="Favicon 64px">
+          <p style="margin: 10px 0 0 0; font-size: 0.8rem; opacity: 0.7;">64px (SVG)</p>
+        </div>
+        <div class="favicon-box">
+          <img src="/favicon.svg" width="32" height="32" alt="Favicon 32px">
+          <p style="margin: 10px 0 0 0; font-size: 0.8rem; opacity: 0.7;">32px</p>
+        </div>
+        <div class="favicon-box">
+          <img src="/favicon.svg" width="16" height="16" alt="Favicon 16px">
+          <p style="margin: 10px 0 0 0; font-size: 0.8rem; opacity: 0.7;">16px</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h3>🔧 Not seeing the new favicon? Try this:</h3>
+      <ol>
+        <li><strong>Hard Refresh:</strong>
+          <ul>
+            <li>Chrome/Edge: <code>Ctrl+Shift+R</code> (Windows) or <code>Cmd+Shift+R</code> (Mac)</li>
+            <li>Firefox: <code>Ctrl+Shift+R</code> or <code>Cmd+Shift+R</code></li>
+            <li>Safari: <code>Cmd+Option+R</code></li>
+          </ul>
+        </li>
+        <li><strong>Clear Browser Cache:</strong>
+          <ul>
+            <li>Chrome: Settings → Privacy → Clear browsing data → Cached images</li>
+            <li>Firefox: Settings → Privacy → Clear Data → Cached Web Content</li>
+            <li>Safari: Develop → Empty Caches</li>
+          </ul>
+        </li>
+        <li><strong>Close & Reopen:</strong> Close ALL browser tabs for this site, then reopen</li>
+        <li><strong>Incognito/Private:</strong> Open in incognito/private mode to see it fresh</li>
+      </ol>
+    </div>
+
+    <div class="note">
+      <strong>💡 Pro Tip:</strong> If you're running a dev server, restart it and visit
+      <code>http://localhost:3000/?v=2</code> to bust the cache!
+    </div>
+
+    <p style="margin-top: 40px; opacity: 0.6; font-size: 0.9rem;">
+      The new favicon features your capsule "F" design with a beautiful green-violet gradient!
+    </p>
+  </div>
+</body>
+</html>

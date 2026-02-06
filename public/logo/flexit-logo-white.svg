@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 621 300" width="621" height="300">
+  <defs>
+    <linearGradient id="whiteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+
+    <linearGradient id="whiteHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="whiteGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="clipW0">
+      <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(60,60)"/>
+    </clipPath>
+    <clipPath id="clipW1">
+      <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(178,60)"/>
+    </clipPath>
+    <clipPath id="clipW2">
+      <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(224,60)"/>
+    </clipPath>
+    <clipPath id="clipW3">
+      <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(337,60)"/>
+    </clipPath>
+    <clipPath id="clipW4">
+      <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(445,60)"/>
+    </clipPath>
+    <clipPath id="clipW5">
+      <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(491,60)"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#whiteGlow)">
+    <path d="M0,0 L100,0 C105,0 110,5 110,10 L110,28 C110,33 105,38 100,38 L38,38 L38,78 L88,78 C93,78 98,83 98,88 L98,106 C98,111 93,116 88,116 L38,116 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 Z" transform="translate(60,60)" fill="url(#whiteGrad)"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(178,60)" fill="url(#whiteGrad)"/>
+    <path d="M55,50 C25,50 0,75 0,115 C0,155 25,180 60,180 L95,180 C100,180 105,175 105,170 L105,158 C105,153 100,148 95,148 L60,148 C45,148 36,138 36,125 L36,118 L85,118 C90,118 95,113 95,108 L95,96 C95,91 90,86 85,86 L36,86 L36,82 C36,70 45,62 60,62 L95,62 C100,62 105,57 105,52 L105,60 C105,55 100,50 95,50 Z" transform="translate(224,60)" fill="url(#whiteGrad)"/>
+    <path d="M0,50 L22,50 C27,50 31,53 34,57 L50,85 L66,57 C69,53 73,50 78,50 L100,50 C100,50 68,105 68,105 L100,180 L78,180 C73,180 69,177 66,173 L50,145 L34,173 C31,177 27,180 22,180 L0,180 L32,105 Z" transform="translate(337,60)" fill="url(#whiteGrad)"/>
+    <path d="M0,0 L28,0 C33,0 38,5 38,10 L38,170 C38,175 33,180 28,180 L10,180 C5,180 0,175 0,170 L0,10 C0,5 5,0 10,0 Z" transform="translate(445,60)" fill="url(#whiteGrad)"/>
+    <path d="M20,50 L20,62 L5,62 C2,62 0,64 0,67 L0,83 C0,86 2,88 5,88 L20,88 L20,145 C20,165 32,180 55,180 L65,180 C68,180 70,178 70,175 L70,158 C70,155 68,153 65,153 L55,153 C45,153 42,148 42,140 L42,88 L65,88 C68,88 70,86 70,83 L70,67 C70,64 68,62 65,62 L42,62 L42,50 C42,47 40,45 37,45 L25,45 C22,45 20,47 20,50 Z" transform="translate(491,60)" fill="url(#whiteGrad)"/>
+  </g>
+
+  <g>
+    <g clip-path="url(#clipW0)">
+      <rect x="55" y="55" width="120" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW1)">
+      <rect x="173" y="55" width="48" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW2)">
+      <rect x="219" y="55" width="115" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW3)">
+      <rect x="332" y="55" width="110" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW4)">
+      <rect x="440" y="55" width="48" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW5)">
+      <rect x="486" y="55" width="80" height="70" fill="url(#whiteHighlight)"/>
+    </g>
+  </g>
+
+</svg>

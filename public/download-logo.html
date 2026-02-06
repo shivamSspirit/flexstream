@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download FlexIt Logo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0A0A0F 0%, #1a1a2e 100%);
+      color: white;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      background: linear-gradient(to right, #10B981, #5B21B6, #14F195);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      text-align: center;
+      opacity: 0.7;
+      margin-bottom: 50px;
+    }
+
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .logo-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .logo-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(16, 185, 129, 0.5);
+      transform: translateY(-5px);
+    }
+
+    .logo-preview {
+      margin: 20px 0;
+      padding: 40px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    .logo-preview.white-bg {
+      background: white;
+    }
+
+    .logo-preview.dark-bg {
+      background: #0A0A0F;
+    }
+
+    .logo-preview.transparent-bg {
+      background:
+        linear-gradient(45deg, #333 25%, transparent 25%),
+        linear-gradient(-45deg, #333 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #333 75%),
+        linear-gradient(-45deg, transparent 75%, #333 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    h3 {
+      margin: 0 0 10px 0;
+      color: #14F195;
+    }
+
+    .description {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-bottom: 20px;
+    }
+
+    .download-btn {
+      display: inline-block;
+      background: linear-gradient(to right, #10B981, #5B21B6, #14F195);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .download-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    }
+
+    .instructions {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 15px;
+      padding: 30px;
+      margin-top: 40px;
+    }
+
+    .instructions h2 {
+      color: #14F195;
+      margin-bottom: 20px;
+    }
+
+    .instructions ol {
+      padding-left: 20px;
+      line-height: 1.8;
+    }
+
+    .instructions li {
+      margin: 10px 0;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .file-info {
+      font-size: 0.85rem;
+      opacity: 0.6;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📥 Download FlexIt Logo</h1>
+    <p class="subtitle">Right-click on any logo below and select "Save image as..."</p>
+
+    <div class="logo-grid">
+      <!-- SVG Version -->
+      <div class="logo-card">
+        <h3>SVG - Icon Only</h3>
+        <p class="description">Best quality, scales infinitely<br>Perfect for favicon conversion</p>
+        <div class="logo-preview white-bg">
+          <img src="/favicon.svg" width="200" height="200" alt="FlexIt Logo SVG" id="logo-svg">
+        </div>
+        <button class="download-btn" onclick="downloadSVG()">Download SVG</button>
+        <p class="file-info">Vector • Scalable • Transparent</p>
+      </div>
+
+      <!-- Dark Background -->
+      <div class="logo-card">
+        <h3>Logo on Dark</h3>
+        <p class="description">For light-themed websites<br>Icon on dark background</p>
+        <div class="logo-preview dark-bg">
+          <img src="/favicon.svg" width="200" height="200" alt="FlexIt Logo Dark">
+        </div>
+        <button class="download-btn" onclick="downloadCanvas('dark')">Download PNG</button>
+        <p class="file-info">PNG • 512x512 • Dark BG</p>
+      </div>
+
+      <!-- White Background -->
+      <div class="logo-card">
+        <h3>Logo on White</h3>
+        <p class="description">For dark-themed websites<br>Icon on white background</p>
+        <div class="logo-preview white-bg">
+          <img src="/favicon.svg" width="200" height="200" alt="FlexIt Logo White">
+        </div>
+        <button class="download-btn" onclick="downloadCanvas('white')">Download PNG</button>
+        <p class="file-info">PNG • 512x512 • White BG</p>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>🎯 How to Use for Favicon</h2>
+      <ol>
+        <li><strong>Download the "Logo on White" PNG</strong> above (easiest for favicon conversion)</li>
+        <li>Go to <a href="https://favicon.io/favicon-converter/" target="_blank" style="color: #14F195;">favicon.io/favicon-converter</a></li>
+        <li>Upload the PNG you just downloaded</li>
+        <li>Click "Download" to get the favicon package</li>
+        <li>Extract the ZIP and copy all files to your <code>public/</code> folder</li>
+        <li>Restart your dev server and hard refresh (<code>Cmd/Ctrl + Shift + R</code>)</li>
+      </ol>
+
+      <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <strong>💡 Pro Tip:</strong> The SVG version gives the best quality for favicon conversion!
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Download SVG directly
+    function downloadSVG() {
+      const svg = document.getElementById('logo-svg').src;
+      const link = document.createElement('a');
+      link.href = svg;
+      link.download = 'flexit-logo.svg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Create and download PNG from canvas
+    function downloadCanvas(bgType) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const size = 512;
+
+      canvas.width = size;
+      canvas.height = size;
+
+      // Set background
+      if (bgType === 'dark') {
+        ctx.fillStyle = '#0A0A0F';
+      } else if (bgType === 'white') {
+        ctx.fillStyle = '#FFFFFF';
+      }
+      ctx.fillRect(0, 0, size, size);
+
+      // Load and draw SVG
+      const img = new Image();
+      img.onload = function() {
+        const padding = 80;
+        const logoSize = size - (padding * 2);
+        ctx.drawImage(img, padding, padding, logoSize, logoSize);
+
+        // Download
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `flexit-logo-${bgType}-bg.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        });
+      };
+      img.src = '/favicon.svg';
+    }
+
+    // Alternative: Right-click save
+    document.querySelectorAll('img').forEach(img => {
+      img.addEventListener('contextmenu', (e) => {
+        // Allow default right-click behavior for saving
+      });
+    });
+  </script>
+</body>
+</html>

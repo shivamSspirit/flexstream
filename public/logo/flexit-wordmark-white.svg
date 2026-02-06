@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 665 300" width="665" height="300">
+  <defs>
+    <linearGradient id="whiteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8E8EC"/>
+    </linearGradient>
+
+    <linearGradient id="whiteHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="clipW0">
+      <path d="M0,0 L120,0 L120,32 L42,32 L42,82 L100,82 L100,114 L42,114 L42,200 L0,200 Z" transform="translate(50,50)"/>
+    </clipPath>
+    <clipPath id="clipW1">
+      <path d="M0,0 L42,0 L42,168 L48,168 L48,200 L0,200 Z" transform="translate(186,50)"/>
+    </clipPath>
+    <clipPath id="clipW2">
+      <path d="M60,55 C25,55 0,80 0,125 C0,170 25,200 65,200 L120,200 L120,168 L65,168 C45,168 38,155 38,145 L38,132 L95,132 L95,100 L38,100 L38,90 C38,78 48,68 65,68 L120,68 L120,55 Z" transform="translate(240,50)"/>
+    </clipPath>
+    <clipPath id="clipW3">
+      <path d="M0,55 L30,55 L57,95 L84,55 L115,55 L75,125 L115,200 L84,200 L57,158 L30,200 L0,200 L40,125 Z" transform="translate(366,50)"/>
+    </clipPath>
+    <clipPath id="clipW4">
+      <path d="M0,0 L42,0 L42,200 L0,200 Z" transform="translate(487,50)"/>
+    </clipPath>
+    <clipPath id="clipW5">
+      <path d="M22,55 L22,68 L0,68 L0,100 L22,100 L22,160 C22,185 35,200 60,200 L80,200 L80,168 L60,168 C52,168 50,162 50,155 L50,100 L80,100 L80,68 L50,68 L50,55 Z" transform="translate(535,50)"/>
+    </clipPath>
+  </defs>
+
+  <g>
+    <path d="M0,0 L120,0 L120,32 L42,32 L42,82 L100,82 L100,114 L42,114 L42,200 L0,200 Z" transform="translate(50,50)" fill="url(#whiteGrad)"/>
+    <path d="M0,0 L42,0 L42,168 L48,168 L48,200 L0,200 Z" transform="translate(186,50)" fill="url(#whiteGrad)"/>
+    <path d="M60,55 C25,55 0,80 0,125 C0,170 25,200 65,200 L120,200 L120,168 L65,168 C45,168 38,155 38,145 L38,132 L95,132 L95,100 L38,100 L38,90 C38,78 48,68 65,68 L120,68 L120,55 Z" transform="translate(240,50)" fill="url(#whiteGrad)"/>
+    <path d="M0,55 L30,55 L57,95 L84,55 L115,55 L75,125 L115,200 L84,200 L57,158 L30,200 L0,200 L40,125 Z" transform="translate(366,50)" fill="url(#whiteGrad)"/>
+    <path d="M0,0 L42,0 L42,200 L0,200 Z" transform="translate(487,50)" fill="url(#whiteGrad)"/>
+    <path d="M22,55 L22,68 L0,68 L0,100 L22,100 L22,160 C22,185 35,200 60,200 L80,200 L80,168 L60,168 C52,168 50,162 50,155 L50,100 L80,100 L80,68 L50,68 L50,55 Z" transform="translate(535,50)" fill="url(#whiteGrad)"/>
+  </g>
+
+  <g>
+    <g clip-path="url(#clipW0)">
+      <rect x="50" y="50" width="130" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW1)">
+      <rect x="186" y="50" width="48" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW2)">
+      <rect x="240" y="50" width="120" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW3)">
+      <rect x="366" y="50" width="115" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW4)">
+      <rect x="487" y="50" width="42" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+    <g clip-path="url(#clipW5)">
+      <rect x="535" y="50" width="80" height="60" fill="url(#whiteHighlight)"/>
+    </g>
+  </g>
+
+</svg>

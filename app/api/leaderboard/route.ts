@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cacheAside } from '@/lib/cache';
+import { CACHE_TTL } from '@/lib/redis';
 
 /**
  * GET /api/leaderboard
  * Fetch ranked traders with filtering and pagination
+ * Uses Redis cache for fast responses (5min TTL)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -15,13 +18,39 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    console.log('[Leaderboard API] Fetching leaderboard:', {
-      timeframe,
-      metric,
-      limit,
-      offset
+    // Create cache key from params
+    const cacheKey = `leaderboard:${timeframe}:${metric}:${limit}:${offset}`;
+
+    // Use cache-aside pattern
+    const result = await cacheAside(
+      cacheKey,
+      () => fetchLeaderboardFromDB(timeframe, metric, limit, offset),
+      CACHE_TTL.leaderboard
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: result,
     });
 
+  } catch (error) {
+    console.error('[Leaderboard API] Error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch leaderboard'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function fetchLeaderboardFromDB(
+  timeframe: string,
+  metric: string,
+  limit: number,
+  offset: number
+) {
     // Initialize Supabase
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -97,30 +126,14 @@ export async function GET(request: NextRequest) {
       lastUpdated: trader.last_calculated_at,
     })) || [];
 
-    console.log(`[Leaderboard API] Returning ${leaderboard.length} traders`);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        timeframe,
-        metric,
-        leaderboard,
-        pagination: {
-          limit,
-          offset,
-          hasMore: leaderboard.length === limit,
-        }
+    return {
+      timeframe,
+      metric,
+      leaderboard,
+      pagination: {
+        limit,
+        offset,
+        hasMore: leaderboard.length === limit,
       }
-    });
-
-  } catch (error) {
-    console.error('[Leaderboard API] Error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch leaderboard'
-      },
-      { status: 500 }
-    );
-  }
+    };
 }

@@ -27,6 +27,9 @@ export interface Post {
   token_metadata_uri: string | null;
   token_signature: string | null;
   is_token_tradable: boolean;
+  content_category: string | null;
+  content_link: string | null;
+  token_utility_description: string | null;
   verified: boolean;
   created_at: string;
   // Supabase joins can return either an object or array depending on the relationship
@@ -43,11 +46,15 @@ interface PostsResponse {
   };
 }
 
+export type PostSortFilter = 'latest' | 'hot' | 'top_24h' | 'top_7d' | 'top_all';
+
 interface UsePostsOptions {
   userId?: string;
   limit?: number;
   offset?: number;
   enabled?: boolean;
+  tokenOnly?: boolean;
+  sort?: PostSortFilter;
 }
 
 /**
@@ -55,18 +62,20 @@ interface UsePostsOptions {
  * Uses Supabase Realtime for instant updates + React Query for data fetching
  */
 export function usePosts(options: UsePostsOptions = {}) {
-  const { userId, limit = 20, offset = 0, enabled = true } = options;
+  const { userId, limit = 20, offset = 0, enabled = true, tokenOnly, sort } = options;
 
   // Set up real-time subscription (handles cache updates automatically)
   useRealtimePosts({ userId, enabled });
 
   return useQuery<PostsResponse>({
-    queryKey: ['posts', { userId, limit, offset }],
+    queryKey: ['posts', { userId, limit, offset, tokenOnly, sort }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (userId) params.append('userId', userId);
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
+      if (tokenOnly) params.append('tokenOnly', 'true');
+      if (sort && sort !== 'latest') params.append('sort', sort);
 
       // Add timestamp to prevent caching
       params.append('_t', Date.now().toString());

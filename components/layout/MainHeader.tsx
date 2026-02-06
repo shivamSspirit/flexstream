@@ -226,7 +226,7 @@ export function MainHeader({
               className="relative"
             >
               <Image
-                src="/logo/flexit-terminal.svg"
+                src="/logo/flexit-terminal-minimal.svg"
                 alt="Flexit"
                 width={120}
                 height={32}

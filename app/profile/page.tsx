@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@/hooks/useWalletCompat';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -13,6 +14,7 @@ import { LoadingSpinner } from '@/components/ui/loading';
  */
 export default function MyProfilePage() {
   const router = useRouter();
+  const { authenticated, ready: privyReady } = usePrivy();
   const { connected, publicKey, ready } = useWallet();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -20,18 +22,24 @@ export default function MyProfilePage() {
     async function redirectToProfile() {
       if (isRedirecting) return;
 
-      console.log('[PROFILE] State - connected:', connected, 'ready:', ready);
+      console.log('[PROFILE] State - connected:', connected, 'ready:', ready, 'authenticated:', authenticated);
 
-      // Wait for wallet SDK to be fully ready before making any decisions
-      if (!ready) {
-        console.log('[PROFILE] Waiting for wallet SDK to be ready...');
+      // Wait for Privy SDK to initialize
+      if (!privyReady) {
+        console.log('[PROFILE] Waiting for Privy SDK to be ready...');
         return;
       }
 
-      // If not connected, redirect to home
-      if (!connected || !publicKey) {
-        console.log('[PROFILE] Not connected, redirecting to home');
+      // If Privy says user is NOT authenticated, redirect to home
+      if (!authenticated) {
+        console.log('[PROFILE] Not authenticated, redirecting to home');
         router.push('/');
+        return;
+      }
+
+      // Wait for wallet compat bridge to finish loading
+      if (!ready || !connected || !publicKey) {
+        console.log('[PROFILE] Authenticated, waiting for wallet to populate...');
         return;
       }
 
@@ -107,7 +115,7 @@ export default function MyProfilePage() {
     }
 
     redirectToProfile();
-  }, [connected, publicKey, ready, router, isRedirecting]);
+  }, [connected, publicKey, ready, router, isRedirecting, privyReady, authenticated]);
 
   return (
     <AppLayout showWallet={true} showSearch={false}>

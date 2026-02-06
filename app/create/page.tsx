@@ -11,16 +11,29 @@ import { useInvalidateUserStats } from '@/hooks/useUserStats';
 import { useUploadingPosts, UploadingPost } from '@/hooks/useUploadingPosts';
 import {
   PhotoIcon,
-  SparklesIcon,
   RocketLaunchIcon,
   CheckCircleIcon,
-  FireIcon,
-  TrophyIcon,
-  UserGroupIcon,
   BoltIcon,
+  LinkIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
-import { usePlatformStats } from '@/hooks/usePlatformStats';
+
+const CONTENT_CATEGORIES = [
+  { value: 'movie', label: 'Movie', icon: '🎬' },
+  { value: 'album', label: 'Album', icon: '💿' },
+  { value: 'songs', label: 'Songs', icon: '🎵' },
+  { value: 'youtube_video', label: 'YouTube Video', icon: '▶️' },
+  { value: 'live_stream', label: 'Live Stream', icon: '🔴' },
+  { value: 'alpha_call', label: 'Alpha Call', icon: '📢' },
+  { value: 'course_series', label: 'Course Series', icon: '📚' },
+  { value: 'podcast', label: 'Podcast', icon: '🎙️' },
+  { value: 'nft_collection', label: 'NFT Collection', icon: '🖼️' },
+  { value: 'meme', label: 'Meme', icon: '😂' },
+  { value: 'art', label: 'Art', icon: '🎨' },
+  { value: 'newsletter', label: 'Newsletter', icon: '📰' },
+  { value: 'tutorial', label: 'Tutorial', icon: '🎓' },
+] as const;
 
 export default function CreatePage() {
   const router = useRouter();
@@ -30,15 +43,19 @@ export default function CreatePage() {
   const { addUploadingPost, updateUploadingPost, removeUploadingPost } = useUploadingPosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Core form state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [ticker, setTicker] = useState('');
+  const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [currentTempId, setCurrentTempId] = useState<string | null>(null);
 
-  const { data: platformStats } = usePlatformStats();
+  // Token launch toggle + fields
+  const [tokenLaunchEnabled, setTokenLaunchEnabled] = useState(false);
+  const [ticker, setTicker] = useState('');
+  const [contentCategory, setContentCategory] = useState('');
+  const [contentLink, setContentLink] = useState('');
+  const [utilityDescription, setUtilityDescription] = useState('');
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,7 +74,8 @@ export default function CreatePage() {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
 
-    if (!ticker) {
+    // Auto-fill ticker from file name when token mode is on
+    if (tokenLaunchEnabled && !ticker) {
       const name = file.name.split('.')[0].toUpperCase().slice(0, 6);
       setTicker(name);
     }
@@ -65,45 +83,47 @@ export default function CreatePage() {
     toast.success('Image uploaded!');
   };
 
-  const handleCreate = async () => {
-    if (!connected || !publicKey) {
-      toast.error('Please connect your wallet first');
-      return;
+  const canSubmit = () => {
+    if (!connected || !publicKey || isCreating) return false;
+    // Must have either content or media
+    if (!content && !imageFile) return false;
+    // If token mode, need ticker + category
+    if (tokenLaunchEnabled) {
+      if (!ticker || ticker.length < 3) return false;
+      if (!contentCategory) return false;
+      if (!imageFile) return false; // Token posts require media
     }
+    return true;
+  };
 
-    if (!imageFile) {
-      toast.error('Please upload an image');
-      return;
-    }
-
-    if (!ticker || ticker.length < 3) {
-      toast.error('Please enter a ticker (3+ characters)');
-      return;
-    }
+  const handleSubmit = async () => {
+    if (!canSubmit()) return;
 
     setIsCreating(true);
 
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setCurrentTempId(tempId);
 
     const optimisticPost: UploadingPost = {
       tempId,
       user_id: 'temp-user',
-      type: 'earnings_flex',
-      title: title || ticker,
-      content: description || `Launch of $${ticker}`,
+      type: tokenLaunchEnabled ? 'trading_journey' : 'lifestyle',
+      title: title || (tokenLaunchEnabled ? ticker : ''),
+      content: content || (tokenLaunchEnabled ? `Launch of $${ticker}` : ''),
       media_urls: [],
-      preview_url: imagePreview,
+      preview_url: imagePreview || undefined,
       token_mint: null,
-      token_symbol: ticker.toUpperCase(),
-      token_name: title || ticker,
-      token_display_name: title || ticker,
+      token_symbol: tokenLaunchEnabled ? ticker.toUpperCase() : null,
+      token_name: tokenLaunchEnabled ? (title || ticker) : null,
+      token_display_name: tokenLaunchEnabled ? ticker.toUpperCase() : null,
       token_is_verified: false,
       pool_address: null,
       bonding_curve_address: null,
       token_metadata_uri: null,
       token_signature: null,
       is_token_tradable: false,
+      content_category: tokenLaunchEnabled ? contentCategory : null,
+      content_link: tokenLaunchEnabled ? contentLink : null,
+      token_utility_description: tokenLaunchEnabled ? utilityDescription : null,
       verified: false,
       creator_is_verified: false,
       users: {
@@ -111,7 +131,7 @@ export default function CreatePage() {
         username: 'user',
         display_name: 'You',
         avatar_url: null,
-        wallet_address: publicKey.toBase58(),
+        wallet_address: publicKey!.toBase58(),
       },
       uploadProgress: 0,
       uploadStage: 'uploading',
@@ -121,109 +141,123 @@ export default function CreatePage() {
     router.push('/');
 
     try {
-      updateUploadingPost(tempId, { uploadProgress: 5, uploadStage: 'uploading' });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      updateUploadingPost(tempId, { uploadProgress: 15 });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      updateUploadingPost(tempId, { uploadProgress: 25 });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      updateUploadingPost(tempId, { uploadProgress: 33 });
+      updateUploadingPost(tempId, { uploadProgress: 10, uploadStage: 'uploading' });
 
       const formData = new FormData();
-      formData.append('title', title || ticker);
-      formData.append('ticker', ticker.toUpperCase());
-      formData.append('content', description || `Launch of $${ticker}`);
-      formData.append('wallet', publicKey.toBase58());
-      formData.append('username', 'user');
-      formData.append('media', imageFile);
+      formData.append('wallet', publicKey!.toBase58());
+      formData.append('content', content || (tokenLaunchEnabled ? `Launch of $${ticker}` : ''));
+      if (title) formData.append('title', title);
+      if (imageFile) formData.append('media', imageFile);
 
-      updateUploadingPost(tempId, { uploadProgress: 40, uploadStage: 'creating_post' });
+      if (tokenLaunchEnabled) {
+        // Token launch flow — use existing /api/posts/create
+        formData.append('ticker', ticker.toUpperCase());
+        formData.append('username', 'user');
+        if (!formData.get('title')) {
+          formData.append('title', ticker);
+        }
+        if (contentCategory) formData.append('content_category', contentCategory);
+        if (contentLink) formData.append('content_link', contentLink);
+        if (utilityDescription) formData.append('token_utility_description', utilityDescription);
 
-      const response = await fetch('/api/posts/create', {
-        method: 'POST',
-        body: formData,
-      });
+        updateUploadingPost(tempId, { uploadProgress: 30, uploadStage: 'creating_post' });
 
-      updateUploadingPost(tempId, { uploadProgress: 55 });
+        const response = await fetch('/api/posts/create', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create token');
+        updateUploadingPost(tempId, { uploadProgress: 60 });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create token');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create token');
+        }
+
+        updateUploadingPost(tempId, { uploadProgress: 80, uploadStage: 'creating_token' });
+        await new Promise(resolve => setTimeout(resolve, 500));
+        updateUploadingPost(tempId, { uploadProgress: 95 });
+
+        const postData = result.data.post;
+        const tokenMint = result.data.token.mint;
+        const explorerUrl = result.data.tokenExplorerUrl;
+
+        updateUploadingPost(tempId, { uploadProgress: 100, uploadStage: 'complete' });
+        addPostToCache(postData);
+        await invalidateUserStats(postData.user_id);
+
+        setTimeout(() => removeUploadingPost(tempId), 1000);
+
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <div className="font-bold font-display uppercase">Token Launched!</div>
+            <div className="text-sm">
+              <div className="mb-2 font-mono">${ticker}</div>
+              <div className="mb-2 font-mono text-xs truncate text-white/60">{tokenMint}</div>
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neon-lime hover:text-[#E5FF4D] underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View on Explorer
+              </a>
+            </div>
+          </div>,
+          { duration: 10000 }
+        );
+      } else {
+        // Normal post flow — use /api/posts/create-simple
+        updateUploadingPost(tempId, { uploadProgress: 40, uploadStage: 'creating_post' });
+
+        const response = await fetch('/api/posts/create-simple', {
+          method: 'POST',
+          body: formData,
+        });
+
+        updateUploadingPost(tempId, { uploadProgress: 80 });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create post');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create post');
+        }
+
+        updateUploadingPost(tempId, { uploadProgress: 100, uploadStage: 'complete' });
+        addPostToCache(result.data.post);
+        await invalidateUserStats(result.data.post.user_id);
+
+        setTimeout(() => removeUploadingPost(tempId), 1000);
+
+        toast.success('Post shared!');
       }
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create token');
-      }
-
-      updateUploadingPost(tempId, { uploadProgress: 66 });
-
-      updateUploadingPost(tempId, {
-        uploadProgress: 75,
-        uploadStage: 'creating_token',
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateUploadingPost(tempId, { uploadProgress: 85 });
-      await new Promise(resolve => setTimeout(resolve, 500));
-      updateUploadingPost(tempId, { uploadProgress: 95 });
-
-      const postData = result.data.post;
-      const tokenMint = result.data.token.mint;
-      const explorerUrl = result.data.tokenExplorerUrl;
-
-      updateUploadingPost(tempId, {
-        uploadProgress: 100,
-        uploadStage: 'complete',
-      });
-
-      // Add post to cache immediately for instant display
-      // This makes the post appear instantly in the feed
-      addPostToCache(postData);
-
-      // Invalidate user stats to update post count
-      await invalidateUserStats(postData.user_id);
-
-      // Note: We no longer call invalidatePosts() here
-      // Realtime subscriptions handle post updates automatically
-      // The aggressive invalidation was causing posts to disappear due to race conditions
-
-      setTimeout(() => {
-        removeUploadingPost(tempId);
-      }, 1000);
-
-      toast.success(
-        <div className="flex flex-col gap-2">
-          <div className="font-bold font-display uppercase">Token Launched!</div>
-          <div className="text-sm">
-            <div className="mb-2 font-mono">${ticker}</div>
-            <div className="mb-2 font-mono text-xs truncate text-white/60">{tokenMint}</div>
-            <a
-              href={explorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-neon-lime hover:text-[#E5FF4D] underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              View on Explorer →
-            </a>
-          </div>
-        </div>,
-        { duration: 10000 }
-      );
-
+      // Reset form
       setIsCreating(false);
-      setCurrentTempId(null);
       setImageFile(null);
       setImagePreview('');
-      setTicker('');
+      setContent('');
       setTitle('');
-      setDescription('');
-
+      setTicker('');
+      setContentCategory('');
+      setContentLink('');
+      setUtilityDescription('');
+      setTokenLaunchEnabled(false);
     } catch (error) {
-      console.error('Error creating token:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create token';
+      console.error('Error creating post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create post';
 
       updateUploadingPost(tempId, {
         uploadProgress: 0,
@@ -236,355 +270,355 @@ export default function CreatePage() {
       setTimeout(() => {
         removeUploadingPost(tempId);
         setIsCreating(false);
-        setCurrentTempId(null);
       }, 5000);
     }
   };
 
   return (
     <AppLayout showWallet={true} showSearch={false}>
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-gradient-mesh pointer-events-none opacity-30" />
-      <div className="fixed inset-0 bg-grid-pattern pointer-events-none opacity-20" />
-
-      <div className="relative min-h-screen pb-20 md:pb-10">
-        <div className="max-w-7xl mx-auto pt-4 sm:pt-6 md:pt-8 px-4">
-          {/* Hero Section - Cyber Brutalist */}
-          <div className="text-center mb-10">
-            {(platformStats?.postsToday || 0) > 0 && (
-              <div className={cn(
-                'inline-flex items-center gap-2 px-4 py-2 mb-6',
-                'bg-neon-coral/10 border-2 border-neon-coral/30 rounded-full',
-                'animate-pulse-slow'
-              )}>
-                <FireIcon className="w-4 h-4 text-neon-coral" />
-                <span className="font-mono text-sm text-neon-coral font-bold uppercase tracking-wider">
-                  {platformStats?.postsToday} FLEXING NOW
-                </span>
-              </div>
-            )}
-
-            <h1 className="heading-1 mb-4">
-              <span className="text-white">SHARE YOUR</span>
-              <span className="block gradient-text-lime-cyan">
-                FLEX
+      <div className="relative min-h-screen pb-24 md:pb-10">
+        <div className="max-w-2xl mx-auto pt-4 sm:pt-6 md:pt-8 px-4">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl font-black font-display uppercase tracking-wide text-white mb-2">
+              <span className="text-white">Share Your </span>
+              <span className="bg-gradient-to-r from-[#E0FF62] to-[#00F0FF] bg-clip-text text-transparent">
+                Flex
               </span>
             </h1>
-
-            <p className="text-white/60 text-lg max-w-xl mx-auto">
-              Every post becomes a tradable token. Share your wins and earn.
+            <p className="text-white/50 text-sm">
+              Post your moment. Toggle on token launch to make it tradeable.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-12">
-            {/* Left: Create Form */}
-            <div className="space-y-6">
-              {/* Step 1: Upload Image */}
-              <div className={cn(
-                'bg-[#0D0D0D] rounded-xl border-2 p-6',
-                imagePreview ? 'border-neon-lime/30' : 'border-white/10',
-                'transition-all duration-150'
-              )}>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className={cn(
-                    'w-10 h-10 rounded-lg flex items-center justify-center',
-                    'font-display font-black text-lg',
-                    imagePreview
-                      ? 'bg-neon-lime text-black'
-                      : 'bg-white/10 text-white/60'
-                  )}>
-                    1
-                  </div>
-                  <h2 className="text-white text-xl font-bold font-display uppercase tracking-wide">
-                    Upload Your Moment
-                  </h2>
-                </div>
-
-                {imagePreview ? (
-                  <div className="relative group">
-                    <img
-                      src={imagePreview}
-                      alt="Token preview"
-                      className="w-full h-64 object-cover rounded-lg border-2 border-neon-lime/30"
-                    />
-                    <button
-                      onClick={() => {
-                        setImageFile(null);
-                        setImagePreview('');
-                      }}
-                      disabled={isCreating}
-                      className={cn(
-                        'absolute top-3 right-3 px-4 py-2 rounded-lg',
-                        'bg-neon-coral text-white font-bold text-sm uppercase',
-                        'opacity-0 group-hover:opacity-100 transition-opacity',
-                        'hover:bg-[#FF4D7A] disabled:opacity-50'
-                      )}
-                    >
-                      Change
-                    </button>
-                    <div className="absolute bottom-3 left-3 bg-black/90 backdrop-blur px-4 py-2 rounded-lg border border-neon-lime/30">
-                      <CheckCircleIcon className="w-5 h-5 text-neon-lime inline mr-2" />
-                      <span className="text-neon-lime text-sm font-bold">UPLOADED</span>
-                    </div>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="image-upload"
-                    className={cn(
-                      'block border-2 border-dashed border-white/20 rounded-xl p-12',
-                      'text-center cursor-pointer transition-all duration-150',
-                      'hover:border-neon-lime/50 hover:bg-neon-lime/5'
-                    )}
-                  >
-                    <PhotoIcon className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                    <p className="text-white text-xl font-bold mb-2 font-display uppercase">
-                      Drop your flex here
-                    </p>
-                    <p className="text-white/40 text-sm">
-                      Share your wins, lifestyle, or journey
-                    </p>
-                    <input
-                      id="image-upload"
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      disabled={isCreating}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* Step 2: Choose Ticker */}
-              <div className={cn(
-                'bg-[#0D0D0D] rounded-xl border-2 p-6',
-                ticker.length >= 3 ? 'border-neon-cyan/30' : 'border-white/10',
-                'transition-all duration-150'
-              )}>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className={cn(
-                    'w-10 h-10 rounded-lg flex items-center justify-center',
-                    'font-display font-black text-lg',
-                    ticker.length >= 3
-                      ? 'bg-neon-cyan text-black'
-                      : 'bg-white/10 text-white/60'
-                  )}>
-                    2
-                  </div>
-                  <h2 className="text-white text-xl font-bold font-display uppercase tracking-wide">
-                    Name Your Token
-                  </h2>
-                </div>
-
-                <div className="relative">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-neon-lime text-3xl font-bold font-mono">
-                    $
-                  </span>
-                  <input
-                    type="text"
-                    value={ticker}
-                    onChange={(e) =>
-                      setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))
-                    }
-                    placeholder="WAGMI"
-                    maxLength={10}
+          <div className="space-y-5">
+            {/* Media Upload */}
+            <div className={cn(
+              'bg-[#12121A] rounded-xl border p-5 transition-all duration-150',
+              imagePreview ? 'border-[#E0FF62]/30' : 'border-white/10'
+            )}>
+              {imagePreview ? (
+                <div className="relative group">
+                  <img
+                    src={imagePreview}
+                    alt="Upload preview"
+                    className="w-full h-56 sm:h-64 object-cover rounded-lg border border-white/10"
+                  />
+                  <button
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview('');
+                    }}
                     disabled={isCreating}
                     className={cn(
-                      'w-full pl-14 pr-6 py-5 rounded-xl',
-                      'bg-black border-2 border-white/10',
-                      'text-white text-3xl font-bold font-mono text-center uppercase',
-                      'placeholder:text-white/20',
-                      'focus:outline-none focus:border-neon-lime/50',
-                      'transition-all duration-150 disabled:opacity-50'
+                      'absolute top-3 right-3 px-3 py-1.5 rounded-lg',
+                      'bg-red-500/90 text-white font-bold text-xs uppercase',
+                      'opacity-0 group-hover:opacity-100 transition-opacity',
+                      'hover:bg-red-400 disabled:opacity-50'
                     )}
-                  />
+                  >
+                    Remove
+                  </button>
+                  <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#E0FF62]/30">
+                    <CheckCircleIcon className="w-4 h-4 text-[#E0FF62] inline mr-1.5" />
+                    <span className="text-[#E0FF62] text-xs font-bold">UPLOADED</span>
+                  </div>
                 </div>
-                <p className="text-white/40 text-sm mt-3 text-center font-mono">
-                  3-10 characters • Others can trade your token
-                </p>
+              ) : (
+                <label
+                  htmlFor="image-upload"
+                  className={cn(
+                    'block border-2 border-dashed border-white/15 rounded-xl p-10',
+                    'text-center cursor-pointer transition-all duration-150',
+                    'hover:border-[#E0FF62]/40 hover:bg-[#E0FF62]/5'
+                  )}
+                >
+                  <PhotoIcon className="w-12 h-12 text-white/25 mx-auto mb-3" />
+                  <p className="text-white text-base font-bold mb-1">
+                    Upload your image
+                  </p>
+                  <p className="text-white/35 text-xs">
+                    Tap to select or drag and drop
+                  </p>
+                  <input
+                    id="image-upload"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    disabled={isCreating}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Text Content */}
+            <div className={cn(
+              'bg-[#12121A] rounded-xl border p-5 transition-all duration-150',
+              content ? 'border-[#00F0FF]/20' : 'border-white/10'
+            )}>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What's on your mind..."
+                maxLength={500}
+                rows={3}
+                disabled={isCreating}
+                className={cn(
+                  'w-full bg-transparent resize-none',
+                  'text-white text-base placeholder:text-white/25',
+                  'focus:outline-none disabled:opacity-50'
+                )}
+              />
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-white/20 text-xs">{content.length}/500</span>
+                {!title && (
+                  <button
+                    onClick={() => setTitle(' ')}
+                    className="text-white/30 text-xs hover:text-white/50 transition-colors"
+                  >
+                    + Add title
+                  </button>
+                )}
               </div>
-
-              {/* Optional: Title & Description */}
-              <details className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6 group">
-                <summary className="cursor-pointer text-white font-bold text-sm flex items-center gap-2 uppercase tracking-wider">
-                  <SparklesIcon className="w-4 h-4 text-neon-purple" />
-                  Optional Details
-                  <span className="text-white/40 font-normal normal-case ml-2">(skip for quick post)</span>
-                </summary>
-
-                <div className="mt-5 space-y-4">
+              {title !== '' && (
+                <div className="mt-3 pt-3 border-t border-white/5">
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Give your post a title"
+                    placeholder="Post title (optional)"
                     maxLength={50}
                     disabled={isCreating}
                     className={cn(
-                      'w-full px-4 py-3 rounded-lg',
-                      'bg-black border-2 border-white/10',
-                      'text-white placeholder:text-white/30',
-                      'focus:outline-none focus:border-neon-purple/50',
-                      'transition-all duration-150 disabled:opacity-50'
+                      'w-full bg-transparent',
+                      'text-white text-sm font-medium placeholder:text-white/25',
+                      'focus:outline-none disabled:opacity-50'
                     )}
                   />
-
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Tell your story..."
-                    maxLength={200}
-                    rows={3}
-                    disabled={isCreating}
-                    className={cn(
-                      'w-full px-4 py-3 rounded-lg resize-none',
-                      'bg-black border-2 border-white/10',
-                      'text-white placeholder:text-white/30',
-                      'focus:outline-none focus:border-neon-purple/50',
-                      'transition-all duration-150 disabled:opacity-50'
-                    )}
-                  />
-                </div>
-              </details>
-
-              {/* Post Button - Cyber Brutalist */}
-              <div className="relative">
-                {/* Glow effect */}
-                <div className={cn(
-                  'absolute inset-0 rounded-xl blur-xl transition-opacity',
-                  imageFile && ticker.length >= 3 && connected
-                    ? 'bg-neon-lime/30 opacity-100'
-                    : 'opacity-0'
-                )} />
-
-                <Button
-                  onClick={handleCreate}
-                  disabled={!imageFile || !ticker || ticker.length < 3 || !connected || isCreating}
-                  className={cn(
-                    'relative w-full py-8 rounded-xl',
-                    'text-xl font-black font-display uppercase tracking-wider',
-                    'transition-all duration-150',
-                    'disabled:opacity-40 disabled:cursor-not-allowed',
-                    imageFile && ticker.length >= 3 && connected
-                      ? 'btn-primary hover:scale-[1.02] active:scale-[0.98]'
-                      : 'bg-white/10 text-white/40 border-2 border-white/10'
-                  )}
-                >
-                  <span className="flex items-center gap-3 justify-center">
-                    <RocketLaunchIcon className={cn('w-7 h-7', isCreating && 'animate-bounce')} />
-                    {isCreating ? 'CREATING...' : 'LAUNCH TOKEN'}
-                  </span>
-                </Button>
-              </div>
-
-              {!connected && (
-                <div className="text-center text-white/40 text-sm font-mono">
-                  CONNECT WALLET TO START EARNING
                 </div>
               )}
             </div>
 
-            {/* Right: Live Preview + Social Proof */}
-            <div className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
-              {/* Live Preview */}
-              <div className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6">
-                <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2 font-display uppercase tracking-wide">
-                  <BoltIcon className="w-5 h-5 text-neon-cyan" />
-                  Live Preview
-                </h3>
+            {/* Token Launch Toggle Section */}
+            <div className={cn(
+              'rounded-xl border transition-all duration-200',
+              tokenLaunchEnabled
+                ? 'bg-[#E0FF62]/5 border-[#E0FF62]/30'
+                : 'bg-[#12121A] border-white/10'
+            )}>
+              {/* Toggle Header */}
+              <div className="flex items-center justify-between p-5">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
+                    tokenLaunchEnabled ? 'bg-[#E0FF62]/20' : 'bg-white/5'
+                  )}>
+                    <RocketLaunchIcon className={cn(
+                      'w-5 h-5 transition-colors',
+                      tokenLaunchEnabled ? 'text-[#E0FF62]' : 'text-white/40'
+                    )} />
+                  </div>
+                  <div>
+                    <p className={cn(
+                      'font-bold text-sm transition-colors',
+                      tokenLaunchEnabled ? 'text-[#E0FF62]' : 'text-white'
+                    )}>
+                      Token Launch
+                    </p>
+                    <p className="text-white/35 text-xs">
+                      Make this post tradeable
+                    </p>
+                  </div>
+                </div>
 
-                <div className="bg-black rounded-lg p-4 border-2 border-white/10">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Token"
-                      className="w-full h-48 object-cover rounded-lg mb-4"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed border-white/10">
-                      <PhotoIcon className="w-12 h-12 text-white/20" />
-                    </div>
+                {/* Toggle Switch */}
+                <button
+                  onClick={() => setTokenLaunchEnabled(!tokenLaunchEnabled)}
+                  disabled={isCreating}
+                  className={cn(
+                    'relative w-12 h-7 rounded-full transition-all duration-200',
+                    'focus:outline-none disabled:opacity-50',
+                    tokenLaunchEnabled
+                      ? 'bg-[#E0FF62]'
+                      : 'bg-white/10'
                   )}
+                  style={{
+                    boxShadow: tokenLaunchEnabled ? '0 0 16px rgba(224, 255, 98, 0.3)' : 'none',
+                  }}
+                  aria-label="Toggle token launch"
+                >
+                  <div className={cn(
+                    'absolute top-1 w-5 h-5 rounded-full transition-all duration-200',
+                    tokenLaunchEnabled
+                      ? 'left-6 bg-black'
+                      : 'left-1 bg-white/40'
+                  )} />
+                </button>
+              </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={cn(
-                        'text-xl font-bold font-mono',
-                        ticker ? 'text-neon-lime' : 'text-white/30'
-                      )}>
-                        ${ticker || 'TICKER'}
-                      </p>
-                      <p className="text-white/40 text-sm">
-                        {title || 'Your token name'}
-                      </p>
+              {/* Token Fields (revealed when toggle ON) */}
+              {tokenLaunchEnabled && (
+                <div className="px-5 pb-5 space-y-4 border-t border-[#E0FF62]/10 pt-4">
+                  {/* Content Category */}
+                  <div>
+                    <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+                      Content Category
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={contentCategory}
+                        onChange={(e) => setContentCategory(e.target.value)}
+                        disabled={isCreating}
+                        className={cn(
+                          'w-full px-4 py-3 rounded-lg appearance-none',
+                          'bg-black/50 border border-white/10',
+                          'text-white text-sm',
+                          'focus:outline-none focus:border-[#E0FF62]/40',
+                          'disabled:opacity-50',
+                          !contentCategory && 'text-white/30'
+                        )}
+                      >
+                        <option value="" disabled>Select category...</option>
+                        {CONTENT_CATEGORIES.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.icon} {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-neon-cyan font-bold font-mono">$0.01</p>
-                      <p className="text-xs text-white/40">Starting price</p>
+                  </div>
+
+                  {/* Token Ticker */}
+                  <div>
+                    <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+                      Token Ticker
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#E0FF62] text-lg font-bold font-mono">
+                        $
+                      </span>
+                      <input
+                        type="text"
+                        value={ticker}
+                        onChange={(e) =>
+                          setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))
+                        }
+                        placeholder="WAGMI"
+                        maxLength={10}
+                        disabled={isCreating}
+                        className={cn(
+                          'w-full pl-10 pr-4 py-3 rounded-lg',
+                          'bg-black/50 border border-white/10',
+                          'text-white text-lg font-bold font-mono uppercase',
+                          'placeholder:text-white/20',
+                          'focus:outline-none focus:border-[#E0FF62]/40',
+                          'disabled:opacity-50'
+                        )}
+                      />
+                    </div>
+                    <p className="text-white/25 text-xs mt-1.5">3-10 characters</p>
+                  </div>
+
+                  {/* Content Link */}
+                  <div>
+                    <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+                      Content Link
+                    </label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        type="url"
+                        value={contentLink}
+                        onChange={(e) => setContentLink(e.target.value)}
+                        placeholder="https://youtube.com/watch?v=..."
+                        disabled={isCreating}
+                        className={cn(
+                          'w-full pl-10 pr-4 py-3 rounded-lg',
+                          'bg-black/50 border border-white/10',
+                          'text-white text-sm',
+                          'placeholder:text-white/20',
+                          'focus:outline-none focus:border-[#E0FF62]/40',
+                          'disabled:opacity-50'
+                        )}
+                      />
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Social Proof */}
-              <div className="bg-[#0D0D0D] rounded-xl border-2 border-white/10 p-6">
-                <h3 className="text-white font-bold text-lg mb-5 flex items-center gap-2 font-display uppercase tracking-wide">
-                  <TrophyIcon className="w-5 h-5 text-warning" />
-                  Platform Stats
-                </h3>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/40 text-sm">Active creators</span>
-                    <span className="text-neon-lime font-bold font-mono">{platformStats?.activeTraders || 0}</span>
+                  {/* Token Utility Description */}
+                  <div>
+                    <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+                      Token Utility
+                    </label>
+                    <textarea
+                      value={utilityDescription}
+                      onChange={(e) => setUtilityDescription(e.target.value)}
+                      placeholder="Describe what token holders get access to..."
+                      maxLength={500}
+                      rows={3}
+                      disabled={isCreating}
+                      className={cn(
+                        'w-full px-4 py-3 rounded-lg resize-none',
+                        'bg-black/50 border border-white/10',
+                        'text-white text-sm',
+                        'placeholder:text-white/20',
+                        'focus:outline-none focus:border-[#E0FF62]/40',
+                        'disabled:opacity-50'
+                      )}
+                    />
+                    <p className="text-white/25 text-xs mt-1.5">{utilityDescription.length}/500</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/40 text-sm">Total creators</span>
-                    <span className="text-neon-cyan font-bold font-mono">{platformStats?.totalCreators || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/40 text-sm">Posts today</span>
-                    <span className="text-white font-bold font-mono">{platformStats?.postsToday || 0}</span>
-                  </div>
                 </div>
-
-                <div className="mt-5 pt-5 border-t border-white/10">
-                  <p className="text-xs text-white/40 text-center font-mono uppercase tracking-wider">
-                    Join {platformStats?.totalCreators || 0}+ creators earning
-                  </p>
-                </div>
-              </div>
-
-              {/* Tips Card */}
-              <div className={cn(
-                'rounded-xl p-6',
-                'bg-neon-purple/5 border-2 border-neon-purple/20'
-              )}>
-                <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
-                  <UserGroupIcon className="w-4 h-4 text-neon-purple" />
-                  Pro Tips
-                </h3>
-                <ul className="space-y-2 text-xs text-white/50">
-                  <li className="flex items-start gap-2">
-                    <span className="text-neon-lime">+</span>
-                    Post your biggest wins & lifestyle
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-neon-lime">+</span>
-                    Catchy names get more attention
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-neon-lime">+</span>
-                    Share on Twitter after posting
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-neon-lime">+</span>
-                    Engage with your token holders
-                  </li>
-                </ul>
-              </div>
+              )}
             </div>
+
+            {/* Submit Button */}
+            <div className="relative">
+              {canSubmit() && (
+                <div className={cn(
+                  'absolute inset-0 rounded-xl blur-xl opacity-50',
+                  tokenLaunchEnabled ? 'bg-[#E0FF62]/30' : 'bg-[#00F0FF]/20'
+                )} />
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit()}
+                className={cn(
+                  'relative w-full py-7 rounded-xl',
+                  'text-lg font-black font-display uppercase tracking-wider',
+                  'transition-all duration-150',
+                  'disabled:opacity-30 disabled:cursor-not-allowed',
+                  canSubmit()
+                    ? tokenLaunchEnabled
+                      ? 'bg-gradient-to-r from-[#E0FF62] to-[#c8e85a] text-black hover:opacity-90 active:scale-[0.98]'
+                      : 'bg-gradient-to-r from-[#00F0FF] to-[#00c8d6] text-black hover:opacity-90 active:scale-[0.98]'
+                    : 'bg-white/10 text-white/30 border border-white/10'
+                )}
+              >
+                <span className="flex items-center gap-2.5 justify-center">
+                  {tokenLaunchEnabled ? (
+                    <>
+                      <RocketLaunchIcon className={cn('w-6 h-6', isCreating && 'animate-bounce')} />
+                      {isCreating ? 'LAUNCHING...' : 'LAUNCH TOKEN'}
+                    </>
+                  ) : (
+                    <>
+                      <BoltIcon className={cn('w-6 h-6', isCreating && 'animate-pulse')} />
+                      {isCreating ? 'POSTING...' : 'POST'}
+                    </>
+                  )}
+                </span>
+              </Button>
+            </div>
+
+            {!connected && (
+              <div className="text-center text-white/35 text-sm">
+                Connect wallet to start posting
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -35,3 +35,16 @@ export { SocialProofBadge, FriendActivityNotification } from './SocialProofBadge
 
 // Win streak - animated streak display
 export { WinStreakBadge, WinStreakCelebration } from './WinStreakBadge';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KALSHI + DFLOW INTEGRATION (NEW)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Swipeable market cards with trading
+export { SwipeableMarketCards } from './SwipeableMarketCard';
+
+// Trading modal for DFlow execution
+export { TradingModal } from './TradingModal';
+
+// Position tracking panel
+export { PositionsPanel, MiniPositionsBar } from './PositionsPanel';

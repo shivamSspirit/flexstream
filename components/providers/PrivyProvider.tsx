@@ -1,7 +1,11 @@
 'use client';
 
-import { PrivyProvider as PrivyProviderBase, usePrivy, useWallets } from '@privy-io/react-auth';
+import { PrivyProvider as PrivyProviderBase, usePrivy } from '@privy-io/react-auth';
+import { toSolanaWalletConnectors, useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
 import { ReactNode, useEffect, useState } from 'react';
+
+// Configure Solana external wallet connectors (Phantom, Solflare, Backpack, etc.)
+const solanaConnectors = toSolanaWalletConnectors();
 
 interface PrivyWalletProviderProps {
   children: ReactNode;
@@ -37,6 +41,7 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
           accentColor: '#00ff88',
           logo: '/flexit-logo.png',
           walletChainType: 'solana-only',
+          walletList: ['phantom', 'solflare', 'backpack'],
           landingHeader: 'Welcome to Flexit',
           loginMessage: 'Sign in to start flexing',
         },
@@ -46,6 +51,13 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
         embeddedWallets: {
           solana: {
             createOnLogin: 'all-users',
+          },
+        },
+        // External wallet connectors - enables detection of browser extension wallets
+        // (Phantom, Solflare, Backpack, etc.)
+        externalWallets: {
+          solana: {
+            connectors: solanaConnectors,
           },
         },
       }}
@@ -60,7 +72,7 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
  */
 function UserEnsurer({ children }: { children: ReactNode }) {
   const { authenticated, user, ready } = usePrivy();
-  const { wallets } = useWallets();
+  const { wallets } = useSolanaWallets();
   const [ensured, setEnsured] = useState(false);
 
   useEffect(() => {
@@ -100,11 +112,6 @@ function UserEnsurer({ children }: { children: ReactNode }) {
 
           if (data.needsProfileSetup) {
             sessionStorage.setItem('needs_profile_setup', 'true');
-            const currentPath = window.location.pathname;
-            if (!currentPath.includes('/profile/edit')) {
-              window.location.href = '/profile/edit';
-              return;
-            }
           } else {
             sessionStorage.removeItem('needs_profile_setup');
           }

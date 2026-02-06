@@ -49,8 +49,10 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
+    const tokenOnly = searchParams.get('tokenOnly') === 'true';
+    const sort = searchParams.get('sort') || 'latest';
 
-    console.log('[GET POSTS] Query params:', { userId, limit, offset });
+    console.log('[GET POSTS] Query params:', { userId, limit, offset, tokenOnly, sort });
 
     // Build query - use INNER JOIN since every post MUST have a valid user (FK constraint)
     // This ensures we never return posts without user data, which SimpleFeed would filter out
@@ -74,6 +76,9 @@ export async function GET(request: NextRequest) {
         token_metadata_uri,
         token_signature,
         is_token_tradable,
+        content_category,
+        content_link,
+        token_utility_description,
         verified,
         created_at,
         users!inner (
@@ -93,10 +98,32 @@ export async function GET(request: NextRequest) {
       console.log('[GET POSTS] Fetching all posts (no user filter)');
     }
 
-    // Apply ordering and pagination
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Filter to only posts with tokens if requested
+    if (tokenOnly) {
+      query = query.not('token_mint', 'is', null);
+    }
+
+    // Apply time-range filters for "top" sorts
+    if (sort === 'top_24h') {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      query = query.gte('created_at', since);
+    } else if (sort === 'top_7d') {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      query = query.gte('created_at', since);
+    }
+
+    // Apply ordering based on sort param
+    if (sort === 'hot' || sort === 'top_24h' || sort === 'top_7d' || sort === 'top_all') {
+      query = query
+        .order('likes_count', { ascending: false })
+        .order('created_at', { ascending: false });
+    } else {
+      // Default: latest first
+      query = query.order('created_at', { ascending: false });
+    }
+
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
 
     const { data: posts, error, count } = await query;
 

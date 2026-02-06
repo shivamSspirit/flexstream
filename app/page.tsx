@@ -83,6 +83,8 @@ const convertPostToViralData = (post: Post): ViralPostData => {
     content: post.content || null,
     mediaUrl: post.media_urls?.[0] || null,
     mediaType: post.media_urls?.[0]?.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image',
+    content_category: post.content_category || undefined,
+    content_link: post.content_link || undefined,
     token: post.token_mint ? {
       // Use post title as ticker (cleaned up - first word, uppercase, max 8 chars)
       symbol: (post.title || 'TOKEN').split(' ')[0].toUpperCase().slice(0, 8),

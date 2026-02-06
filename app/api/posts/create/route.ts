@@ -3,6 +3,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { createClient } from '@supabase/supabase-js';
 import { MeteoraDBCClient } from '@/lib/meteora-dbc';
 import { DBC_CONFIG } from '@/lib/dbc-config';
+import { withRateLimit, rateLimitedResponse } from '@/lib/rate-limit';
 
 /**
  * Check if a creator is verified based on:
@@ -77,6 +78,11 @@ export async function POST(request: NextRequest) {
     const walletAddress = formData.get('wallet') as string;
     const username = formData.get('username') as string;
 
+    // Optional token launch metadata fields
+    const contentCategory = formData.get('content_category') as string | null;
+    const contentLink = formData.get('content_link') as string | null;
+    const tokenUtilityDescription = formData.get('token_utility_description') as string | null;
+
     // Get media files
     const mediaFiles = formData.getAll('media') as File[];
 
@@ -93,6 +99,12 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'At least one media file is required',
       }, { status: 400 });
+    }
+
+    // Rate limit check (5 posts per hour per wallet)
+    const rateLimit = await withRateLimit(request, 'posting', walletAddress);
+    if (!rateLimit.success) {
+      return rateLimitedResponse(rateLimit);
     }
 
     // Validate wallet address
@@ -416,6 +428,11 @@ export async function POST(request: NextRequest) {
         token_metadata_uri: metadataUri,
         token_signature: tokenResult.signature,
         is_token_tradable: true,
+
+        // Token launch metadata (optional)
+        ...(contentCategory && { content_category: contentCategory }),
+        ...(contentLink && { content_link: contentLink }),
+        ...(tokenUtilityDescription && { token_utility_description: tokenUtilityDescription }),
 
         verified: false,
         created_at: new Date().toISOString(),

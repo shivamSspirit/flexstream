@@ -70,6 +70,9 @@ export interface FlexPost {
   token_is_verified?: boolean // True if this is the first token with this display_name
   creator_is_verified?: boolean // True if creator has custom avatar + X OAuth verification
   pool_address?: string // DBC pool address for trading
+  content_category?: string // Content category (movie, album, etc.) - only for token posts
+  content_link?: string // Link to the content (URL) - only for token posts
+  token_utility_description?: string // Description of token utility - only for token posts
   verified: boolean
   likes_count: number
   comments_count: number
@@ -552,3 +555,230 @@ export const FLEX_REWARDS: Record<FlexAction, { base: number; max_daily: number;
   first_trade: { base: 100, max_daily: 100, description: 'First trade bonus' },
   streak_bonus: { base: 0, max_daily: 0, description: 'Streak multiplier bonus' },
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UNIFIED PREDICTION MARKETS TYPES
+// Combines Kalshi + DFlow for seamless prediction trading on Solana
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type PredictionSource = 'kalshi' | 'dflow' | 'polymarket';
+export type MarketStatus = 'open' | 'closed' | 'settled';
+export type PredictionSide = 'yes' | 'no';
+
+/**
+ * Unified market representation combining Kalshi + DFlow data
+ */
+export interface UnifiedMarket {
+  // Core identifiers
+  ticker: string;
+  eventTicker: string;
+  title: string;
+  subtitle?: string;
+
+  // Status
+  status: MarketStatus;
+  isLive: boolean;
+
+  // Pricing (in cents, 0-100)
+  yesPrice: number;
+  noPrice: number;
+  yesBid: number;
+  yesAsk: number;
+  noBid: number;
+  noAsk: number;
+  lastPrice: number;
+
+  // Volume & liquidity
+  volume: number;
+  volume24h: number;
+  openInterest?: number;
+  liquidity?: number;
+
+  // Timestamps
+  openTime: string;
+  closeTime: string;
+  expirationTime: string;
+
+  // Category & metadata
+  category: string;
+  tags?: string[];
+
+  // Source information
+  source: PredictionSource;
+  kalshiTicker?: string;
+
+  // DFlow-specific (for Solana trading)
+  dflow?: {
+    yesMint: string;      // YES token SPL address
+    noMint: string;       // NO token SPL address
+    marketLedger: string; // Settlement currency (USDC)
+    isInitialized: boolean;
+  };
+
+  // Computed fields
+  impliedProbability: number;  // 0-100
+  potentialPayoutYes: number;  // Payout for $100 YES bet
+  potentialPayoutNo: number;   // Payout for $100 NO bet
+  timeRemaining: string;       // Human readable
+
+  // Arbitrage opportunity (when Kalshi vs DFlow prices differ)
+  arbitrage?: {
+    spreadPercent: number;
+    direction: 'buy_dflow' | 'buy_kalshi';
+    opportunity: boolean;
+  };
+}
+
+/**
+ * User's prediction position
+ */
+export interface PredictionPosition {
+  id: string;
+  marketTicker: string;
+  marketTitle: string;
+  side: PredictionSide;
+
+  // Position details
+  shares: number;
+  entryPrice: number;      // Average entry price (cents)
+  currentPrice: number;    // Current market price
+  stakeAmount: number;     // USDC invested
+  currentValue: number;    // Current USDC value
+
+  // P&L
+  unrealizedPnl: number;
+  unrealizedPnlPercent: number;
+
+  // DFlow token tracking
+  dflowMint?: string;      // YES or NO mint address
+  txSignature?: string;    // Original transaction
+
+  // Status
+  status: 'active' | 'won' | 'lost' | 'sold';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Trade request for DFlow execution
+ */
+export interface PredictionTradeRequest {
+  marketTicker: string;
+  side: PredictionSide;
+  amountUsdc: number;
+  userPublicKey: string;
+  slippageBps?: number;  // Default 100 (1%)
+}
+
+/**
+ * Trade response with transaction to sign
+ */
+export interface PredictionTradeResponse {
+  success: boolean;
+  trade?: {
+    transaction: string;      // Base64 encoded VersionedTransaction
+    inputAmount: string;      // USDC amount (micro units)
+    outputAmount: string;     // Token amount received
+    pricePerToken: number;    // Price in cents
+    priceImpact: number;      // Slippage %
+    fee: number;              // Trading fee
+    estimatedPayout: number;  // If prediction wins
+  };
+  error?: string;
+}
+
+/**
+ * Trade confirmation after signing
+ */
+export interface PredictionTradeConfirmation {
+  success: boolean;
+  position?: PredictionPosition;
+  txSignature?: string;
+  flexScoreChange?: number;
+  error?: string;
+}
+
+/**
+ * Market discovery filters
+ */
+export interface MarketFilters {
+  category?: string;
+  status?: MarketStatus;
+  source?: PredictionSource;
+  search?: string;
+  sortBy?: 'volume' | 'newest' | 'closing' | 'probability';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+  // FOMO filters
+  minVolume?: number;
+  hasArbitrage?: boolean;
+  endingSoon?: boolean;  // Within 24 hours
+}
+
+/**
+ * Unified markets API response
+ */
+export interface UnifiedMarketsResponse {
+  markets: UnifiedMarket[];
+  total: number;
+  hasMore: boolean;
+  sources: {
+    kalshi: { count: number; status: 'ok' | 'error' };
+    dflow: { count: number; status: 'ok' | 'error' };
+  };
+  lastUpdated: string;
+}
+
+/**
+ * User's portfolio summary
+ */
+export interface PredictionPortfolio {
+  positions: PredictionPosition[];
+  totalValue: number;
+  totalInvested: number;
+  totalPnl: number;
+  totalPnlPercent: number;
+  winRate: number;
+  activePositions: number;
+  settledPositions: number;
+}
+
+/**
+ * Social proof for a market
+ */
+export interface MarketSocialProof {
+  marketTicker: string;
+  totalBettors: number;
+  friendsBetting: Array<{
+    user: Pick<User, 'id' | 'username' | 'avatar_url'>;
+    side: PredictionSide;
+  }>;
+  topPredictors: Array<{
+    user: Pick<User, 'id' | 'username' | 'avatar_url'>;
+    side: PredictionSide;
+    flexScore: number;
+  }>;
+  volumeLast24h: number;
+  sentiment: {
+    yesPercent: number;
+    noPercent: number;
+  };
+}
+
+/**
+ * Category definitions for UI
+ */
+export const PREDICTION_CATEGORIES = [
+  { id: 'trending', label: 'Trending', icon: '🔥', color: 'from-orange-500 to-red-500' },
+  { id: 'all', label: 'All', icon: '📊', color: 'from-gray-500 to-gray-600' },
+  { id: 'crypto', label: 'Crypto', icon: '₿', color: 'from-orange-500 to-amber-600' },
+  { id: 'politics', label: 'Politics', icon: '🏛️', color: 'from-blue-500 to-indigo-600' },
+  { id: 'economics', label: 'Economics', icon: '📈', color: 'from-emerald-500 to-teal-600' },
+  { id: 'tech', label: 'Tech', icon: '🤖', color: 'from-cyan-500 to-blue-600' },
+  { id: 'sports', label: 'Sports', icon: '⚽', color: 'from-green-500 to-lime-600' },
+  { id: 'climate', label: 'Climate', icon: '🌍', color: 'from-blue-400 to-cyan-500' },
+  { id: 'companies', label: 'Companies', icon: '🏢', color: 'from-purple-500 to-pink-500' },
+] as const;
+
+export type PredictionCategory = typeof PREDICTION_CATEGORIES[number]['id'];

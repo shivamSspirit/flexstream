@@ -39,6 +39,9 @@ export interface ViralPostData {
   content: string | null;
   mediaUrl: string | null;
   mediaType: 'image' | 'video' | null;
+  // Token launch metadata
+  content_category?: string;
+  content_link?: string;
   // Token data
   token: {
     symbol: string;
@@ -404,6 +407,18 @@ export function ViralPostCard({
                   <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#00F0FF">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                )}
+                {post.content_category && (
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: 'rgba(0, 240, 255, 0.12)',
+                      color: '#00F0FF',
+                      border: '0.5px solid rgba(0, 240, 255, 0.25)',
+                    }}
+                  >
+                    {post.content_category.replace(/_/g, ' ').toUpperCase()}
+                  </span>
                 )}
                 {/* Desktop: Time inline */}
                 <span className="hidden sm:inline-flex items-center gap-1 text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
@@ -917,6 +932,22 @@ export function ViralPostCard({
               >
                 {post.content}
               </p>
+            )}
+            {post.content_link && (
+              <a
+                href={post.content_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 mt-1.5 text-[12px] font-medium hover:opacity-80 transition-opacity"
+                style={{ color: '#00F0FF' }}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.172 13.828a4 4 0 015.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                </svg>
+                View Content
+              </a>
             )}
           </div>
         )}

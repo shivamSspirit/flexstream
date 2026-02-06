@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@/hooks/useWalletCompat';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -52,6 +53,7 @@ interface UserProfile {
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const { authenticated, ready: privyReady } = usePrivy();
   const { connected, publicKey, connecting, ready } = useWallet();
   const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -98,23 +100,31 @@ export default function EditProfilePage() {
 
   // Load user data from Supabase
   useEffect(() => {
-    // Wait for wallet SDK to be fully ready before making any decisions
-    if (!ready) {
-      console.log('[EditProfile] Waiting for wallet SDK to be ready...');
+    // Wait for Privy SDK to initialize first
+    if (!privyReady) {
+      console.log('[EditProfile] Waiting for Privy SDK to be ready...');
       return;
     }
 
-    // Only redirect if wallet SDK is ready AND user is not connected
-    if (!connected || !publicKey) {
-      console.log('[EditProfile] User not connected, redirecting to home');
+    // If Privy says user is NOT authenticated, redirect to home
+    // This is the ground truth — no need to wait for the wallet bridge
+    if (!authenticated) {
+      console.log('[EditProfile] User not authenticated, redirecting to home');
       router.push('/');
+      return;
+    }
+
+    // User is authenticated but wallet bridge may still be loading.
+    // Wait for the wallet compat layer to finish before loading profile.
+    if (!ready || !connected || !publicKey) {
+      console.log('[EditProfile] Authenticated, waiting for wallet to populate...');
       return;
     }
 
     console.log('[EditProfile] User connected, loading profile...');
     loadUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, publicKey, ready]);
+  }, [connected, publicKey, ready, privyReady, authenticated]);
 
   const loadUserProfile = async () => {
     if (!supabase || !publicKey) return;
@@ -434,7 +444,7 @@ export default function EditProfilePage() {
     }
   };
 
-  if (!ready || loading) {
+  if (!privyReady || !ready || loading) {
     return (
       <AppLayout showWallet={true} showSearch={false}>
         <div className="flex items-center justify-center min-h-[60vh]">

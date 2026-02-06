@@ -39,11 +39,11 @@ export function Header() {
               <div className="absolute -inset-2 bg-gradient-to-r from-[#00D4FF]/0 via-[#8B5CF6]/0 to-[#A855F7]/0 group-hover:from-[#00D4FF]/10 group-hover:via-[#8B5CF6]/10 group-hover:to-[#A855F7]/10 rounded-xl blur-xl transition-all duration-300" />
 
               <Image
-                src="/logo/flexit-logo.svg"
+                src="/logo/flexit-terminal-minimal.svg"
                 alt="FlexIt"
-                width={124}
-                height={60}
-                className="h-9 w-auto relative z-10 transition-transform duration-150 group-hover:scale-[1.02]"
+                width={120}
+                height={40}
+                className="h-8 w-auto relative z-10 transition-transform duration-150 group-hover:scale-[1.02]"
                 priority
               />
             </Link>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { createDBCClient } from '@/lib/meteora-dbc';
+import { withRateLimit, rateLimitedResponse, rateLimitHeaders } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,12 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Missing required parameters' },
         { status: 400 }
       );
+    }
+
+    // Rate limit check (10 trades per minute per wallet)
+    const rateLimit = await withRateLimit(request, 'trading', sellerWallet);
+    if (!rateLimit.success) {
+      return rateLimitedResponse(rateLimit);
     }
 
     const connection = new Connection(
@@ -50,6 +57,8 @@ export async function POST(request: NextRequest) {
         blockhash,
         lastValidBlockHeight,
       },
+    }, {
+      headers: rateLimitHeaders(rateLimit),
     });
   } catch (error) {
     console.error('[API] Sell Error:', error);

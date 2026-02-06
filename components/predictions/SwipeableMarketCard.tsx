@@ -4,12 +4,15 @@ import { useState, useRef, useMemo, useCallback, createRef, RefObject, useEffect
 import TinderCard from 'react-tinder-card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { X, Check, RotateCcw, TrendingUp, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Check, RotateCcw, TrendingUp, Clock, Users, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { TradingModal } from './TradingModal';
+import type { UnifiedMarket, PredictionSide } from '@/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // VIRAL TINDER-STYLE SWIPEABLE MARKET CARDS
 // Nikita Bier Playbook: 3-sec aha, FOMO, dopamine, instant actions
 // MOBILE-FIRST: Full screen, large touch targets, clean hierarchy
+// Now with DFlow trading integration!
 // ═══════════════════════════════════════════════════════════════════════════════
 
 type Direction = 'left' | 'right' | 'up' | 'down';
@@ -34,11 +37,19 @@ interface Market {
   close_time: string;
   expiration_time: string;
   category?: string;
+  // DFlow fields for trading
+  dflow?: {
+    yesMint: string;
+    noMint: string;
+    marketLedger: string;
+    isInitialized: boolean;
+  };
 }
 
 interface SwipeableMarketCardsProps {
   markets: Market[];
   onBet: (market: Market, side: 'yes' | 'no') => void;
+  enableTrading?: boolean; // Enable real trading via DFlow
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,13 +122,47 @@ function getTimeLeft(closeTime: string): string {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
-export function SwipeableMarketCards({ markets, onBet }: SwipeableMarketCardsProps) {
+export function SwipeableMarketCards({ markets, onBet, enableTrading = true }: SwipeableMarketCardsProps) {
   const [currentIndex, setCurrentIndex] = useState(markets.length - 1);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showHint, setShowHint] = useState(true);
   const currentIndexRef = useRef(currentIndex);
   const prevMarketsLengthRef = useRef(markets.length);
   const hasSwipedRef = useRef(false);
+
+  // Trading modal state
+  const [tradingModalOpen, setTradingModalOpen] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
+  const [selectedSide, setSelectedSide] = useState<PredictionSide>('yes');
+
+  // Convert Market to UnifiedMarket for trading modal
+  const getUnifiedMarket = (market: Market): UnifiedMarket => ({
+    ticker: market.ticker,
+    eventTicker: market.event_ticker,
+    title: market.title,
+    status: market.status as 'open' | 'closed' | 'settled',
+    isLive: market.status === 'open',
+    yesPrice: market.yes_bid || market.last_price || 50,
+    noPrice: 100 - (market.yes_bid || market.last_price || 50),
+    yesBid: market.yes_bid,
+    yesAsk: market.yes_ask,
+    noBid: market.no_bid,
+    noAsk: market.no_ask,
+    lastPrice: market.last_price,
+    volume: market.volume,
+    volume24h: market.volume_24h || 0,
+    openTime: market.open_time,
+    closeTime: market.close_time,
+    expirationTime: market.expiration_time,
+    category: market.category || 'general',
+    source: market.dflow ? 'dflow' : 'kalshi',
+    kalshiTicker: market.ticker,
+    dflow: market.dflow,
+    impliedProbability: market.yes_bid || market.last_price || 50,
+    potentialPayoutYes: market.yes_bid > 0 ? Math.round((100 / market.yes_bid) * 100) : 200,
+    potentialPayoutNo: (100 - market.yes_bid) > 0 ? Math.round((100 / (100 - market.yes_bid)) * 100) : 200,
+    timeRemaining: getTimeLeft(market.close_time),
+  });
 
   const childRefs = useMemo<RefObject<TinderCardAPI>[]>(
     () => Array(markets.length).fill(0).map(() => createRef<TinderCardAPI>()),
@@ -154,12 +199,26 @@ export function SwipeableMarketCards({ markets, onBet }: SwipeableMarketCardsPro
     setSwipeDirection(null);
     setShowHint(false);
     updateCurrentIndex(index - 1);
-    if (direction === 'right') {
-      onBet(market, 'yes');
-    } else if (direction === 'left') {
-      onBet(market, 'no');
+
+    // Determine side based on swipe direction
+    const side: PredictionSide = direction === 'right' ? 'yes' : 'no';
+
+    if (enableTrading) {
+      // Open trading modal for real trading
+      setSelectedMarket(market);
+      setSelectedSide(side);
+      setTradingModalOpen(true);
+    } else {
+      // Just call the callback for demo mode
+      onBet(market, side);
     }
-  }, [onBet]);
+  }, [onBet, enableTrading]);
+
+  // Handle trading modal success
+  const handleTradeSuccess = useCallback((txSignature: string) => {
+    console.log('Trade successful:', txSignature);
+    // Could show a toast notification here
+  }, []);
 
   const outOfFrame = (idx: number) => {
     if (currentIndexRef.current >= idx && childRefs[idx].current) {
@@ -469,6 +528,20 @@ export function SwipeableMarketCards({ markets, onBet }: SwipeableMarketCardsPro
           </motion.button>
         </div>
       </div>
+
+      {/* Trading Modal */}
+      {enableTrading && selectedMarket && (
+        <TradingModal
+          isOpen={tradingModalOpen}
+          onClose={() => {
+            setTradingModalOpen(false);
+            setSelectedMarket(null);
+          }}
+          market={getUnifiedMarket(selectedMarket)}
+          side={selectedSide}
+          onSuccess={handleTradeSuccess}
+        />
+      )}
     </div>
   );
 }

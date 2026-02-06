@@ -81,7 +81,7 @@ export function Logo({
 
       {renderWordmark && (
         <img
-          src="/logo/flexit-terminal.svg"
+          src="/logo/flexit-terminal-minimal.svg"
           alt="FlexIt"
           width={currentSize.logo.width}
           height={currentSize.logo.height}

@@ -42,5 +42,3 @@ This is a source-reviewable prototype. The post and token creation paths are the
 - [Realtime feed hook](hooks/useRealtimePosts.ts)
 - [Privy provider](components/providers/PrivyProvider.tsx)
 - [End-to-end tests](tests/e2e/)
-
-For the complete five-minute speaking script, see [INTERVIEW_PRESENTATION.md](INTERVIEW_PRESENTATION.md).

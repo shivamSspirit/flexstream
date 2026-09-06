@@ -232,7 +232,9 @@ test.describe('Feed Page - Interactions (Unauthenticated)', () => {
       const isModalVisible = await modal.isVisible().catch(() => false);
 
       // Either modal opens or focus remains on input (depending on implementation)
-      expect(isModalVisible || (await commentInput.isFocused())).toBeTruthy();
+      if (!isModalVisible) {
+        await expect(commentInput).toBeFocused();
+      }
     } else {
       console.log('No comment inputs found - feed may be empty');
     }

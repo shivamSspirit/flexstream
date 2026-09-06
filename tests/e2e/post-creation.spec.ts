@@ -137,22 +137,18 @@ test.describe('Create Page - Image Upload (UI Only)', () => {
  */
 test.describe('Create Page - Authenticated (Skipped without auth)', () => {
   // Skip these tests if no auth state exists
-  test.skip(
-    ({ }, testInfo) => {
-      // Check if auth state file exists
-      const authStatePath = path.join(
-        testInfo.project.testDir,
-        'fixtures/.auth-state.json'
-      );
-      try {
-        require('fs').accessSync(authStatePath);
-        return false; // Don't skip, auth exists
-      } catch {
-        return true; // Skip, no auth
-      }
-    },
-    'No auth state found - run auth setup first'
-  );
+  test.beforeEach(async ({ }, testInfo) => {
+    // Check if auth state file exists
+    const authStatePath = path.join(
+      testInfo.project.testDir,
+      'fixtures/.auth-state.json'
+    );
+    try {
+      require('fs').accessSync(authStatePath);
+    } catch {
+      test.skip(true, 'No auth state found - run auth setup first');
+    }
+  });
 
   test('should enable Launch button when authenticated', async ({ page }) => {
     // Load with auth state

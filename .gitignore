@@ -132,9 +132,11 @@ tests/e2e/screenshots/
 test-results/
 playwright-report/
 
-# Markdown files (documentation generated separately)
-*.md
-!README.md
+# Markdown files (keep README files, case-insensitive)
+*.[mM][dD]
+*.[mM][aA][rR][kK][dD][oO][wW][nN]
+![rR][eE][aA][dD][mM][eE].[mM][dD]
+![rR][eE][aA][dD][mM][eE].[mM][aA][rR][kK][dD][oO][wW][nN]
 
 # Claude Code
 .claude/

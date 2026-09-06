@@ -154,3 +154,22 @@ playwright-report/
 .vercel/
 .vercel
 .env*
+
+# Local storage setup scripts (at any directory depth)
+setup-storage.sql
+
+# Local research and scratch documents
+/research/
+/notes/
+/scratch/
+
+# Local credentials and private key exports
+credentials/
+secrets/
+credentials.json
+credentials.*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx

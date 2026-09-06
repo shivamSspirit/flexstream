@@ -2,6 +2,8 @@
 
 A full-stack social platform prototype exploring how creator content can connect to token-based participation on Solana.
 
+> **Project showcase:** Read the concise developer story in [project_showcase.md](project_showcase.md), or use the [five-minute interview presentation](INTERVIEW_PRESENTATION.md).
+
 Flexit is designed for creators publishing content and followers discovering creators through a social feed. Posts can be published on their own or with an associated token launch. The repository combines a Next.js application, Supabase persistence and subscriptions, Privy wallet onboarding, and Meteora transaction construction. Prediction markets and swap routing are additional areas of exploration.
 
 **Project status:** a source-reviewable prototype with implemented application flows and incomplete integrations. The strongest review path is post creation, from React state through the API to storage and transaction confirmation. Integration code is not evidence of a verified end-to-end deployment.
@@ -151,4 +153,3 @@ Recorded checks during this source review:
 | 2:30–3:30 | [Meteora client](lib/meteora-dbc.ts) | Platform signing, transaction confirmation, and the database/blockchain boundary. |
 | 3:30–4:30 | [Realtime hook](hooks/useRealtimePosts.ts) | Cache synchronization, profile filtering, and freshness tradeoffs. |
 | 4:30–5:00 | Verification and limitations above | Evidence collected and the next priorities: authorization, idempotency, and recovery. |
-

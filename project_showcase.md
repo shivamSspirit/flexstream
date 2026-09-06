@@ -32,7 +32,7 @@ The repository is a single application, which makes the complete request path ea
 
 ## Current scope
 
-This is a source-reviewable prototype. The post and token creation paths are the best areas to evaluate. Server-side wallet ownership verification, operation idempotency, and blockchain/database reconciliation still need production hardening. Swap signing, Jito status checks, and parts of the prediction experience remain incomplete or use documented fallback behavior.
+This is a source-reviewable prototype. The post and token creation paths are the best areas to evaluate. Server-side wallet ownership verification, operation idempotency, and blockchain/database reconciliation still need production hardening.
 
 ## Where to review the code
 

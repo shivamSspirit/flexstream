@@ -152,11 +152,3 @@ Recorded checks during this source review:
 | 3:30–4:30 | [Realtime hook](hooks/useRealtimePosts.ts) | Cache synchronization, profile filtering, and freshness tradeoffs. |
 | 4:30–5:00 | Verification and limitations above | Evidence collected and the next priorities: authorization, idempotency, and recovery. |
 
-### Technical discussion prompts
-
-- **Why combine Next.js routes with Supabase?** Trace the short UI-to-API-to-data path, then explain the coupling and external-service dependencies.
-- **How is wallet ownership established?** Distinguish Privy client state from the missing server-side proof in the reviewed handlers.
-- **What if a transaction succeeds but persistence fails?** Explain the current warning response and why a durable operation record and reconciliation would be needed.
-- **What prevents duplicate launches?** Separate the existing rate limit from idempotency; the former does not guarantee exactly-once effects.
-- **How does the feed stay current?** Explain query caching and subscriptions, including missed updates and reconnect behavior.
-- **What do the tests establish?** Separate type checking, test discovery, browser assertions, and unverified external integrations.

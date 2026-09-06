@@ -2,7 +2,7 @@
 
 A full-stack social platform prototype exploring how creator content can connect to token-based participation on Solana.
 
-> **Project showcase:** Read the concise developer story in [project_showcase.md](project_showcase.md), or use the [five-minute interview presentation](INTERVIEW_PRESENTATION.md).
+> **Project showcase:** Read the concise developer story in [project_showcase.md](project_showcase.md).
 
 Flexit is designed for creators publishing content and followers discovering creators through a social feed. Posts can be published on their own or with an associated token launch. The repository combines a Next.js application, Supabase persistence and subscriptions, Privy wallet onboarding, and Meteora transaction construction. Prediction markets and swap routing are additional areas of exploration.
 
